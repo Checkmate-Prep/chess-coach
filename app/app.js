@@ -4,6 +4,8 @@ import { ls, idb } from './store.js';
 import { player, syncGames, cachedGames } from './chesscom.js';
 import { buildTree, walk, profile, weakLines, pct } from './stats.js';
 import { reviewGames, reviewCache, summarize, findTraps, cachedTraps, isGoodMove } from './analysis.js';
+import { gamePlan } from './plan.js';
+import { whileAwake } from './engine.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -61,6 +63,13 @@ async function sync(user, btn, statusEl) {
 }
 
 // ---------- shared UI ----------
+// ⓘ explaining what "scores X%" means; the note sits right after the element holding the button
+const scoreInfo = (id) => `<button class="info-btn" type="button" aria-expanded="false" aria-controls="${id}" aria-label="What does 'scores' mean?">ⓘ</button>`;
+const scoreNote = (id) => `<div class="info-note" id="${id}" hidden><p><b>Score</b> is the share of points a player earned: a win counts 1, a draw ½, a loss 0.
+  "Scores 43%" means 43 points out of every 100 games, for example 40 wins and 6 draws.</p>
+  <p>50% is even. For an opponent, lower is better for you; for you, higher is better. Opponents' scores come from their downloaded games against everyone, not just you.</p>
+  <p>Check the number of games next to it: a score from a dozen games is a hint, one from hundreds is solid.</p></div>`;
+
 function stats(items) {
   if (!items.length) return '';
   return `<div class="stats">${items.map(([v, l]) => `<div class="stat"><b>${esc(v)}</b><span>${esc(l)}</span></div>`).join('')}</div>`;
@@ -235,6 +244,7 @@ async function renderOpp(user) {
   const pr = gs?.length ? profile(gs) : null;
   const [tw, tb] = await Promise.all([treeOf(user, 'white'), treeOf(user, 'black')]);
   const [trW, trB] = await Promise.all([cachedTraps(user, 'white'), cachedTraps(user, 'black')]);
+  const [myW, myB] = await Promise.all([treeOf(P.me.user, 'white'), treeOf(P.me.user, 'black')]);
   // head-to-head from your own games (they go further back than a busy opponent's latest 1,500)
   const h2h = ((await gamesOf(P.me.user)) || []).filter((g) => g.opp.toLowerCase() === user);
   const r = h2h.reduce((a, g) => { a[2 - g.pts]++; return a; }, [0, 0, 0]); // your wins, draws, losses
@@ -251,18 +261,20 @@ async function renderOpp(user) {
         <div class="details-body"><div data-line="${i}">${viewerHtml(p.caption)}</div>${p.body.map((b) => `<p>${fig(b)}</p>`).join('')}
         <button class="btn primary" data-drill="line:${esc(user)}:${i}">Drill this line</button></div></details>`).join('')}
       <details><summary><b>Game-day checklist</b></summary><div class="details-body">${list(cur.checklist, 'ol')}</div></details></section>` : ''}
+    ${planHtml(gs?.length ? gamePlan({ pr, tw, tb, trW, trB, myW, myB }) : null, user, cur, trW, trB)}
     ${pr ? `<section class="card"><h2>How he plays</h2>${list(describe(pr, false))}</section>` : ''}
     <section class="card"><h2>Traps: moves he repeats that lose</h2>
       <p class="small muted">Stockfish checks the positions he reaches most often and flags moves he keeps playing that the engine refutes.</p>
       ${trW || trB ? '' : `<button class="btn primary" id="traps" ${tw.n + tb.n ? '' : 'disabled'}>Find traps with Stockfish</button><p class="small muted">Takes 1–3 minutes. It runs on your device. Keep the app open.</p>`}
       ${progress('trap-progress')}
       <div id="trap-list">${trW || trB ? trapsSection(user, trW, trB) : ''}</div></section>
-    <section class="card"><h2>Lines that go badly for him</h2>
+    <section class="card"><h2>Lines that go badly for him ${scoreInfo('si-weak')}</h2>${scoreNote('si-weak')}
       <h3>When he's White</h3>${weakHtml(weakLines(tw), 'white', user)}
       <h3>When he's Black</h3>${weakHtml(weakLines(tb), 'black', user)}</section>
     ${cur ? `<section class="card curated"><p class="eyebrow">Hand-written prep</p><h2>Where he goes wrong</h2>${list(cur.weak)}</section>` : ''}`;
   if (cur) cur.plans.forEach((p, i) => lineViewer($(`[data-line="${i}"]`, view), p.line.split(' '), !!p.flip, p.key_from));
   mountTraps(trW, trB);
+  view.querySelectorAll('[data-plan]').forEach((host) => { const pl = PLAN_LINES[host.dataset.plan]; if (pl) lineViewer(host, pl.line, pl.flipped, pl.keyFrom); });
   if (!ls.get(`player:${user}`, null)) {
     player(user).then((info) => { ls.set(`player:${user}`, info); if (location.hash === `#prep/${user}`) renderOpp(user); }).catch(() => {});
   }
@@ -271,13 +283,40 @@ async function renderOpp(user) {
     e.currentTarget.hidden = true;
     const bar = $('#trap-progress');
     const found = {};
-    for (const [color, tree] of [['white', tw], ['black', tb]]) {
-      found[color] = await findTraps(user, tree, color, (i, n) => setProgress(bar, i, n, `Checking his positions as ${color === 'white' ? 'White' : 'Black'}: ${i} of ${n}`));
+    try {
+      await whileAwake(async () => {
+        for (const [color, tree] of [['white', tw], ['black', tb]]) {
+          found[color] = await findTraps(user, tree, color, (i, n) => setProgress(bar, i, n, `Checking his positions as ${color === 'white' ? 'White' : 'Black'}: ${i} of ${n}`));
+        }
+      });
+    } catch {
+      $('p', bar).innerHTML = '<span class="warn">Stockfish stopped responding.</span> Close other apps or tabs, then open this page again and tap Find traps.';
+      return;
     }
     bar.hidden = true;
-    $('#trap-list').innerHTML = trapsSection(user, found.white, found.black);
-    mountTraps(found.white, found.black);
+    renderOpp(user); // redraw so the game plan picks up the traps
   });
+}
+const PLAN_LINES = {};
+function planHtml(plan, user, cur, trW, trB) {
+  if (!plan) return `<section class="card"><h2>Game plan</h2><p class="small muted">Download his games to build a plan.</p></section>`;
+  const part = (key, title, sidePlan, flipped, trapColor, trapList) => {
+    if (!sidePlan.points.length) return '';
+    PLAN_LINES[key] = sidePlan.line ? { line: sidePlan.line, flipped, keyFrom: sidePlan.keyFrom } : null;
+    const ti = sidePlan.trap ? (trapList || []).indexOf(sidePlan.trap) : -1;
+    return `<h3>${title}</h3>${list(sidePlan.points)}
+      ${sidePlan.line ? `<div data-plan="${key}">${viewerHtml(sidePlan.trap ? 'Gold moves: his repeated mistake and the punishment.' : 'Gold moves: where he goes wrong.')}</div>` : ''}
+      ${ti >= 0 ? `<button class="btn primary" data-drill="trap:${esc(user)}:${trapColor}:${ti}">Drill the trap</button>` : ''}`;
+  };
+  const body = [
+    part('white', 'When you have White', plan.white, false, 'black', trB),
+    part('black', 'When you have Black', plan.black, true, 'white', trW),
+    plan.manage.length ? `<h3>How to play the game</h3>${list(plan.manage)}` : '',
+  ].join('');
+  return `<section class="card plan-card"><h2>Game plan ${scoreInfo('si-plan')}</h2>${scoreNote('si-plan')}
+    <p class="small muted">${cur ? 'Built automatically from his games. The hand-written plan above goes deeper.' : 'Built automatically from his games: every number is counted from his results.'}</p>
+    ${body || '<p class="muted">Not enough games yet for a plan. Download more of his games.</p>'}
+    ${plan.trapsChecked ? '' : '<p class="small muted">Tap <b>Find traps</b> below to add engine-checked traps to this plan.</p>'}</section>`;
 }
 /** Prep landing: every opponent as a row, with main rating, your record and what's been prepared. */
 async function renderOppList() {
@@ -349,7 +388,7 @@ async function renderExplore() {
     ${rows.length ? `<ul class="moves">${rows.map((r) => `<li><button data-san="${esc(r.s)}"><span class="san">${fig(r.s)}</span>
         <span class="bar"><span style="width:${Math.round((100 * r.n) / total)}%"></span></span>
         <span class="num">${r.n}</span><span class="num sc ${r.sc >= 55 ? 'hi' : r.sc <= 45 ? 'lo' : ''}">${r.sc}%</span></button></li>`).join('')}</ul>
-      <p class="muted small">Bar: how often each move was played. %: ${isMe ? 'your' : 'his'} score after it. Tap a move to follow it, or play any move on the board.</p>`
+      <p class="muted small">Bar: how often each move was played. %: ${isMe ? 'your' : 'his'} score after it. ${scoreInfo('si-ex')} Tap a move to follow it, or play any move on the board.</p>${scoreNote('si-ex')}`
       : `<p class="muted">${noGames ? `No games downloaded for ${esc(who)} yet. Download them from the ${isMe ? 'You' : 'Prep'} tab.` : 'No games reach this position.'}</p>`}`;
   $('#ex-who').onchange = (e) => { ex.user = e.target.value; ex.moves = []; saveEx(); renderExplore(); };
   const board = new Board($('.explore-bd'), {
@@ -499,7 +538,7 @@ async function renderMe() {
       <div class="row"><button class="btn primary" id="review" ${gs ? '' : 'disabled'}>Review ${s?.reviewed ? '20 more' : 'my last 20'} games</button><button class="btn" id="stop" hidden>Stop</button></div>
       ${progress('review-progress')}
       <p class="small muted">${s?.reviewed ? `${s.reviewed} games reviewed. ` : ''}About 10 seconds per game. Keep the app open. Reviewed games are saved if you stop.</p></section>
-    <section class="card"><h2>Lines that go badly for you</h2>
+    <section class="card"><h2>Lines that go badly for you ${scoreInfo('si-mine')}</h2>${scoreNote('si-mine')}
       <h3>As White</h3>${weakHtml(weakLines(tw, { minN: 4 }), 'white', user)}
       <h3>As Black</h3>${weakHtml(weakLines(tb, { minN: 4 }), 'black', user)}</section>
     ${cur ? `<section class="card curated"><p class="eyebrow">Hand-written notes</p><h2>Coach's notes</h2><h3>Strengths</h3>${list(cur.strengths)}<h3>Weaknesses</h3>${list(cur.weaknesses)}<h3>Training plan</h3>${list(cur.training, 'ol')}</section>` : ''}`;
@@ -508,7 +547,7 @@ async function renderMe() {
   $('#review').onclick = async (e) => {
     e.currentTarget.hidden = true; $('#stop').hidden = false;
     const bar = $('#review-progress');
-    await reviewGames(user, gs, 20, (i, n, g) => setProgress(bar, i, n, g ? `Game ${i + 1} of ${n}: vs ${g.opp} (${g.tc})` : 'Done'), signal);
+    await whileAwake(() => reviewGames(user, gs, 20, (i, n, g) => setProgress(bar, i, n, g ? `Game ${i + 1} of ${n}: vs ${g.opp} (${g.tc})` : 'Done'), signal));
     renderMe();
   };
   $('#stop').onclick = (e) => { signal.stop = true; e.currentTarget.textContent = 'Stopping after this game…'; };
@@ -549,6 +588,12 @@ async function route() {
 }
 view.addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b) return;
+  if (b.classList.contains('info-btn')) {
+    const note = document.getElementById(b.getAttribute('aria-controls'));
+    const open = b.getAttribute('aria-expanded') !== 'true';
+    b.setAttribute('aria-expanded', String(open)); if (note) note.hidden = !open;
+    return;
+  }
   if (b.dataset.opp) location.hash = `prep/${b.dataset.opp}`;
   if (b.dataset.drill) location.hash = `drill/${encodeURIComponent(b.dataset.drill)}`;
   if (b.dataset.go) location.hash = b.dataset.go;

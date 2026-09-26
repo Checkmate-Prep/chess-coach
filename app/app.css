@@ -126,3 +126,9 @@ a.back{text-decoration:none}
 .opp-edit li{display:grid;gap:4px;padding:0}
 .opp-edit a{text-decoration:none;padding-left:2px}
 .add-form{display:grid;gap:8px;margin:0}
+.plan-card h3{font:600 1rem var(--sans);margin-top:10px}
+.plan-card .btn.primary{justify-self:start}
+.info-btn{font:500 .95rem/1 var(--sans);color:var(--accent);background:none;border:0;padding:4px 6px;margin:-4px 0;vertical-align:middle;cursor:pointer;min-width:32px;min-height:32px}
+.info-btn[aria-expanded="true"]{color:var(--ink)}
+h2 .info-btn{font-size:1.05rem}
+.info-note{display:grid;gap:6px;font-size:.88rem;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
