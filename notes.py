@@ -76,6 +76,7 @@ FRIENDS = {
              ],
              "table": [("3.Bc4 Bc5", 85, "47%"), ("3.Bc4 d6", 14, "25%"), ("3.Nc3 Bc5", 33, "35%"), ("4.Nxe5 Qe7", 10, "60%*")],
              "line": "e4 e5 Nf3 Nf6 Bc4 Bc5 Nxe5 Qe7 Bxf7+ Kf8 d4", "key_from": 6,
+             "watch": {"color": "black", "prefix": "e4 e5 Nf3 Nf6 Bc4", "expect": "Bc5"},
              "caption": "Gold moves are the trap. *His opponents mostly played 5.Nxf7 here, which lets him back into the game."},
             {"eyebrow": "You have Black", "title": "1.e4 e5 2.Nf3 Nc6 3.d4 exd4 4.Nxd4 Nf6!",
              "body": [
@@ -85,6 +86,7 @@ FRIENDS = {
              ],
              "table": [("4…Bc5", 68, "54%"), ("4…Nxd4", 204, "61%"), ("4…Nf6", 20, "40%"), ("6…Bb4", 9, "33%")],
              "line": "e4 e5 Nf3 Nc6 d4 exd4 Nxd4 Nf6 Nxc6 bxc6 Nc3 Bb4 Bd2 Qe7", "flip": True, "key_from": 7,
+             "watch": {"color": "white", "prefix": "e4 e5 Nf3 Nc6", "expect": "d4"},
              "caption": "Board is shown from Black's side."},
         ],
         "checklist": [
@@ -123,6 +125,7 @@ FRIENDS = {
              ],
              "table": [("1.d4 (slower games)", 26, "38%"), ("2.Bf4 Nc6 3.Nc3", 10, "30%"), ("3…Nf6 4.Nb5 (engine)", "–", "+6 unless 4…e5")],
              "line": "d4 d5 Bf4 Nc6 Nc3 Nf6 Nb5 Bf5 Nxc7+ Kd7 Nxa8", "key_from": 6,
+             "watch": {"color": "black", "prefix": "d4 d5 Bf4", "expect": "Nc6"},
              "caption": "Gold moves are the trap, shown with 4…Bf5. The same fork works after …e6, …Bg4 or …a6."},
             {"eyebrow": "You have Black", "title": "1.e4 c6! The Caro-Kann against 2.Nc3",
              "body": [
@@ -133,6 +136,7 @@ FRIENDS = {
              ],
              "table": [("2.Nc3 d5 3.exd5 cxd5 4.d4", 91, "35%"), ("…5.Be3 Bf5", 5, "10%"), ("3.Nf3 dxe4 4.Nxe4 Bf5 5.d3", 8, "25%")],
              "line": "e4 c6 Nc3 d5 exd5 cxd5 d4 Nf6 Be3 Bf5 Nf3 e6", "flip": True, "key_from": 1,
+             "watch": {"color": "white", "prefix": "e4 c6", "expect": "Nc3"},
              "caption": "Board is shown from Black's side."},
         ],
         "checklist": [
