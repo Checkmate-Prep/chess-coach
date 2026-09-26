@@ -31,18 +31,20 @@ Players are set in `coach.py` (`ME`, `FRIENDS`). The engine analysis is cached p
 | `explore.py` | What a player chose next from any position, and their score |
 | `notes.py` | The coach's written conclusions and prepared lines |
 | `build_report.py` | Renders the prep book (`report.html`) |
-| `build_app.py` | Packages the prep and opening trees for the phone app (`app/prep.json`) |
+| `build_app.py` | Packages the hand-written prep for the phone app (`app/prep.json`) and versions its offline cache |
 
 ## Phone app
 
-`app/` is an installable web app (PWA) for your phone, published at https://simonletort.github.io/chess-coach/. Open it on the phone and choose **Add to Home Screen**.
+`app/` is an installable web app (PWA), published at https://simonletort.github.io/chess-coach/. Open it on a phone and choose **Add to Home Screen**. Anyone can use it: enter your chess.com username, then add the people you play. There's no login, because everything used is public on chess.com.
 
-- **Prep**: game plans for each friend, trap lines on a board you can step through, and a **Refresh** button that loads their latest chess.com games. "Watch" lines say whether they still play the move the trap relies on.
-- **Explore**: tap through an opening and see what a friend (or you) played next and how they scored, with new games counted in.
-- **Drill**: play the trap lines from memory, and solve the positions you missed in your own games.
-- **You**: your strengths, weaknesses and training plan.
+- **Prep:** an automatic file on each opponent, built on the phone from up to 1,500 of their recent games. It covers ratings, your head-to-head record, how they play, and the lines where they score badly. **Find traps** runs Stockfish on the phone over the positions they reach most often and flags moves they keep repeating that the engine refutes, with the punishing line.
+- **Explore:** tap through an opening and see what an opponent (or you) played next and how it scored.
+- **Drill:** punish each opponent's traps, play prepared lines from memory, and solve positions from your own games. Wrong answers are checked by the engine, so an equally good move also counts.
+- **You:** your profile plus an engine review of your games (blunders by phase, converting wins, punishing blunders, the clock). Your worst moments become puzzles.
 
-It works offline after the first visit. Stockfish analysis still runs on the Mac: `python3 coach.py refresh` rebuilds `app/prep.json`, and pushing `app/` to `main` redeploys the site.
+Everything is stored in the phone's browser (IndexedDB). The engine is Stockfish 19 lite (single-threaded WASM, about 1.8 MB) in a Web Worker. It runs at roughly 10 seconds per game review and 1–3 minutes per trap scan on a phone.
+
+The hand-written prep in `notes.py` still ships in `app/prep.json`. It shows up as "Hand-written prep" for the opponents it covers, and it's added automatically when the player it was written for sets up the app. `python3 coach.py refresh` rebuilds it; pushing `app/` to `main` redeploys the site.
 
 ## Limits
 

@@ -1,7 +1,7 @@
 {
   "name": "Chess Prep",
   "short_name": "Chess Prep",
-  "description": "Opening prep, traps and drills for games against Etienne and Greg.",
+  "description": "Opening prep, traps and drills for your games against the people you play on chess.com.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

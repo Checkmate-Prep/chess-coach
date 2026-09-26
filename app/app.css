@@ -73,3 +73,30 @@ th:not(:first-child),td:not(:first-child){text-align:right}
 .tabbar a{flex:1;max-width:140px;display:grid;justify-items:center;gap:1px;padding:4px 0;color:var(--muted);text-decoration:none;font:500 .72rem var(--sans)}
 .tabbar a span{font-size:1.35rem;line-height:1.2}
 .tabbar a[aria-current="true"]{color:var(--accent)}
+h3{font:600 .95rem var(--sans);margin:6px 0 0}
+input{font:16px var(--sans);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:10px 12px;min-height:44px;flex:1;min-width:0}
+input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+label{display:block}
+form.row{margin:0}
+.plain{list-style:none;padding:0;gap:6px}
+.plain li{padding:4px 0}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font:500 .9rem var(--sans);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:7px 12px;min-height:38px}
+.progress{display:grid;gap:6px}
+.pbar{height:8px;background:var(--line);border-radius:4px;overflow:hidden}
+.pbar span{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
+.lines{list-style:none;padding:0;gap:6px}
+.lines button{width:100%;display:grid;gap:2px;text-align:left;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--ink);font:inherit}
+.lo{color:var(--bad)}
+.trap{display:grid;gap:10px;padding-top:14px;border-top:1px solid var(--line)}
+.trap:first-child{border-top:0;padding-top:0}
+.curated{border-color:color-mix(in srgb,var(--gold) 45%,var(--line))}
+details{border-top:1px solid var(--line);padding-top:10px}
+summary{cursor:pointer;list-style:none;padding:4px 0}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"＋";float:right;color:var(--muted)}
+details[open] summary::after{content:"－"}
+.details-body{display:grid;gap:10px;padding-top:8px}
+body.no-tabs .tabbar{display:none}
+body.no-tabs .view{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 32px)}
+@media (prefers-reduced-motion:reduce){.pbar span{transition:none}}
