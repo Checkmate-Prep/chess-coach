@@ -7,3 +7,4 @@ data/*
 report.html
 __pycache__/
 .DS_Store
+.claude/

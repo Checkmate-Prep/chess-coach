@@ -1,7 +1,7 @@
 """One-command refresh: download latest games, engine-analyze new ones, rebuild profiles.
 
 Usage:
-  python3 coach.py refresh                 # you + all friends
+  python3 coach.py refresh                 # you + all friends, then rebuild report + app
   python3 coach.py refresh pepex654        # one player
   python3 coach.py explore pepex654 black "e4 e5 Nf3 Nf6"
 """
@@ -27,5 +27,7 @@ if __name__ == "__main__":
     if cmd == "refresh":
         for u in sys.argv[2:] or [ME, *FRIENDS]:
             refresh(u)
+        run("build_report.py")
+        run("build_app.py")
     elif cmd == "explore":
         run("explore.py", *sys.argv[2:])
