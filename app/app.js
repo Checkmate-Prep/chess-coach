@@ -197,8 +197,7 @@ async function renderOpp(user) {
     view.innerHTML = '<header class="head"><h1>Prep</h1><p class="lede">Add the people you play to get a file on each of them.</p></header><a class="btn primary" href="#setup">Add opponents</a>';
     return;
   }
-  if (!P.opps.some((o) => o.user === user)) user = ls.get('opp', null);
-  if (!P.opps.some((o) => o.user === user)) user = P.opps[0].user;
+  if (!P.opps.some((o) => o.user === user)) return renderOppList();
   ls.set('opp', user);
   const cur = curated(user);
   const gs = await gamesOf(user);
@@ -211,7 +210,7 @@ async function renderOpp(user) {
   const r = h2h.reduce((a, g) => { a[2 - g.pts]++; return a; }, [0, 0, 0]); // your wins, draws, losses
   const name = oppName(user);
   view.innerHTML = `
-    ${P.opps.length > 1 ? seg('opp', P.opps.map((o) => [o.user, curated(o.user)?.name || o.username]), user) : ''}
+    <a class="back" href="#prep">◀ Opponents</a>
     <header class="head"><p class="eyebrow">chess.com/${esc(name)}</p><h1>${esc(cur?.name || name)}</h1>
       ${cur ? `<p class="lede">${fig(cur.summary)}</p>` : ''}</header>
     ${stats([...ratingStats(user), ...(h2h.length ? [[`${r[0]}–${r[1]}–${r[2]}`, 'Your record vs him (W–D–L)']] : [])])}
@@ -235,7 +234,7 @@ async function renderOpp(user) {
   if (cur) cur.plans.forEach((p, i) => lineViewer($(`[data-line="${i}"]`, view), p.line.split(' '), !!p.flip, p.key_from));
   mountTraps(trW, trB);
   if (!ls.get(`player:${user}`, null)) {
-    player(user).then((info) => { ls.set(`player:${user}`, info); if (location.hash.endsWith(user) || ls.get('opp') === user) renderOpp(user); }).catch(() => {});
+    player(user).then((info) => { ls.set(`player:${user}`, info); if (location.hash === `#prep/${user}`) renderOpp(user); }).catch(() => {});
   }
   $('#sync').onclick = async (e) => { if (await sync(user, e.currentTarget, $('#sync-status'))) renderOpp(user); };
   $('#traps')?.addEventListener('click', async (e) => {
@@ -249,6 +248,36 @@ async function renderOpp(user) {
     $('#trap-list').innerHTML = trapsSection(user, found.white, found.black);
     mountTraps(found.white, found.black);
   });
+}
+/** Prep landing: every opponent as a row, with main rating, your record and what's been prepared. */
+async function renderOppList() {
+  if (!P.opps.length) {
+    view.innerHTML = '<header class="head"><h1>Prep</h1><p class="lede">Add the people you play to get a file on each of them.</p></header><a class="btn primary" href="#setup">Add opponents</a>';
+    return;
+  }
+  const mine = (await gamesOf(P.me.user)) || [];
+  const rows = await Promise.all(P.opps.map(async (o) => {
+    const info = ls.get(`player:${o.user}`, null);
+    const games = (r) => r.w + r.l + r.d;
+    const main = Object.entries(info?.ratings || {}).sort((a, b) => games(b[1]) - games(a[1]))[0];
+    const vs = mine.filter((g) => g.opp.toLowerCase() === o.user);
+    const rec = vs.reduce((a, g) => { a[2 - g.pts]++; return a; }, [0, 0, 0]);
+    const traps = ((await cachedTraps(o.user, 'white')) || []).length + ((await cachedTraps(o.user, 'black')) || []).length;
+    return { o, cur: curated(o.user), main, rec: vs.length ? rec : null, traps, info };
+  }));
+  view.innerHTML = `<header class="head"><h1>Prep</h1><p class="lede">Pick an opponent to open their file.</p></header>
+    <ul class="opps">${rows.map(({ o, cur, main, rec, traps }) => `<li><a href="#prep/${esc(o.user)}">
+      <span class="opp-top"><b>${esc(cur?.name || o.username)}</b>${cur ? ` <span class="muted small">${esc(o.username)}</span>` : ''}<span class="chev" aria-hidden="true">›</span></span>
+      <span class="small muted">${[main ? `${TC[main[0]]} ${main[1].r}` : '', rec ? `you ${rec[0]}–${rec[1]}–${rec[2]}` : ''].filter(Boolean).join(' · ') || 'Not downloaded yet'}</span>
+      ${traps || cur ? `<span class="badges">${traps ? `<span class="badge trap-badge">${traps} trap${traps > 1 ? 's' : ''} found</span>` : ''}${cur ? '<span class="badge">Hand-written prep</span>' : ''}</span>` : ''}
+    </a></li>`).join('')}
+    <li><a href="#setup" class="add-row">＋ Add opponent</a></li></ul>`;
+  // ratings for opponents added without a lookup (e.g. the hand-written ones): fetch once, then redraw
+  const missing = rows.filter((r) => !r.info).map((r) => r.o.user);
+  if (missing.length) {
+    Promise.all(missing.map((u) => player(u).then((info) => ls.set(`player:${u}`, info)).catch(() => {})))
+      .then(() => { if ((location.hash || '#me') === '#prep') renderOppList(); });
+  }
 }
 function trapsSection(user, w, b) {
   const all = [...(w || []).map((t, i) => trapHtml(t, `white:${i}`, user, 'white')), ...(b || []).map((t, i) => trapHtml(t, `black:${i}`, user, 'black'))];
@@ -280,7 +309,8 @@ async function renderExplore() {
   const theirTurn = game.turn() === (ex.color === 'white' ? 'w' : 'b');
   const noGames = !(await gamesOf(ex.user)) && !curated(ex.user) && !(isMe && PREP.me?.user === ex.user);
   view.innerHTML = `
-    ${seg('who', people, ex.user)}
+    <label class="picker" for="ex-who"><span class="eyebrow">Exploring</span>
+      <select id="ex-who">${people.map(([u, l]) => `<option value="${esc(u)}"${u === ex.user ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></label>
     ${seg('color', [['white', `${who} as White`], ['black', `${who} as Black`]], ex.color)}
     <div class="bd explore-bd"></div>
     <div class="path mono">${ex.moves.length ? fig(numbered(ex.moves)) : 'Starting position'}</div>
@@ -291,6 +321,7 @@ async function renderExplore() {
         <span class="num">${r.n}</span><span class="num sc ${r.sc >= 55 ? 'hi' : r.sc <= 45 ? 'lo' : ''}">${r.sc}%</span></button></li>`).join('')}</ul>
       <p class="muted small">Bar: how often each move was played. %: ${isMe ? 'your' : 'his'} score after it. Tap a move to follow it, or play any move on the board.</p>`
       : `<p class="muted">${noGames ? `No games downloaded for ${esc(who)} yet. Download them from the ${isMe ? 'You' : 'Prep'} tab.` : 'No games reach this position.'}</p>`}`;
+  $('#ex-who').onchange = (e) => { ex.user = e.target.value; ex.moves = []; saveEx(); renderExplore(); };
   const board = new Board($('.explore-bd'), {
     game, flipped: isMe ? ex.color === 'black' : ex.color === 'white',
     onMove: (m) => { ex.moves.push(game.move(m).san); saveEx(); renderExplore(); },
@@ -478,7 +509,8 @@ async function route() {
     else if (tab === 'explore') await renderExplore();
     else if (tab === 'drill') await (arg ? renderDrill(decodeURIComponent(arg)) : renderDrillList());
     else if (tab === 'me') await renderMe();
-    else await renderOpp(arg ? decodeURIComponent(arg) : null);
+    else if (arg) await renderOpp(decodeURIComponent(arg));
+    else await renderOppList();
   } catch (e) {
     console.error(e);
     view.innerHTML = `<p class="warn">Something went wrong: ${esc(e.message)}</p>`;
