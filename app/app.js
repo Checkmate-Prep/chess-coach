@@ -36,6 +36,13 @@ async function treeOf(user, color) {
 }
 const curated = (user) => PREP.friends.find((f) => f.user === user);
 const oppName = (user) => P?.opps.find((o) => o.user === user)?.username || user;
+/** Name shown for an opponent: the one set in Settings (may be cleared), else the hand-written prep's, else the username. */
+const displayName = (user) => {
+  const o = P?.opps.find((x) => x.user === user);
+  if (o && 'name' in o) return o.name || o.username;
+  return curated(user)?.name || o?.username || user;
+};
+const hasAlias = (user) => displayName(user).toLowerCase() !== oppName(user).toLowerCase();
 function invalidate(user) { delete games[user]; delete trees[`${user}:white`]; delete trees[`${user}:black`]; }
 
 async function sync(user, btn, statusEl) {
@@ -117,8 +124,13 @@ async function renderSetup(first = false) {
       <div class="row"><input id="me-input" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(me?.username || '')}" placeholder="e.g. hikaru" required><button class="btn primary">${me ? 'Change' : 'Continue'}</button></div>
       <p class="small" id="me-status" aria-live="polite"></p></form>
     ${me ? `<section class="card"><h2>Opponents</h2>
-      ${P.opps.length ? `<ul class="plain">${P.opps.map((o) => `<li class="row"><a href="#prep/${esc(o.user)}">${esc(curated(o.user)?.name || o.username)}${curated(o.user) ? ` <span class="muted small">${esc(o.username)}</span>` : ''}</a><button class="btn" data-remove="${esc(o.user)}" aria-label="Remove ${esc(o.username)}">Remove</button></li>`).join('')}</ul>` : '<p class="muted">No opponents yet.</p>'}
-      <form id="opp-form" class="row"><input id="opp-input" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Opponent's username" required aria-label="Opponent's chess.com username"><button class="btn primary">Add</button></form>
+      ${P.opps.length ? `<ul class="plain opp-edit">${P.opps.map((o) => `<li>
+        <div class="row"><input id="name-${esc(o.user)}" data-name="${esc(o.user)}" value="${esc(hasAlias(o.user) ? displayName(o.user) : '')}" placeholder="Add a name" aria-label="Name for ${esc(o.username)}" autocomplete="off">
+          <button class="btn" data-remove="${esc(o.user)}" aria-label="Remove ${esc(o.username)}">Remove</button></div>
+        <a class="small muted" href="#prep/${esc(o.user)}">chess.com/${esc(o.username)}</a></li>`).join('')}</ul>
+      <p class="small muted" id="name-status" aria-live="polite">Names are only shown in this app.</p>` : '<p class="muted">No opponents yet.</p>'}
+      <form id="opp-form" class="add-form"><input id="opp-input" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Opponent's chess.com username" required aria-label="Opponent's chess.com username">
+        <div class="row"><input id="opp-name" autocomplete="off" placeholder="Name (optional)" aria-label="Name for this opponent (optional)"><button class="btn primary">Add</button></div></form>
       <p class="small" id="opp-status" aria-live="polite"></p>
       ${suggestions.length ? `<p class="small muted">People you've played most:</p><div class="chips">${suggestions.map(([u, n]) => `<button class="chip" data-add="${esc(u)}">${esc(u)} <span class="muted">${n}</span></button>`).join('')}</div>` : ''}
     </section>
@@ -133,25 +145,33 @@ async function renderSetup(first = false) {
     const info = ls.get(`player:${user}`);
     const opps = P?.opps || [];
     // first run for the player this app's hand-written prep was made for: add those opponents
-    if (!P && PREP.me?.user === user) for (const f of PREP.friends) opps.push({ user: f.user, username: f.user });
+    if (!P && PREP.me?.user === user) for (const f of PREP.friends) opps.push({ user: f.user, username: f.user, name: f.name });
     P = { me: { user, username: info.username }, opps };
     ls.set('profile', P);
     if (first) location.hash = opps.length ? 'me' : 'setup'; else renderSetup();
     if (first && location.hash === '#setup') renderSetup();
   };
   if (!me) return;
-  const add = async (user, st) => {
-    user = user.trim().toLowerCase();
+  const add = async (user, st, name = '') => {
+    user = user.trim().toLowerCase(); name = name.trim();
     if (!user || P.opps.some((o) => o.user === user) || user === P.me.user) return;
     st.textContent = `Looking up ${user}…`;
     try {
       const info = await player(user);
       ls.set(`player:${user}`, info);
-      P.opps.push({ user, username: info.username }); ls.set('profile', P);
+      P.opps.push({ user, username: info.username, ...(name ? { name } : {}) }); ls.set('profile', P);
       location.hash = `prep/${user}`;
     } catch (e) { st.innerHTML = `<span class="warn">${e.code === 404 ? `chess.com has no player called ${esc(user)}.` : "Couldn't reach chess.com."}</span>`; }
   };
-  $('#opp-form').onsubmit = (e) => { e.preventDefault(); add($('#opp-input').value, $('#opp-status')); };
+  $('#opp-form').onsubmit = (e) => { e.preventDefault(); add($('#opp-input').value, $('#opp-status'), $('#opp-name').value); };
+  view.querySelectorAll('[data-name]').forEach((inp) => {
+    inp.onchange = () => {
+      const o = P.opps.find((x) => x.user === inp.dataset.name); if (!o) return;
+      o.name = inp.value.trim(); ls.set('profile', P);
+      $('#name-status').textContent = o.name ? `Saved: ${o.username} is shown as ${o.name}.` : `Saved: ${o.username} is shown by username.`;
+    };
+    inp.onkeydown = (e) => { if (e.key === 'Enter') inp.blur(); };
+  });
   view.querySelectorAll('[data-add]').forEach((b) => { b.onclick = () => add(b.dataset.add, $('#opp-status')); });
   view.querySelectorAll('[data-remove]').forEach((b) => { b.onclick = () => { P.opps = P.opps.filter((o) => o.user !== b.dataset.remove); ls.set('profile', P); renderSetup(); }; });
   $('#clear-data').onclick = async () => { await idb.clear(); Object.keys(games).forEach(invalidate); $('#clear-status').textContent = 'Cleared.'; };
@@ -211,7 +231,7 @@ async function renderOpp(user) {
   const name = oppName(user);
   view.innerHTML = `
     <a class="back" href="#prep">◀ Opponents</a>
-    <header class="head"><h1>${esc(cur?.name || name)}</h1><a class="eyebrow profile-link" href="https://www.chess.com/member/${encodeURIComponent(name)}" target="_blank" rel="noopener">chess.com/${esc(name)}</a>
+    <header class="head"><h1>${esc(displayName(user))}</h1><a class="eyebrow profile-link" href="https://www.chess.com/member/${encodeURIComponent(name)}" target="_blank" rel="noopener">chess.com/${esc(name)}</a>
       ${cur ? `<p class="lede">${fig(cur.summary)}</p>` : ''}</header>
     ${stats([...ratingStats(user), ...(h2h.length ? [[`${r[0]}–${r[1]}–${r[2]}`, 'Your record vs him (W–D–L)']] : [])])}
     <section class="card"><div class="row"><h2>Games</h2><button class="btn" id="sync">${gs ? 'Refresh' : 'Download games'}</button></div>
@@ -267,7 +287,7 @@ async function renderOppList() {
   }));
   view.innerHTML = `<header class="head"><h1>Prep</h1><p class="lede">Pick an opponent to open their file.</p></header>
     <ul class="opps">${rows.map(({ o, cur, main, rec, traps }) => `<li><a href="#prep/${esc(o.user)}">
-      <span class="opp-top"><b>${esc(cur?.name || o.username)}</b>${cur ? ` <span class="muted small">${esc(o.username)}</span>` : ''}<span class="chev" aria-hidden="true">›</span></span>
+      <span class="opp-top"><b>${esc(displayName(o.user))}</b>${hasAlias(o.user) ? ` <span class="muted small">${esc(o.username)}</span>` : ''}<span class="chev" aria-hidden="true">›</span></span>
       <span class="small muted">${[main ? `${TC[main[0]]} ${main[1].r}` : '', rec ? `you ${rec[0]}–${rec[1]}–${rec[2]}` : ''].filter(Boolean).join(' · ') || 'Not downloaded yet'}</span>
       ${traps || cur ? `<span class="badges">${traps ? `<span class="badge trap-badge">${traps} trap${traps > 1 ? 's' : ''} found</span>` : ''}${cur ? '<span class="badge">Hand-written prep</span>' : ''}</span>` : ''}
     </a></li>`).join('')}
@@ -296,10 +316,10 @@ function mountTraps(w, b) {
 const ex = ls.get('explore', { user: null, color: 'black', moves: [] });
 const saveEx = () => ls.set('explore', ex);
 async function renderExplore() {
-  const people = [...P.opps.map((o) => [o.user, curated(o.user)?.name || o.username]), [P.me.user, 'You']];
+  const people = [...P.opps.map((o) => [o.user, displayName(o.user)]), [P.me.user, 'You']];
   if (!people.some(([u]) => u === ex.user)) { ex.user = people[0][0]; ex.moves = []; }
   const isMe = ex.user === P.me.user;
-  const who = isMe ? 'You' : curated(ex.user)?.name || oppName(ex.user);
+  const who = isMe ? 'You' : displayName(ex.user);
   const game = new Chess();
   let last = null;
   try { for (const m of ex.moves) last = game.move(m); } catch { ex.moves = []; game.reset(); last = null; }
@@ -335,7 +355,7 @@ async function drills() {
   for (const o of P.opps) {
     for (const color of ['white', 'black']) {
       ((await cachedTraps(o.user, color)) || []).forEach((t, i) => out.push({
-        id: `trap:${o.user}:${color}:${i}`, group: `Traps vs ${o.username}`, kind: 'pos',
+        id: `trap:${o.user}:${color}:${i}`, group: `Traps vs ${displayName(o.user)}`, kind: 'pos',
         title: `${numbered([...t.path, t.played])}. Punish it.`, sub: `He plays this in ${t.times} of ${t.of} games`,
         fen: t.afterFen, best: t.punish[0],
         prompt: `He just played ${t.played}, as he does in ${t.times} of ${t.of} games. Punish it.`,
@@ -343,7 +363,7 @@ async function drills() {
       }));
     }
     const cur = curated(o.user);
-    if (cur) cur.plans.forEach((p, i) => out.push({ id: `line:${o.user}:${i}`, group: `Prepared lines vs ${cur.name}`, kind: 'line', title: p.title, sub: p.eyebrow, plan: p }));
+    if (cur) cur.plans.forEach((p, i) => out.push({ id: `line:${o.user}:${i}`, group: `Prepared lines vs ${displayName(o.user)}`, kind: 'line', title: p.title, sub: p.eyebrow, plan: p }));
   }
   const s = summarize((await gamesOf(P.me.user)) || [], await reviewCache(P.me.user));
   s.puzzles.forEach((pz) => out.push({

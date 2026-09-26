@@ -122,3 +122,7 @@ a.back{text-decoration:none}
 .picker{display:grid;gap:4px}
 .picker select{font:500 1rem var(--sans);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 36px 10px 12px;min-height:46px;appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;background-size:5px 5px;background-repeat:no-repeat}
 .picker select:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.opp-edit{gap:14px}
+.opp-edit li{display:grid;gap:4px;padding:0}
+.opp-edit a{text-decoration:none;padding-left:2px}
+.add-form{display:grid;gap:8px;margin:0}
