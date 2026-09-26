@@ -211,7 +211,7 @@ async function renderOpp(user) {
   const name = oppName(user);
   view.innerHTML = `
     <a class="back" href="#prep">◀ Opponents</a>
-    <header class="head"><p class="eyebrow">chess.com/${esc(name)}</p><h1>${esc(cur?.name || name)}</h1>
+    <header class="head"><h1>${esc(cur?.name || name)}</h1><a class="eyebrow profile-link" href="https://www.chess.com/member/${encodeURIComponent(name)}" target="_blank" rel="noopener">chess.com/${esc(name)}</a>
       ${cur ? `<p class="lede">${fig(cur.summary)}</p>` : ''}</header>
     ${stats([...ratingStats(user), ...(h2h.length ? [[`${r[0]}–${r[1]}–${r[2]}`, 'Your record vs him (W–D–L)']] : [])])}
     <section class="card"><div class="row"><h2>Games</h2><button class="btn" id="sync">${gs ? 'Refresh' : 'Download games'}</button></div>
