@@ -1,6 +1,6 @@
 {
-  "name": "Chess Prep",
-  "short_name": "Chess Prep",
+  "name": "AI Chess Coach",
+  "short_name": "Chess Coach",
   "description": "Opening prep, traps and drills for your games against the people you play on chess.com.",
   "start_url": "./",
   "scope": "./",

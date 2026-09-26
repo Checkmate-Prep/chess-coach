@@ -111,7 +111,7 @@ async function renderSetup(first = false) {
       if (n >= 2 && !P.opps.some((o) => o.user === u) && suggestions.length < 6) suggestions.push([u, n]);
   }
   view.innerHTML = `
-    <header class="head"><p class="eyebrow">${first ? 'Welcome' : `chess.com/${esc(me.username)}`}</p><h1>${first ? 'Chess Prep' : 'Settings'}</h1>
+    <header class="head"><p class="eyebrow">${first ? 'Welcome' : `chess.com/${esc(me.username)}`}</p><h1>${first ? 'Get started' : 'Settings'}</h1>
       <p class="lede">${first ? 'Prepare for games against the people you actually play. Enter your chess.com username, then add your opponents. No password or login: everything used here is public on chess.com.' : 'Change your username or the opponents you prepare for.'}</p></header>
     <form class="card" id="me-form"><label for="me-input"><b>Your chess.com username</b></label>
       <div class="row"><input id="me-input" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(me?.username || '')}" placeholder="e.g. hikaru" required><button class="btn primary">${me ? 'Change' : 'Continue'}</button></div>
@@ -122,7 +122,7 @@ async function renderSetup(first = false) {
       <p class="small" id="opp-status" aria-live="polite"></p>
       ${suggestions.length ? `<p class="small muted">People you've played most:</p><div class="chips">${suggestions.map(([u, n]) => `<button class="chip" data-add="${esc(u)}">${esc(u)} <span class="muted">${n}</span></button>`).join('')}</div>` : ''}
     </section>
-    <section class="card"><h2>Stored on this phone</h2><p class="small muted">Games and engine results are saved in this browser only. Clearing them frees space; they're downloaded again on the next refresh.</p>
+    <section class="card"><h2>Stored locally on this device</h2><p class="small muted">Games and engine results are saved in this browser only. Clearing them frees space; they're downloaded again on the next refresh.</p>
       <button class="btn" id="clear-data">Clear saved games and analysis</button><p class="small" id="clear-status"></p></section>` : ''}`;
 
   $('#me-form').onsubmit = async (e) => {
@@ -225,7 +225,7 @@ async function renderOpp(user) {
     ${pr ? `<section class="card"><h2>How he plays</h2>${list(describe(pr, false))}</section>` : ''}
     <section class="card"><h2>Traps: moves he repeats that lose</h2>
       <p class="small muted">Stockfish checks the positions he reaches most often and flags moves he keeps playing that the engine refutes.</p>
-      ${trW || trB ? '' : `<button class="btn primary" id="traps" ${tw.n + tb.n ? '' : 'disabled'}>Find traps with Stockfish</button><p class="small muted">Takes 1–3 minutes on a phone. Keep the app open.</p>`}
+      ${trW || trB ? '' : `<button class="btn primary" id="traps" ${tw.n + tb.n ? '' : 'disabled'}>Find traps with Stockfish</button><p class="small muted">Takes 1–3 minutes. It runs on your device. Keep the app open.</p>`}
       ${progress('trap-progress')}
       <div id="trap-list">${trW || trB ? trapsSection(user, trW, trB) : ''}</div></section>
     <section class="card"><h2>Lines that go badly for him</h2>
@@ -437,7 +437,7 @@ async function renderMe() {
         ${list(insights(s))}` : '<p class="small muted">Stockfish goes through your games move by move and finds where you lose the most. Your worst moments become puzzles in Drill.</p>'}
       <div class="row"><button class="btn primary" id="review" ${gs ? '' : 'disabled'}>Review ${s?.reviewed ? '20 more' : 'my last 20'} games</button><button class="btn" id="stop" hidden>Stop</button></div>
       ${progress('review-progress')}
-      <p class="small muted">${s?.reviewed ? `${s.reviewed} games reviewed. ` : ''}About 10 seconds per game on a phone. Keep the app open; finished games are saved if you stop.</p></section>
+      <p class="small muted">${s?.reviewed ? `${s.reviewed} games reviewed. ` : ''}About 10 seconds per game. Keep the app open; finished games are saved if you stop.</p></section>
     <section class="card"><h2>Lines that go badly for you</h2>
       <h3>As White</h3>${weakHtml(weakLines(tw, { minN: 4 }), 'white', user)}
       <h3>As Black</h3>${weakHtml(weakLines(tb, { minN: 4 }), 'black', user)}</section>
