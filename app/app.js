@@ -111,13 +111,13 @@ async function renderSetup(first = false) {
       if (n >= 2 && !P.opps.some((o) => o.user === u) && suggestions.length < 6) suggestions.push([u, n]);
   }
   view.innerHTML = `
-    <header class="head"><p class="eyebrow">${first ? 'Welcome' : 'Settings'}</p><h1>${first ? 'Chess Prep' : 'Players'}</h1>
+    <header class="head"><p class="eyebrow">${first ? 'Welcome' : `chess.com/${esc(me.username)}`}</p><h1>${first ? 'Chess Prep' : 'Settings'}</h1>
       <p class="lede">${first ? 'Prepare for games against the people you actually play. Enter your chess.com username, then add your opponents. No password or login: everything used here is public on chess.com.' : 'Change your username or the opponents you prepare for.'}</p></header>
     <form class="card" id="me-form"><label for="me-input"><b>Your chess.com username</b></label>
       <div class="row"><input id="me-input" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(me?.username || '')}" placeholder="e.g. hikaru" required><button class="btn primary">${me ? 'Change' : 'Continue'}</button></div>
       <p class="small" id="me-status" aria-live="polite"></p></form>
     ${me ? `<section class="card"><h2>Opponents</h2>
-      ${P.opps.length ? `<ul class="plain">${P.opps.map((o) => `<li class="row"><a href="#prep/${esc(o.user)}">${esc(o.username)}</a><button class="btn" data-remove="${esc(o.user)}" aria-label="Remove ${esc(o.username)}">Remove</button></li>`).join('')}</ul>` : '<p class="muted">No opponents yet.</p>'}
+      ${P.opps.length ? `<ul class="plain">${P.opps.map((o) => `<li class="row"><a href="#prep/${esc(o.user)}">${esc(curated(o.user)?.name || o.username)}${curated(o.user) ? ` <span class="muted small">${esc(o.username)}</span>` : ''}</a><button class="btn" data-remove="${esc(o.user)}" aria-label="Remove ${esc(o.username)}">Remove</button></li>`).join('')}</ul>` : '<p class="muted">No opponents yet.</p>'}
       <form id="opp-form" class="row"><input id="opp-input" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Opponent's username" required aria-label="Opponent's chess.com username"><button class="btn primary">Add</button></form>
       <p class="small" id="opp-status" aria-live="polite"></p>
       ${suggestions.length ? `<p class="small muted">People you've played most:</p><div class="chips">${suggestions.map(([u, n]) => `<button class="chip" data-add="${esc(u)}">${esc(u)} <span class="muted">${n}</span></button>`).join('')}</div>` : ''}
@@ -421,7 +421,7 @@ async function renderMe() {
   const [tw, tb] = await Promise.all([treeOf(user, 'white'), treeOf(user, 'black')]);
   const ph = s?.phases;
   view.innerHTML = `
-    <header class="head"><div class="row"><p class="eyebrow">chess.com/${esc(P.me.username)}</p><a class="small" href="#setup">Settings</a></div><h1>You</h1>
+    <header class="head"><p class="eyebrow">chess.com/${esc(P.me.username)}</p><h1>You</h1>
       ${cur ? `<p class="lede">${fig(cur.summary)}</p>` : ''}</header>
     ${stats(ratingStats(user))}
     <section class="card"><div class="row"><h2>Games</h2><button class="btn" id="sync">${gs ? 'Refresh' : 'Download games'}</button></div>
