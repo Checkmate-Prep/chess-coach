@@ -46,6 +46,14 @@ Everything is stored in the device's browser (IndexedDB). The engine is Stockfis
 
 The hand-written prep in `notes.py` still ships in `app/prep.json`. It shows up as "Hand-written prep" for the opponents it covers, and it's added automatically when the player it was written for sets up the app. `python3 coach.py refresh` rebuilds it; pushing `app/` to `main` redeploys the site.
 
+### Developing the app
+
+```bash
+npx live-server app --port=8766
+```
+
+This serves `app/` at http://localhost:8766 and reloads the page on every save. Offline mode is turned off on `localhost` so edits always show up; it only runs on the published site.
+
 ## Limits
 
 chess.com's public API exposes puzzle ratings but not puzzle history, so tactical drills come from positions in your real games.

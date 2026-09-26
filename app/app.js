@@ -502,5 +502,11 @@ window.addEventListener('hashchange', route);
 (async () => {
   try { PREP = await (await fetch('prep.json')).json(); } catch { /* hand-written prep is optional */ }
   route();
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  // Offline mode only on the real site: on localhost it would serve stale files during development,
+  // so remove any worker and cache an earlier local run installed.
+  const local = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+  if (!('serviceWorker' in navigator)) return;
+  if (!local) { navigator.serviceWorker.register('sw.js').catch(() => {}); return; }
+  navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => r.unregister())).catch(() => {});
+  if (window.caches) caches.keys().then((ks) => ks.filter((k) => k.startsWith('chess-prep-')).forEach((k) => caches.delete(k))).catch(() => {});
 })();
