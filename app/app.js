@@ -111,7 +111,7 @@ async function renderSetup(first = false) {
       if (n >= 2 && !P.opps.some((o) => o.user === u) && suggestions.length < 6) suggestions.push([u, n]);
   }
   view.innerHTML = `
-    <header class="head"><p class="eyebrow">${first ? 'Welcome' : `chess.com/${esc(me.username)}`}</p><h1>${first ? 'Get started' : 'Settings'}</h1>
+    <header class="head">${first ? '<p class="eyebrow">Welcome</p>' : ''}<h1>${first ? 'Get started' : 'Settings'}</h1>
       <p class="lede">${first ? 'Prepare for games against the people you actually play. Enter your chess.com username, then add your opponents. No password or login: everything used here is public on chess.com.' : 'Change your username or the opponents you prepare for.'}</p></header>
     <form class="card" id="me-form"><label for="me-input"><b>Your chess.com username</b></label>
       <div class="row"><input id="me-input" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(me?.username || '')}" placeholder="e.g. hikaru" required><button class="btn primary">${me ? 'Change' : 'Continue'}</button></div>
