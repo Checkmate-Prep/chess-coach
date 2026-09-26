@@ -1,5 +1,5 @@
-// Offline support: app shell cache-first, prep.json network-first, chess.com always live.
-const CACHE = 'chess-prep-bc893b4924';
+// Offline support: app shell cache-first, prep.json network-first, chess.com and /api/ always live.
+const CACHE = 'chess-prep-4fd5c50ad9';
 const SHELL = ['./', 'index.html', 'app.css', 'app.js', 'board.js', 'pieces.js', 'store.js', 'chesscom.js', 'stats.js', 'engine.js', 'analysis.js',
   'vendor/chess.js', 'vendor/stockfish/stockfish-19-lite-single.js', 'vendor/stockfish/stockfish-19-lite-single.wasm', 'prep.json',
   'manifest.webmanifest', 'icon.svg', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
@@ -26,7 +26,7 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   if (LOCAL) return;
   const url = new URL(e.request.url);
-  if (e.request.method !== 'GET' || url.hostname === 'api.chess.com') return;
+  if (e.request.method !== 'GET' || url.hostname === 'api.chess.com' || url.pathname.includes('/api/')) return;
   if (url.origin === location.origin && url.pathname.endsWith('prep.json')) {
     e.respondWith(fetch(e.request).then((r) => { const copy = r.clone(); caches.open(CACHE).then((c) => c.put(e.request, copy)); return r; })
       .catch(() => caches.match(e.request)));

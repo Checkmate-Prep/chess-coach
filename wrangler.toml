@@ -1,0 +1,46 @@
+# Cloudflare Worker that serves app/ and the /api endpoints (worker/index.js).
+# Top level = local development (`npm run dev`). Deploys always name an environment:
+#   npx wrangler deploy --env dev|test|production   (normally done by .github/workflows/deploy.yml)
+# Secrets are not in this file: ANTHROPIC_API_KEY comes from .dev.vars locally and from the
+# matching GitHub Environment on deploy.
+name = "chess-coach-local"
+main = "worker/index.js"
+compatibility_date = "2026-09-01"
+workers_dev = true
+preview_urls = false
+
+[assets]
+directory = "./app"
+binding = "ASSETS"
+run_worker_first = ["/api/*"]
+
+# Bindings and vars don't inherit, so each environment lists its own.
+# KV namespaces without an id are created on the first deploy.
+[vars]
+MODEL = "claude-sonnet-5"
+DAILY_LIMIT = "100"
+PER_IP_DAILY = "100"
+[[kv_namespaces]]
+binding = "PREP"
+[[ratelimits]]
+name = "BURST"
+namespace_id = "1000"
+simple = { limit = 10, period = 60 }
+
+[env.dev]
+name = "chess-coach-dev"
+vars = { MODEL = "claude-sonnet-5", DAILY_LIMIT = "50", PER_IP_DAILY = "20" }
+kv_namespaces = [{ binding = "PREP" }]
+ratelimits = [{ name = "BURST", namespace_id = "1001", simple = { limit = 3, period = 60 } }]
+
+[env.test]
+name = "chess-coach-test"
+vars = { MODEL = "claude-sonnet-5", DAILY_LIMIT = "50", PER_IP_DAILY = "20" }
+kv_namespaces = [{ binding = "PREP" }]
+ratelimits = [{ name = "BURST", namespace_id = "1002", simple = { limit = 3, period = 60 } }]
+
+[env.production]
+name = "chess-coach"
+vars = { MODEL = "claude-opus-5", FALLBACKS = "default", DAILY_LIMIT = "40", PER_IP_DAILY = "5" }
+kv_namespaces = [{ binding = "PREP" }]
+ratelimits = [{ name = "BURST", namespace_id = "1003", simple = { limit = 2, period = 60 } }]

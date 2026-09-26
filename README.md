@@ -46,6 +46,38 @@ Everything is stored in the device's browser (IndexedDB). The engine is Stockfis
 
 The hand-written prep in `notes.py` still ships in `app/prep.json`. It shows up as "Hand-written prep" for the opponents it covers, and it's added automatically when the player it was written for sets up the app. `python3 coach.py refresh` rebuilds it; pushing `app/` to `main` redeploys the site.
 
+### AI-written prep
+
+On an opponent's Prep page, **Write the plan** sends their statistics, lines, head-to-head record and any traps Stockfish found to Claude, which writes a plan in the same format as the hand-written prep. The plan is saved on the device, and its lines show up in Drill.
+
+The Anthropic API key can't live in a public website, so the app is also served by a Cloudflare Worker (`worker/index.js`) that holds the key and calls Claude. The button only appears when the app is served by that Worker. On GitHub Pages and on a plain static server it stays hidden.
+
+The Worker limits cost in four ways. It only accepts requests from the app's own origin. It has a per-minute rate limit per IP address. It has daily caps per IP address and overall. It caches each plan for 30 days, so identical statistics never pay twice. The real backstop is a spend limit on the Anthropic workspace that holds the key.
+
+Everything except secrets is in the repo:
+
+| File | What it does |
+| --- | --- |
+| `wrangler.toml` | The Worker and its environments (`dev`, `test`, `production`): model, daily limits, rate limits, KV cache |
+| `worker/index.js`, `worker/prompt.js` | The `/api/prep` endpoint, the instructions for Claude and the output schema |
+| `.github/workflows/deploy.yml` | Deploys `main` to production and `dev` to dev. Run it by hand to deploy any environment |
+
+One-time setup:
+
+1. In the [Anthropic Console](https://console.anthropic.com), create a workspace per environment, each with a spend limit and an API key.
+2. In Cloudflare, create an API token from the **Edit Cloudflare Workers** template, and note your account ID.
+3. In GitHub, go to **Settings → Environments** and create `dev`, `test` and `production`, each with the secrets `ANTHROPIC_API_KEY`, `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
+
+The first deploy of each environment creates its KV namespace. After that the app is at `https://chess-coach.<your-subdomain>.workers.dev`, and at `chess-coach-dev.…` and `chess-coach-test.…` for the other environments.
+
+To run it locally (Wrangler needs Node 22+):
+
+```bash
+npm install
+cp .dev.vars.example .dev.vars   # add a dev-workspace key
+npm run dev                      # app + API at http://localhost:8787
+```
+
 ### Developing the app
 
 ```bash

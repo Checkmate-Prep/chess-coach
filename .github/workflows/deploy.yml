@@ -1,0 +1,46 @@
+name: Deploy to Cloudflare
+
+# One Worker per environment (see wrangler.toml). Each job reads its secrets from the GitHub
+# Environment with the same name: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, ANTHROPIC_API_KEY.
+on:
+  push:
+    branches: [main, dev]
+    paths: ["app/**", "worker/**", "wrangler.toml", "package.json", "package-lock.json", ".github/workflows/deploy.yml"]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to deploy
+        type: choice
+        options: [dev, test, production]
+        default: dev
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.event.inputs.environment || (github.ref_name == 'main' && 'production' || 'dev') }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.event.inputs.environment || (github.ref_name == 'main' && 'production' || 'dev') }}
+      url: ${{ steps.deploy.outputs.deployment-url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - id: deploy
+        uses: cloudflare/wrangler-action@v3
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          environment: ${{ github.event.inputs.environment || (github.ref_name == 'main' && 'production' || 'dev') }}
+          secrets: |
+            ANTHROPIC_API_KEY
