@@ -136,7 +136,7 @@ async function renderSetup(first = false) {
     if (!P && PREP.me?.user === user) for (const f of PREP.friends) opps.push({ user: f.user, username: f.user });
     P = { me: { user, username: info.username }, opps };
     ls.set('profile', P);
-    if (first) location.hash = opps.length ? 'prep' : 'setup'; else renderSetup();
+    if (first) location.hash = opps.length ? 'me' : 'setup'; else renderSetup();
     if (first && location.hash === '#setup') renderSetup();
   };
   if (!me) return;
@@ -468,7 +468,7 @@ function insights(s) {
 
 // ---------- routing ----------
 async function route() {
-  const [tab, arg] = (location.hash.slice(1) || 'prep').split('/');
+  const [tab, arg] = (location.hash.slice(1) || 'me').split('/');
   const needSetup = !P?.me;
   document.body.classList.toggle('no-tabs', needSetup);
   document.querySelectorAll('.tabbar a').forEach((a) => a.setAttribute('aria-current', String(a.dataset.tab === tab)));
