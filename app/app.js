@@ -4,6 +4,8 @@ import { ls, idb } from './store.js';
 import { player, syncGames, cachedGames } from './chesscom.js';
 import { buildTree, walk, profile, weakLines, pct } from './stats.js';
 import { reviewGames, reviewCache, summarize, findTraps, cachedTraps, isGoodMove } from './analysis.js';
+import { gamePlan } from './plan.js';
+import { whileAwake } from './engine.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -235,6 +237,7 @@ async function renderOpp(user) {
   const pr = gs?.length ? profile(gs) : null;
   const [tw, tb] = await Promise.all([treeOf(user, 'white'), treeOf(user, 'black')]);
   const [trW, trB] = await Promise.all([cachedTraps(user, 'white'), cachedTraps(user, 'black')]);
+  const [myW, myB] = await Promise.all([treeOf(P.me.user, 'white'), treeOf(P.me.user, 'black')]);
   // head-to-head from your own games (they go further back than a busy opponent's latest 1,500)
   const h2h = ((await gamesOf(P.me.user)) || []).filter((g) => g.opp.toLowerCase() === user);
   const r = h2h.reduce((a, g) => { a[2 - g.pts]++; return a; }, [0, 0, 0]); // your wins, draws, losses
@@ -251,6 +254,7 @@ async function renderOpp(user) {
         <div class="details-body"><div data-line="${i}">${viewerHtml(p.caption)}</div>${p.body.map((b) => `<p>${fig(b)}</p>`).join('')}
         <button class="btn primary" data-drill="line:${esc(user)}:${i}">Drill this line</button></div></details>`).join('')}
       <details><summary><b>Game-day checklist</b></summary><div class="details-body">${list(cur.checklist, 'ol')}</div></details></section>` : ''}
+    ${planHtml(gs?.length ? gamePlan({ pr, tw, tb, trW, trB, myW, myB }) : null, user, cur, trW, trB)}
     ${pr ? `<section class="card"><h2>How he plays</h2>${list(describe(pr, false))}</section>` : ''}
     <section class="card"><h2>Traps: moves he repeats that lose</h2>
       <p class="small muted">Stockfish checks the positions he reaches most often and flags moves he keeps playing that the engine refutes.</p>
@@ -263,6 +267,7 @@ async function renderOpp(user) {
     ${cur ? `<section class="card curated"><p class="eyebrow">Hand-written prep</p><h2>Where he goes wrong</h2>${list(cur.weak)}</section>` : ''}`;
   if (cur) cur.plans.forEach((p, i) => lineViewer($(`[data-line="${i}"]`, view), p.line.split(' '), !!p.flip, p.key_from));
   mountTraps(trW, trB);
+  view.querySelectorAll('[data-plan]').forEach((host) => { const pl = PLAN_LINES[host.dataset.plan]; if (pl) lineViewer(host, pl.line, pl.flipped, pl.keyFrom); });
   if (!ls.get(`player:${user}`, null)) {
     player(user).then((info) => { ls.set(`player:${user}`, info); if (location.hash === `#prep/${user}`) renderOpp(user); }).catch(() => {});
   }
@@ -271,13 +276,40 @@ async function renderOpp(user) {
     e.currentTarget.hidden = true;
     const bar = $('#trap-progress');
     const found = {};
-    for (const [color, tree] of [['white', tw], ['black', tb]]) {
-      found[color] = await findTraps(user, tree, color, (i, n) => setProgress(bar, i, n, `Checking his positions as ${color === 'white' ? 'White' : 'Black'}: ${i} of ${n}`));
+    try {
+      await whileAwake(async () => {
+        for (const [color, tree] of [['white', tw], ['black', tb]]) {
+          found[color] = await findTraps(user, tree, color, (i, n) => setProgress(bar, i, n, `Checking his positions as ${color === 'white' ? 'White' : 'Black'}: ${i} of ${n}`));
+        }
+      });
+    } catch {
+      $('p', bar).innerHTML = '<span class="warn">Stockfish stopped responding.</span> Close other apps or tabs, then open this page again and tap Find traps.';
+      return;
     }
     bar.hidden = true;
-    $('#trap-list').innerHTML = trapsSection(user, found.white, found.black);
-    mountTraps(found.white, found.black);
+    renderOpp(user); // redraw so the game plan picks up the traps
   });
+}
+const PLAN_LINES = {};
+function planHtml(plan, user, cur, trW, trB) {
+  if (!plan) return `<section class="card"><h2>Game plan</h2><p class="small muted">Download his games to build a plan.</p></section>`;
+  const part = (key, title, sidePlan, flipped, trapColor, trapList) => {
+    if (!sidePlan.points.length) return '';
+    PLAN_LINES[key] = sidePlan.line ? { line: sidePlan.line, flipped, keyFrom: sidePlan.keyFrom } : null;
+    const ti = sidePlan.trap ? (trapList || []).indexOf(sidePlan.trap) : -1;
+    return `<h3>${title}</h3>${list(sidePlan.points)}
+      ${sidePlan.line ? `<div data-plan="${key}">${viewerHtml(sidePlan.trap ? 'Gold moves: his repeated mistake and the punishment.' : 'Gold moves: where he goes wrong.')}</div>` : ''}
+      ${ti >= 0 ? `<button class="btn primary" data-drill="trap:${esc(user)}:${trapColor}:${ti}">Drill the trap</button>` : ''}`;
+  };
+  const body = [
+    part('white', 'When you have White', plan.white, false, 'black', trB),
+    part('black', 'When you have Black', plan.black, true, 'white', trW),
+    plan.manage.length ? `<h3>How to play the game</h3>${list(plan.manage)}` : '',
+  ].join('');
+  return `<section class="card plan-card"><h2>Game plan</h2>
+    <p class="small muted">${cur ? 'Built automatically from his games. The hand-written plan above goes deeper.' : 'Built automatically from his games: every number is counted from his results.'}</p>
+    ${body || '<p class="muted">Not enough games yet for a plan. Download more of his games.</p>'}
+    ${plan.trapsChecked ? '' : '<p class="small muted">Tap <b>Find traps</b> below to add engine-checked traps to this plan.</p>'}</section>`;
 }
 /** Prep landing: every opponent as a row, with main rating, your record and what's been prepared. */
 async function renderOppList() {
@@ -508,7 +540,7 @@ async function renderMe() {
   $('#review').onclick = async (e) => {
     e.currentTarget.hidden = true; $('#stop').hidden = false;
     const bar = $('#review-progress');
-    await reviewGames(user, gs, 20, (i, n, g) => setProgress(bar, i, n, g ? `Game ${i + 1} of ${n}: vs ${g.opp} (${g.tc})` : 'Done'), signal);
+    await whileAwake(() => reviewGames(user, gs, 20, (i, n, g) => setProgress(bar, i, n, g ? `Game ${i + 1} of ${n}: vs ${g.opp} (${g.tc})` : 'Done'), signal));
     renderMe();
   };
   $('#stop').onclick = (e) => { signal.stop = true; e.currentTarget.textContent = 'Stopping after this game…'; };
