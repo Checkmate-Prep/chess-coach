@@ -120,9 +120,13 @@ async function renderSetup(first = false) {
   view.innerHTML = `
     <header class="head">${first ? '<p class="eyebrow">Welcome</p>' : ''}<h1>${first ? 'Get started' : 'Settings'}</h1>
       <p class="lede">${first ? 'Prepare for games against the people you actually play. Enter your chess.com username, then add your opponents. No password or login: everything used here is public on chess.com.' : 'Change your username or the opponents you prepare for.'}</p></header>
-    <form class="card" id="me-form"><label for="me-input"><b>Your chess.com username</b></label>
-      <div class="row"><input id="me-input" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(me?.username || '')}" placeholder="e.g. hikaru" required><button class="btn primary">${me ? 'Change' : 'Continue'}</button></div>
-      <p class="small" id="me-status" aria-live="polite"></p></form>
+    <section class="card">${me ? '<h2>You</h2>' : ''}
+      <label for="me-name"><b>Your name</b>${me ? '' : ' <span class="muted small">(optional)</span>'}</label>
+      <input id="me-name" autocomplete="off" value="${esc(me?.name || '')}" placeholder="e.g. Alex" aria-describedby="me-name-status">
+      ${me ? '<p class="small muted" id="me-name-status" aria-live="polite">Shown at the top of your You page.</p>' : ''}
+      <form id="me-form" class="add-form"><label for="me-input"><b>Your chess.com username</b></label>
+        <div class="row"><input id="me-input" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(me?.username || '')}" placeholder="e.g. hikaru" required><button class="btn primary">${me ? 'Change' : 'Continue'}</button></div>
+        <p class="small" id="me-status" aria-live="polite"></p></form></section>
     ${me ? `<section class="card"><h2>Opponents</h2>
       ${P.opps.length ? `<ul class="plain opp-edit">${P.opps.map((o) => `<li>
         <div class="row"><input id="name-${esc(o.user)}" data-name="${esc(o.user)}" value="${esc(hasAlias(o.user) ? displayName(o.user) : '')}" placeholder="Add a name" aria-label="Name for ${esc(o.username)}" autocomplete="off">
@@ -146,12 +150,18 @@ async function renderSetup(first = false) {
     const opps = P?.opps || [];
     // first run for the player this app's hand-written prep was made for: add those opponents
     if (!P && PREP.me?.user === user) for (const f of PREP.friends) opps.push({ user: f.user, username: f.user, name: f.name });
-    P = { me: { user, username: info.username }, opps };
+    const name = $('#me-name').value.trim();
+    P = { me: { user, username: info.username, ...(name ? { name } : {}) }, opps };
     ls.set('profile', P);
     if (first) location.hash = opps.length ? 'me' : 'setup'; else renderSetup();
     if (first && location.hash === '#setup') renderSetup();
   };
   if (!me) return;
+  $('#me-name').onchange = (e) => {
+    P.me.name = e.target.value.trim(); ls.set('profile', P);
+    $('#me-name-status').textContent = P.me.name ? `Saved. Your You page shows "${P.me.name}".` : 'Saved. Your You page shows "You".';
+  };
+  $('#me-name').onkeydown = (e) => { if (e.key === 'Enter') e.target.blur(); };
   const add = async (user, st, name = '') => {
     user = user.trim().toLowerCase(); name = name.trim();
     if (!user || P.opps.some((o) => o.user === user) || user === P.me.user) return;
@@ -472,7 +482,7 @@ async function renderMe() {
   const [tw, tb] = await Promise.all([treeOf(user, 'white'), treeOf(user, 'black')]);
   const ph = s?.phases;
   view.innerHTML = `
-    <header class="head"><h1>You</h1><a class="eyebrow profile-link" href="https://www.chess.com/member/${encodeURIComponent(P.me.username)}" target="_blank" rel="noopener">chess.com/${esc(P.me.username)}</a>
+    <header class="head"><h1>${esc(P.me.name || 'You')}</h1><a class="eyebrow profile-link" href="https://www.chess.com/member/${encodeURIComponent(P.me.username)}" target="_blank" rel="noopener">chess.com/${esc(P.me.username)}</a>
       ${cur ? `<p class="lede">${fig(cur.summary)}</p>` : ''}</header>
     ${stats(ratingStats(user))}
     <section class="card"><div class="row"><h2>Games</h2><button class="btn" id="sync">${gs ? 'Refresh' : 'Download games'}</button></div>
