@@ -1,6 +1,7 @@
 // Offline support: app shell cache-first, prep.json network-first, chess.com always live.
-const CACHE = 'chess-prep-ed2b50496c';
-const SHELL = ['./', 'index.html', 'app.css', 'app.js', 'board.js', 'pieces.js', 'vendor/chess.js', 'prep.json',
+const CACHE = 'chess-prep-118574e987';
+const SHELL = ['./', 'index.html', 'app.css', 'app.js', 'board.js', 'pieces.js', 'store.js', 'chesscom.js', 'stats.js', 'engine.js', 'analysis.js',
+  'vendor/chess.js', 'vendor/stockfish/stockfish-19-lite-single.js', 'vendor/stockfish/stockfish-19-lite-single.wasm', 'prep.json',
   'manifest.webmanifest', 'icon.svg', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', (e) => {
