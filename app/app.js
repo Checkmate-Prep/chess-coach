@@ -63,6 +63,13 @@ async function sync(user, btn, statusEl) {
 }
 
 // ---------- shared UI ----------
+// ⓘ explaining what "scores X%" means; the note sits right after the element holding the button
+const scoreInfo = (id) => `<button class="info-btn" type="button" aria-expanded="false" aria-controls="${id}" aria-label="What does 'scores' mean?">ⓘ</button>`;
+const scoreNote = (id) => `<div class="info-note" id="${id}" hidden><p><b>Score</b> is the share of points a player earned: a win counts 1, a draw ½, a loss 0.
+  "Scores 43%" means 43 points out of every 100 games, for example 40 wins and 6 draws.</p>
+  <p>50% is even. For an opponent, lower is better for you; for you, higher is better. Opponents' scores come from their downloaded games against everyone, not just you.</p>
+  <p>Check the number of games next to it: a score from a dozen games is a hint, one from hundreds is solid.</p></div>`;
+
 function stats(items) {
   if (!items.length) return '';
   return `<div class="stats">${items.map(([v, l]) => `<div class="stat"><b>${esc(v)}</b><span>${esc(l)}</span></div>`).join('')}</div>`;
@@ -261,7 +268,7 @@ async function renderOpp(user) {
       ${trW || trB ? '' : `<button class="btn primary" id="traps" ${tw.n + tb.n ? '' : 'disabled'}>Find traps with Stockfish</button><p class="small muted">Takes 1–3 minutes. It runs on your device. Keep the app open.</p>`}
       ${progress('trap-progress')}
       <div id="trap-list">${trW || trB ? trapsSection(user, trW, trB) : ''}</div></section>
-    <section class="card"><h2>Lines that go badly for him</h2>
+    <section class="card"><h2>Lines that go badly for him ${scoreInfo('si-weak')}</h2>${scoreNote('si-weak')}
       <h3>When he's White</h3>${weakHtml(weakLines(tw), 'white', user)}
       <h3>When he's Black</h3>${weakHtml(weakLines(tb), 'black', user)}</section>
     ${cur ? `<section class="card curated"><p class="eyebrow">Hand-written prep</p><h2>Where he goes wrong</h2>${list(cur.weak)}</section>` : ''}`;
@@ -306,7 +313,7 @@ function planHtml(plan, user, cur, trW, trB) {
     part('black', 'When you have Black', plan.black, true, 'white', trW),
     plan.manage.length ? `<h3>How to play the game</h3>${list(plan.manage)}` : '',
   ].join('');
-  return `<section class="card plan-card"><h2>Game plan</h2>
+  return `<section class="card plan-card"><h2>Game plan ${scoreInfo('si-plan')}</h2>${scoreNote('si-plan')}
     <p class="small muted">${cur ? 'Built automatically from his games. The hand-written plan above goes deeper.' : 'Built automatically from his games: every number is counted from his results.'}</p>
     ${body || '<p class="muted">Not enough games yet for a plan. Download more of his games.</p>'}
     ${plan.trapsChecked ? '' : '<p class="small muted">Tap <b>Find traps</b> below to add engine-checked traps to this plan.</p>'}</section>`;
@@ -381,7 +388,7 @@ async function renderExplore() {
     ${rows.length ? `<ul class="moves">${rows.map((r) => `<li><button data-san="${esc(r.s)}"><span class="san">${fig(r.s)}</span>
         <span class="bar"><span style="width:${Math.round((100 * r.n) / total)}%"></span></span>
         <span class="num">${r.n}</span><span class="num sc ${r.sc >= 55 ? 'hi' : r.sc <= 45 ? 'lo' : ''}">${r.sc}%</span></button></li>`).join('')}</ul>
-      <p class="muted small">Bar: how often each move was played. %: ${isMe ? 'your' : 'his'} score after it. Tap a move to follow it, or play any move on the board.</p>`
+      <p class="muted small">Bar: how often each move was played. %: ${isMe ? 'your' : 'his'} score after it. ${scoreInfo('si-ex')} Tap a move to follow it, or play any move on the board.</p>${scoreNote('si-ex')}`
       : `<p class="muted">${noGames ? `No games downloaded for ${esc(who)} yet. Download them from the ${isMe ? 'You' : 'Prep'} tab.` : 'No games reach this position.'}</p>`}`;
   $('#ex-who').onchange = (e) => { ex.user = e.target.value; ex.moves = []; saveEx(); renderExplore(); };
   const board = new Board($('.explore-bd'), {
@@ -531,7 +538,7 @@ async function renderMe() {
       <div class="row"><button class="btn primary" id="review" ${gs ? '' : 'disabled'}>Review ${s?.reviewed ? '20 more' : 'my last 20'} games</button><button class="btn" id="stop" hidden>Stop</button></div>
       ${progress('review-progress')}
       <p class="small muted">${s?.reviewed ? `${s.reviewed} games reviewed. ` : ''}About 10 seconds per game. Keep the app open. Reviewed games are saved if you stop.</p></section>
-    <section class="card"><h2>Lines that go badly for you</h2>
+    <section class="card"><h2>Lines that go badly for you ${scoreInfo('si-mine')}</h2>${scoreNote('si-mine')}
       <h3>As White</h3>${weakHtml(weakLines(tw, { minN: 4 }), 'white', user)}
       <h3>As Black</h3>${weakHtml(weakLines(tb, { minN: 4 }), 'black', user)}</section>
     ${cur ? `<section class="card curated"><p class="eyebrow">Hand-written notes</p><h2>Coach's notes</h2><h3>Strengths</h3>${list(cur.strengths)}<h3>Weaknesses</h3>${list(cur.weaknesses)}<h3>Training plan</h3>${list(cur.training, 'ol')}</section>` : ''}`;
@@ -581,6 +588,12 @@ async function route() {
 }
 view.addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b) return;
+  if (b.classList.contains('info-btn')) {
+    const note = document.getElementById(b.getAttribute('aria-controls'));
+    const open = b.getAttribute('aria-expanded') !== 'true';
+    b.setAttribute('aria-expanded', String(open)); if (note) note.hidden = !open;
+    return;
+  }
   if (b.dataset.opp) location.hash = `prep/${b.dataset.opp}`;
   if (b.dataset.drill) location.hash = `drill/${encodeURIComponent(b.dataset.drill)}`;
   if (b.dataset.go) location.hash = b.dataset.go;
