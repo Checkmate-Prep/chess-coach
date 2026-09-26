@@ -1,0 +1,9 @@
+# Stockfish binary (downloaded automatically by analyze.py)
+bin/
+# Downloaded games, engine analysis and profiles (rebuilt by `python3 coach.py refresh`)
+data/*
+!data/.gitkeep
+# Generated prep book (rebuilt by build_report.py)
+report.html
+__pycache__/
+.DS_Store
