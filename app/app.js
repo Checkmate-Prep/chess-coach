@@ -36,6 +36,13 @@ async function treeOf(user, color) {
 }
 const curated = (user) => PREP.friends.find((f) => f.user === user);
 const oppName = (user) => P?.opps.find((o) => o.user === user)?.username || user;
+/** Name shown for an opponent: the one set in Settings (may be cleared), else the hand-written prep's, else the username. */
+const displayName = (user) => {
+  const o = P?.opps.find((x) => x.user === user);
+  if (o && 'name' in o) return o.name || o.username;
+  return curated(user)?.name || o?.username || user;
+};
+const hasAlias = (user) => displayName(user).toLowerCase() !== oppName(user).toLowerCase();
 function invalidate(user) { delete games[user]; delete trees[`${user}:white`]; delete trees[`${user}:black`]; }
 
 async function sync(user, btn, statusEl) {
@@ -111,18 +118,27 @@ async function renderSetup(first = false) {
       if (n >= 2 && !P.opps.some((o) => o.user === u) && suggestions.length < 6) suggestions.push([u, n]);
   }
   view.innerHTML = `
-    <header class="head"><p class="eyebrow">${first ? 'Welcome' : 'Settings'}</p><h1>${first ? 'Chess Prep' : 'Players'}</h1>
+    <header class="head">${first ? '<p class="eyebrow">Welcome</p>' : ''}<h1>${first ? 'Get started' : 'Settings'}</h1>
       <p class="lede">${first ? 'Prepare for games against the people you actually play. Enter your chess.com username, then add your opponents. No password or login: everything used here is public on chess.com.' : 'Change your username or the opponents you prepare for.'}</p></header>
-    <form class="card" id="me-form"><label for="me-input"><b>Your chess.com username</b></label>
-      <div class="row"><input id="me-input" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(me?.username || '')}" placeholder="e.g. hikaru" required><button class="btn primary">${me ? 'Change' : 'Continue'}</button></div>
-      <p class="small" id="me-status" aria-live="polite"></p></form>
+    <section class="card">${me ? '<h2>You</h2>' : ''}
+      <label for="me-name"><b>Your name</b>${me ? '' : ' <span class="muted small">(optional)</span>'}</label>
+      <input id="me-name" autocomplete="off" value="${esc(me?.name || '')}" placeholder="e.g. Alex" aria-describedby="me-name-status">
+      ${me ? '<p class="small muted" id="me-name-status" aria-live="polite">Shown at the top of your You page.</p>' : ''}
+      <form id="me-form" class="add-form"><label for="me-input"><b>Your chess.com username</b></label>
+        <div class="row"><input id="me-input" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(me?.username || '')}" placeholder="e.g. hikaru" required><button class="btn primary">${me ? 'Change' : 'Continue'}</button></div>
+        <p class="small" id="me-status" aria-live="polite"></p></form></section>
     ${me ? `<section class="card"><h2>Opponents</h2>
-      ${P.opps.length ? `<ul class="plain">${P.opps.map((o) => `<li class="row"><a href="#prep/${esc(o.user)}">${esc(o.username)}</a><button class="btn" data-remove="${esc(o.user)}" aria-label="Remove ${esc(o.username)}">Remove</button></li>`).join('')}</ul>` : '<p class="muted">No opponents yet.</p>'}
-      <form id="opp-form" class="row"><input id="opp-input" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Opponent's username" required aria-label="Opponent's chess.com username"><button class="btn primary">Add</button></form>
+      ${P.opps.length ? `<ul class="plain opp-edit">${P.opps.map((o) => `<li>
+        <div class="row"><input id="name-${esc(o.user)}" data-name="${esc(o.user)}" value="${esc(hasAlias(o.user) ? displayName(o.user) : '')}" placeholder="Add a name" aria-label="Name for ${esc(o.username)}" autocomplete="off">
+          <button class="btn" data-remove="${esc(o.user)}" aria-label="Remove ${esc(o.username)}">Remove</button></div>
+        <a class="small muted" href="#prep/${esc(o.user)}">chess.com/${esc(o.username)}</a></li>`).join('')}</ul>
+      <p class="small muted" id="name-status" aria-live="polite">Names are only shown in this app.</p>` : '<p class="muted">No opponents yet.</p>'}
+      <form id="opp-form" class="add-form"><input id="opp-input" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Opponent's chess.com username" required aria-label="Opponent's chess.com username">
+        <div class="row"><input id="opp-name" autocomplete="off" placeholder="Name (optional)" aria-label="Name for this opponent (optional)"><button class="btn primary">Add</button></div></form>
       <p class="small" id="opp-status" aria-live="polite"></p>
       ${suggestions.length ? `<p class="small muted">People you've played most:</p><div class="chips">${suggestions.map(([u, n]) => `<button class="chip" data-add="${esc(u)}">${esc(u)} <span class="muted">${n}</span></button>`).join('')}</div>` : ''}
     </section>
-    <section class="card"><h2>Stored on this phone</h2><p class="small muted">Games and engine results are saved in this browser only. Clearing them frees space; they're downloaded again on the next refresh.</p>
+    <section class="card"><h2>Stored locally on this device</h2><p class="small muted">Games and engine results are saved in this browser only. Clearing them frees space; they're downloaded again on the next refresh.</p>
       <button class="btn" id="clear-data">Clear saved games and analysis</button><p class="small" id="clear-status"></p></section>` : ''}`;
 
   $('#me-form').onsubmit = async (e) => {
@@ -133,25 +149,39 @@ async function renderSetup(first = false) {
     const info = ls.get(`player:${user}`);
     const opps = P?.opps || [];
     // first run for the player this app's hand-written prep was made for: add those opponents
-    if (!P && PREP.me?.user === user) for (const f of PREP.friends) opps.push({ user: f.user, username: f.user });
-    P = { me: { user, username: info.username }, opps };
+    if (!P && PREP.me?.user === user) for (const f of PREP.friends) opps.push({ user: f.user, username: f.user, name: f.name });
+    const name = $('#me-name').value.trim();
+    P = { me: { user, username: info.username, ...(name ? { name } : {}) }, opps };
     ls.set('profile', P);
-    if (first) location.hash = opps.length ? 'prep' : 'setup'; else renderSetup();
+    if (first) location.hash = opps.length ? 'me' : 'setup'; else renderSetup();
     if (first && location.hash === '#setup') renderSetup();
   };
   if (!me) return;
-  const add = async (user, st) => {
-    user = user.trim().toLowerCase();
+  $('#me-name').onchange = (e) => {
+    P.me.name = e.target.value.trim(); ls.set('profile', P);
+    $('#me-name-status').textContent = P.me.name ? `Saved. Your You page shows "${P.me.name}".` : 'Saved. Your You page shows "You".';
+  };
+  $('#me-name').onkeydown = (e) => { if (e.key === 'Enter') e.target.blur(); };
+  const add = async (user, st, name = '') => {
+    user = user.trim().toLowerCase(); name = name.trim();
     if (!user || P.opps.some((o) => o.user === user) || user === P.me.user) return;
     st.textContent = `Looking up ${user}…`;
     try {
       const info = await player(user);
       ls.set(`player:${user}`, info);
-      P.opps.push({ user, username: info.username }); ls.set('profile', P);
+      P.opps.push({ user, username: info.username, ...(name ? { name } : {}) }); ls.set('profile', P);
       location.hash = `prep/${user}`;
     } catch (e) { st.innerHTML = `<span class="warn">${e.code === 404 ? `chess.com has no player called ${esc(user)}.` : "Couldn't reach chess.com."}</span>`; }
   };
-  $('#opp-form').onsubmit = (e) => { e.preventDefault(); add($('#opp-input').value, $('#opp-status')); };
+  $('#opp-form').onsubmit = (e) => { e.preventDefault(); add($('#opp-input').value, $('#opp-status'), $('#opp-name').value); };
+  view.querySelectorAll('[data-name]').forEach((inp) => {
+    inp.onchange = () => {
+      const o = P.opps.find((x) => x.user === inp.dataset.name); if (!o) return;
+      o.name = inp.value.trim(); ls.set('profile', P);
+      $('#name-status').textContent = o.name ? `Saved: ${o.username} is shown as ${o.name}.` : `Saved: ${o.username} is shown by username.`;
+    };
+    inp.onkeydown = (e) => { if (e.key === 'Enter') inp.blur(); };
+  });
   view.querySelectorAll('[data-add]').forEach((b) => { b.onclick = () => add(b.dataset.add, $('#opp-status')); });
   view.querySelectorAll('[data-remove]').forEach((b) => { b.onclick = () => { P.opps = P.opps.filter((o) => o.user !== b.dataset.remove); ls.set('profile', P); renderSetup(); }; });
   $('#clear-data').onclick = async () => { await idb.clear(); Object.keys(games).forEach(invalidate); $('#clear-status').textContent = 'Cleared.'; };
@@ -197,8 +227,7 @@ async function renderOpp(user) {
     view.innerHTML = '<header class="head"><h1>Prep</h1><p class="lede">Add the people you play to get a file on each of them.</p></header><a class="btn primary" href="#setup">Add opponents</a>';
     return;
   }
-  if (!P.opps.some((o) => o.user === user)) user = ls.get('opp', null);
-  if (!P.opps.some((o) => o.user === user)) user = P.opps[0].user;
+  if (!P.opps.some((o) => o.user === user)) return renderOppList();
   ls.set('opp', user);
   const cur = curated(user);
   const gs = await gamesOf(user);
@@ -211,8 +240,8 @@ async function renderOpp(user) {
   const r = h2h.reduce((a, g) => { a[2 - g.pts]++; return a; }, [0, 0, 0]); // your wins, draws, losses
   const name = oppName(user);
   view.innerHTML = `
-    ${P.opps.length > 1 ? seg('opp', P.opps.map((o) => [o.user, curated(o.user)?.name || o.username]), user) : ''}
-    <header class="head"><p class="eyebrow">chess.com/${esc(name)}</p><h1>${esc(cur?.name || name)}</h1>
+    <a class="back" href="#prep">◀ Opponents</a>
+    <header class="head"><h1>${esc(displayName(user))}</h1><a class="eyebrow profile-link" href="https://www.chess.com/member/${encodeURIComponent(name)}" target="_blank" rel="noopener">chess.com/${esc(name)}</a>
       ${cur ? `<p class="lede">${fig(cur.summary)}</p>` : ''}</header>
     ${stats([...ratingStats(user), ...(h2h.length ? [[`${r[0]}–${r[1]}–${r[2]}`, 'Your record vs him (W–D–L)']] : [])])}
     <section class="card"><div class="row"><h2>Games</h2><button class="btn" id="sync">${gs ? 'Refresh' : 'Download games'}</button></div>
@@ -225,7 +254,7 @@ async function renderOpp(user) {
     ${pr ? `<section class="card"><h2>How he plays</h2>${list(describe(pr, false))}</section>` : ''}
     <section class="card"><h2>Traps: moves he repeats that lose</h2>
       <p class="small muted">Stockfish checks the positions he reaches most often and flags moves he keeps playing that the engine refutes.</p>
-      ${trW || trB ? '' : `<button class="btn primary" id="traps" ${tw.n + tb.n ? '' : 'disabled'}>Find traps with Stockfish</button><p class="small muted">Takes 1–3 minutes on a phone. Keep the app open.</p>`}
+      ${trW || trB ? '' : `<button class="btn primary" id="traps" ${tw.n + tb.n ? '' : 'disabled'}>Find traps with Stockfish</button><p class="small muted">Takes 1–3 minutes. It runs on your device. Keep the app open.</p>`}
       ${progress('trap-progress')}
       <div id="trap-list">${trW || trB ? trapsSection(user, trW, trB) : ''}</div></section>
     <section class="card"><h2>Lines that go badly for him</h2>
@@ -235,7 +264,7 @@ async function renderOpp(user) {
   if (cur) cur.plans.forEach((p, i) => lineViewer($(`[data-line="${i}"]`, view), p.line.split(' '), !!p.flip, p.key_from));
   mountTraps(trW, trB);
   if (!ls.get(`player:${user}`, null)) {
-    player(user).then((info) => { ls.set(`player:${user}`, info); if (location.hash.endsWith(user) || ls.get('opp') === user) renderOpp(user); }).catch(() => {});
+    player(user).then((info) => { ls.set(`player:${user}`, info); if (location.hash === `#prep/${user}`) renderOpp(user); }).catch(() => {});
   }
   $('#sync').onclick = async (e) => { if (await sync(user, e.currentTarget, $('#sync-status'))) renderOpp(user); };
   $('#traps')?.addEventListener('click', async (e) => {
@@ -249,6 +278,36 @@ async function renderOpp(user) {
     $('#trap-list').innerHTML = trapsSection(user, found.white, found.black);
     mountTraps(found.white, found.black);
   });
+}
+/** Prep landing: every opponent as a row, with main rating, your record and what's been prepared. */
+async function renderOppList() {
+  if (!P.opps.length) {
+    view.innerHTML = '<header class="head"><h1>Prep</h1><p class="lede">Add the people you play to get a file on each of them.</p></header><a class="btn primary" href="#setup">Add opponents</a>';
+    return;
+  }
+  const mine = (await gamesOf(P.me.user)) || [];
+  const rows = await Promise.all(P.opps.map(async (o) => {
+    const info = ls.get(`player:${o.user}`, null);
+    const games = (r) => r.w + r.l + r.d;
+    const main = Object.entries(info?.ratings || {}).sort((a, b) => games(b[1]) - games(a[1]))[0];
+    const vs = mine.filter((g) => g.opp.toLowerCase() === o.user);
+    const rec = vs.reduce((a, g) => { a[2 - g.pts]++; return a; }, [0, 0, 0]);
+    const traps = ((await cachedTraps(o.user, 'white')) || []).length + ((await cachedTraps(o.user, 'black')) || []).length;
+    return { o, cur: curated(o.user), main, rec: vs.length ? rec : null, traps, info };
+  }));
+  view.innerHTML = `<header class="head"><h1>Prep</h1><p class="lede">Pick an opponent to open their file.</p></header>
+    <ul class="opps">${rows.map(({ o, cur, main, rec, traps }) => `<li><a href="#prep/${esc(o.user)}">
+      <span class="opp-top"><b>${esc(displayName(o.user))}</b>${hasAlias(o.user) ? ` <span class="muted small">${esc(o.username)}</span>` : ''}<span class="chev" aria-hidden="true">›</span></span>
+      <span class="small muted">${[main ? `${TC[main[0]]} ${main[1].r}` : '', rec ? `you ${rec[0]}–${rec[1]}–${rec[2]}` : ''].filter(Boolean).join(' · ') || 'Not downloaded yet'}</span>
+      ${traps || cur ? `<span class="badges">${traps ? `<span class="badge trap-badge">${traps} trap${traps > 1 ? 's' : ''} found</span>` : ''}${cur ? '<span class="badge">Hand-written prep</span>' : ''}</span>` : ''}
+    </a></li>`).join('')}
+    <li><a href="#setup" class="add-row">＋ Add opponent</a></li></ul>`;
+  // ratings for opponents added without a lookup (e.g. the hand-written ones): fetch once, then redraw
+  const missing = rows.filter((r) => !r.info).map((r) => r.o.user);
+  if (missing.length) {
+    Promise.all(missing.map((u) => player(u).then((info) => ls.set(`player:${u}`, info)).catch(() => {})))
+      .then(() => { if ((location.hash || '#me') === '#prep') renderOppList(); });
+  }
 }
 function trapsSection(user, w, b) {
   const all = [...(w || []).map((t, i) => trapHtml(t, `white:${i}`, user, 'white')), ...(b || []).map((t, i) => trapHtml(t, `black:${i}`, user, 'black'))];
@@ -267,10 +326,10 @@ function mountTraps(w, b) {
 const ex = ls.get('explore', { user: null, color: 'black', moves: [] });
 const saveEx = () => ls.set('explore', ex);
 async function renderExplore() {
-  const people = [...P.opps.map((o) => [o.user, curated(o.user)?.name || o.username]), [P.me.user, 'You']];
+  const people = [...P.opps.map((o) => [o.user, displayName(o.user)]), [P.me.user, 'You']];
   if (!people.some(([u]) => u === ex.user)) { ex.user = people[0][0]; ex.moves = []; }
   const isMe = ex.user === P.me.user;
-  const who = isMe ? 'You' : curated(ex.user)?.name || oppName(ex.user);
+  const who = isMe ? 'You' : displayName(ex.user);
   const game = new Chess();
   let last = null;
   try { for (const m of ex.moves) last = game.move(m); } catch { ex.moves = []; game.reset(); last = null; }
@@ -280,7 +339,8 @@ async function renderExplore() {
   const theirTurn = game.turn() === (ex.color === 'white' ? 'w' : 'b');
   const noGames = !(await gamesOf(ex.user)) && !curated(ex.user) && !(isMe && PREP.me?.user === ex.user);
   view.innerHTML = `
-    ${seg('who', people, ex.user)}
+    <label class="picker" for="ex-who"><span class="eyebrow">Exploring</span>
+      <select id="ex-who">${people.map(([u, l]) => `<option value="${esc(u)}"${u === ex.user ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></label>
     ${seg('color', [['white', `${who} as White`], ['black', `${who} as Black`]], ex.color)}
     <div class="bd explore-bd"></div>
     <div class="path mono">${ex.moves.length ? fig(numbered(ex.moves)) : 'Starting position'}</div>
@@ -291,6 +351,7 @@ async function renderExplore() {
         <span class="num">${r.n}</span><span class="num sc ${r.sc >= 55 ? 'hi' : r.sc <= 45 ? 'lo' : ''}">${r.sc}%</span></button></li>`).join('')}</ul>
       <p class="muted small">Bar: how often each move was played. %: ${isMe ? 'your' : 'his'} score after it. Tap a move to follow it, or play any move on the board.</p>`
       : `<p class="muted">${noGames ? `No games downloaded for ${esc(who)} yet. Download them from the ${isMe ? 'You' : 'Prep'} tab.` : 'No games reach this position.'}</p>`}`;
+  $('#ex-who').onchange = (e) => { ex.user = e.target.value; ex.moves = []; saveEx(); renderExplore(); };
   const board = new Board($('.explore-bd'), {
     game, flipped: isMe ? ex.color === 'black' : ex.color === 'white',
     onMove: (m) => { ex.moves.push(game.move(m).san); saveEx(); renderExplore(); },
@@ -304,7 +365,7 @@ async function drills() {
   for (const o of P.opps) {
     for (const color of ['white', 'black']) {
       ((await cachedTraps(o.user, color)) || []).forEach((t, i) => out.push({
-        id: `trap:${o.user}:${color}:${i}`, group: `Traps vs ${o.username}`, kind: 'pos',
+        id: `trap:${o.user}:${color}:${i}`, group: `Traps vs ${displayName(o.user)}`, kind: 'pos',
         title: `${numbered([...t.path, t.played])}. Punish it.`, sub: `He plays this in ${t.times} of ${t.of} games`,
         fen: t.afterFen, best: t.punish[0],
         prompt: `He just played ${t.played}, as he does in ${t.times} of ${t.of} games. Punish it.`,
@@ -312,7 +373,7 @@ async function drills() {
       }));
     }
     const cur = curated(o.user);
-    if (cur) cur.plans.forEach((p, i) => out.push({ id: `line:${o.user}:${i}`, group: `Prepared lines vs ${cur.name}`, kind: 'line', title: p.title, sub: p.eyebrow, plan: p }));
+    if (cur) cur.plans.forEach((p, i) => out.push({ id: `line:${o.user}:${i}`, group: `Prepared lines vs ${displayName(o.user)}`, kind: 'line', title: p.title, sub: p.eyebrow, plan: p }));
   }
   const s = summarize((await gamesOf(P.me.user)) || [], await reviewCache(P.me.user));
   s.puzzles.forEach((pz) => out.push({
@@ -421,7 +482,7 @@ async function renderMe() {
   const [tw, tb] = await Promise.all([treeOf(user, 'white'), treeOf(user, 'black')]);
   const ph = s?.phases;
   view.innerHTML = `
-    <header class="head"><div class="row"><p class="eyebrow">chess.com/${esc(P.me.username)}</p><a class="small" href="#setup">Settings</a></div><h1>You</h1>
+    <header class="head"><h1>${esc(P.me.name || 'You')}</h1><a class="eyebrow profile-link" href="https://www.chess.com/member/${encodeURIComponent(P.me.username)}" target="_blank" rel="noopener">chess.com/${esc(P.me.username)}</a>
       ${cur ? `<p class="lede">${fig(cur.summary)}</p>` : ''}</header>
     ${stats(ratingStats(user))}
     <section class="card"><div class="row"><h2>Games</h2><button class="btn" id="sync">${gs ? 'Refresh' : 'Download games'}</button></div>
@@ -437,7 +498,7 @@ async function renderMe() {
         ${list(insights(s))}` : '<p class="small muted">Stockfish goes through your games move by move and finds where you lose the most. Your worst moments become puzzles in Drill.</p>'}
       <div class="row"><button class="btn primary" id="review" ${gs ? '' : 'disabled'}>Review ${s?.reviewed ? '20 more' : 'my last 20'} games</button><button class="btn" id="stop" hidden>Stop</button></div>
       ${progress('review-progress')}
-      <p class="small muted">${s?.reviewed ? `${s.reviewed} games reviewed. ` : ''}About 10 seconds per game on a phone. Keep the app open; finished games are saved if you stop.</p></section>
+      <p class="small muted">${s?.reviewed ? `${s.reviewed} games reviewed. ` : ''}About 10 seconds per game. Keep the app open. Reviewed games are saved if you stop.</p></section>
     <section class="card"><h2>Lines that go badly for you</h2>
       <h3>As White</h3>${weakHtml(weakLines(tw, { minN: 4 }), 'white', user)}
       <h3>As Black</h3>${weakHtml(weakLines(tb, { minN: 4 }), 'black', user)}</section>
@@ -468,7 +529,7 @@ function insights(s) {
 
 // ---------- routing ----------
 async function route() {
-  const [tab, arg] = (location.hash.slice(1) || 'prep').split('/');
+  const [tab, arg] = (location.hash.slice(1) || 'me').split('/');
   const needSetup = !P?.me;
   document.body.classList.toggle('no-tabs', needSetup);
   document.querySelectorAll('.tabbar a').forEach((a) => a.setAttribute('aria-current', String(a.dataset.tab === tab)));
@@ -478,7 +539,8 @@ async function route() {
     else if (tab === 'explore') await renderExplore();
     else if (tab === 'drill') await (arg ? renderDrill(decodeURIComponent(arg)) : renderDrillList());
     else if (tab === 'me') await renderMe();
-    else await renderOpp(arg ? decodeURIComponent(arg) : null);
+    else if (arg) await renderOpp(decodeURIComponent(arg));
+    else await renderOppList();
   } catch (e) {
     console.error(e);
     view.innerHTML = `<p class="warn">Something went wrong: ${esc(e.message)}</p>`;
@@ -502,5 +564,11 @@ window.addEventListener('hashchange', route);
 (async () => {
   try { PREP = await (await fetch('prep.json')).json(); } catch { /* hand-written prep is optional */ }
   route();
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  // Offline mode only on the real site: on localhost it would serve stale files during development,
+  // so remove any worker and cache an earlier local run installed.
+  const local = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+  if (!('serviceWorker' in navigator)) return;
+  if (!local) { navigator.serviceWorker.register('sw.js').catch(() => {}); return; }
+  navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => r.unregister())).catch(() => {});
+  if (window.caches) caches.keys().then((ks) => ks.filter((k) => k.startsWith('chess-prep-')).forEach((k) => caches.delete(k))).catch(() => {});
 })();
