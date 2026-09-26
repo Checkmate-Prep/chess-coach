@@ -1,4 +1,4 @@
-"""Package the prep (notes + profiles + opening trees) for the phone app in app/.
+"""Package the prep (notes + profiles + opening trees) for the web app in app/.
 
 Usage: python3 build_app.py   -> writes app/prep.json and app/pieces.js
 """
@@ -75,7 +75,7 @@ def main():
     (APP / "pieces.js").write_text(
         "// Piece artwork: cburnett set via python-chess (GPL-3.0 / CC BY-SA 3.0).\n"
         "export const PIECES = " + json.dumps(pieces) + ";\n")
-    # Version the offline cache by content so phones pick up new prep and app code.
+    # Version the offline cache by content so devices pick up new prep and app code.
     digest = hashlib.sha1()
     for f in sorted(APP.rglob("*")):
         if f.is_file() and f.name != "sw.js":

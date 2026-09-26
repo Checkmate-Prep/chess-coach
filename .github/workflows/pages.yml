@@ -1,4 +1,4 @@
-name: Deploy phone app to GitHub Pages
+name: Deploy app to GitHub Pages
 
 on:
   push:

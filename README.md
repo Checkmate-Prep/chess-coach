@@ -31,11 +31,11 @@ Players are set in `coach.py` (`ME`, `FRIENDS`). The engine analysis is cached p
 | `explore.py` | What a player chose next from any position, and their score |
 | `notes.py` | The coach's written conclusions and prepared lines |
 | `build_report.py` | Renders the prep book (`report.html`) |
-| `build_app.py` | Packages the hand-written prep for the phone app (`app/prep.json`) and versions its offline cache |
+| `build_app.py` | Packages the hand-written prep for the web app (`app/prep.json`) and versions its offline cache |
 
-## Phone app
+## Web app
 
-`app/` is an installable web app (PWA), published at https://simonletort.github.io/chess-coach/. Open it on a phone and choose **Add to Home Screen**. Anyone can use it: enter your chess.com username, then add the people you play. There's no login, because everything used is public on chess.com.
+`app/` is an installable web app (PWA), published at https://simonletort.github.io/chess-coach/. Open it on a device and choose **Add to Home Screen**. Anyone can use it: enter your chess.com username, then add the people you play. There's no login, because everything used is public on chess.com.
 
 - **Prep:** an automatic file on each opponent, built on the phone from up to 1,500 of their recent games. It covers ratings, your head-to-head record, how they play, and the lines where they score badly. **Find traps** runs Stockfish on the phone over the positions they reach most often and flags moves they keep repeating that the engine refutes, with the punishing line.
 - **Explore:** tap through an opening and see what an opponent (or you) played next and how it scored.
