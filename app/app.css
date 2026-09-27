@@ -144,4 +144,5 @@ h2 .info-btn{font-size:1.05rem}
 .steps li{display:grid;grid-template-columns:28px 1fr;gap:12px;align-items:start;counter-increment:step;font-size:.95rem}
 .steps li::before{content:counter(step);width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--bg);border:1px solid var(--line);font:600 .85rem/1 var(--sans);color:var(--muted)}
 .steps li.now::before{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-.view,.card,.add-form{grid-template-columns:minmax(0,1fr)}
+.view,.card,.add-form,.opp-edit,.opp-edit li{grid-template-columns:minmax(0,1fr)}
+.add-link{justify-self:start;color:var(--accent);font-weight:500;text-decoration:none;padding:4px 0}
