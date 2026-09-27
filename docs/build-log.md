@@ -214,3 +214,36 @@ Both the hook's success and failure paths were tested. → [#7](https://github.c
 > make sure autoMemoryEnabled is on. where are the memory files in the repo?
 
 **What Claude did:** confirmed auto memory was already on (the default; nothing disabled it) and set `autoMemoryEnabled: true` in the shared project settings to make it explicit. It explained that memory files are machine-local by design, not in the repo, and found the repo's memory folder empty. The one note Claude had saved earlier went to the scratch workspace's folder, because the session started there. Claude moved that knowledge into the repo's memory folder as three short notes (goals, workflow preferences, work in progress), keeping only what the code and `CLAUDE.md` don't already say. → [#7](https://github.com/simonletort/chess-coach/pull/7)
+
+## 8. Bugs found by reading the code
+
+### 28. Missing late-month games
+> Explore the codebase and suggest a change
+
+> open dedicated branch and pr
+
+**What Claude did:** read the app's chess.com client and found that game sync marked the current month as complete. Once that month ended, it was never downloaded again, so games played between the last sync and the end of the month were silently missing from every opponent file. Claude suggested storing when each month was downloaded instead, and treating a month as complete only if that was after the month ended. Old caches repair themselves on the next sync. It tested the three cases in Node with a fake chess.com API before opening the PR. → [#9](https://github.com/simonletort/chess-coach/pull/9)
+
+### 29. Empty game list crash
+> In `app/app.js`, `renderMe` and `renderOpp` build the "Games" card status as `${gs ? `${gs.length.toLocaleString()} games since ${dateOf(pr.since)} · updated ${ago(synced)}` : '...'}`. After downloading a player whose recent archives contain no games, `gs` is `[]` (truthy) while `pr` is `null` (`gs?.length ? profile(gs) : null`), so `pr.since` throws and the whole page shows "Something went wrong: Cannot read properties of null (reading 'since')".
+>
+> Reproduce: mock `https://api.chess.com/pub/player/<user>/games/archives` to return `{"archives": []}` (or use a real account with no games in the last 12 months), set that user up, tap Download games on the You tab.
+>
+> Fix: treat an empty list like "no games yet" in both places (e.g. `gs?.length ? … : 'No games in the last 12 months.'` or similar plain copy), and check other `gs ?` uses in `app/app.js` (e.g. the review button `${gs ? '' : 'disabled'}` and `summarize` calls) for the same assumption. After editing `app/`, run `python3 build_app.py` (the project hook does it automatically for Claude edits). Syntax-check with `node --check` on a `.mjs` copy. Follow the repo's `/ship-change` checklist.
+
+**What Claude did:** reproduced the crash in headless Chromium with a mocked chess.com API, then routed both status lines through one helper that says "No games found · updated …" for an empty list. It also disabled the review button when there's nothing to review. It checked the other `gs` uses and found they already handle an empty list. It chose "No games found" over "in the last 12 months", because the app looks at the 12 most recent months that have games, which aren't always the last 12 calendar months. It re-ran the test with and without games before opening the PR. → [#10](https://github.com/simonletort/chess-coach/pull/10)
+
+## 9. Tests
+
+### 30. Test coverage
+> plan how to improve test coverage. suggest tests to be written for this app. then run them, and report about current test coverage and suggestions to improve that
+
+> are the tests added to gh actions ci/cd
+
+> push branch and open pr. I'll go with option 1
+
+> I made the tests required
+
+> could we see a little more details on the tests results in the PR?
+
+**What Claude did:** found no tests at all and planned two suites without adding any library to the app: Node's built-in test runner for the app's logic, with fakes for IndexedDB, chess.com and Stockfish, and Python's `unittest` for the pipeline. Test games are made up, never copied from `data/`. A shared file of expected values keeps the app and the pipeline agreeing on how they read moves and score positions. It wrote 114 tests. They cover every line of the app's logic modules and 63% of the pipeline, and they include a regression test that fails when the old late-month sync bug is put back. Claude reported what is still untested (the screens, the board, the prep book) and six small issues the tests surfaced, and changed none of them. When the pasted command failed on Node 18, it pointed to the new `.nvmrc`. A new CI workflow runs both suites on every PR; the user chose to make them required through GitHub branch protection rather than gating the deploy in the workflow. Claude confirmed the rule was active, then noticed the PR had no checks on its last commit: it conflicted with this log's entry 29, and GitHub skips checks on conflicting PRs. It merged `main` in to fix that. For more detail in the PR, it added a small reporter to each suite and a job that keeps one "Test results" comment on the PR up to date: counts, failures with their messages, coverage per file, and the modules no test loads. It checked the failure output with a deliberately broken test before pushing, and kept the required job names unchanged. → [#11](https://github.com/simonletort/chess-coach/pull/11)

@@ -67,7 +67,7 @@ Signing in is optional. It keeps your chess.com username, your opponents, the na
 | `worker/index.js`, `worker/sync.js`, `worker/auth.js` | `/api/config` (is sign-in set up?), `/api/sync` (merge and store, delete), checking Auth0 tokens |
 | `wrangler.toml` | The Worker and its environments (`dev`, `test`, `production`): Auth0 settings, D1 database, rate limit |
 | `.github/workflows/deploy.yml` | Deploys `main` to production and `dev` to dev. Run it by hand to deploy any environment |
-| `test/` | Merge rules (`npm test`) |
+| `tests/syncdoc.test.mjs` | Merge rules, run with the other app tests (`npm test`) |
 
 #### Domain: checkmateprep.com
 
@@ -97,7 +97,7 @@ To run the Worker locally (Node 22+):
 
 ```bash
 npm install
-npm test                         # merge rules
+npm test                         # app tests, including the merge rules
 cp .dev.vars.example .dev.vars   # optional: a dev Auth0 tenant's values turn on accounts
 npm run dev                      # app + API at http://localhost:8787
 ```

@@ -1,0 +1,12 @@
+[run]
+branch = True
+source = .
+omit =
+    tests/*
+    app/*
+    node_modules/*
+    .wrangler/*
+
+[report]
+show_missing = True
+skip_empty = True

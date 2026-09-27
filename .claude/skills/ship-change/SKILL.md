@@ -18,7 +18,7 @@ allowed-tools: Bash(python3 build_app.py) Bash(node --check *) Bash(npm test) Ba
   ```bash
   for f in app board store chesscom stats engine analysis plan sync syncdoc; do cp app/$f.js /tmp/chk-$f.mjs && node --check /tmp/chk-$f.mjs || echo "FAIL $f"; done
   ```
-- If `worker/`, `app/syncdoc.js` or `app/sync.js` changed: `npm test`, and try the API with `npm run dev` (app + Worker at http://localhost:8787).
+- If `worker/`, `app/syncdoc.js` or `app/sync.js` changed: run the tests, and try the API with `npm run dev` (app + Worker at http://localhost:8787).
 - Preview with `npx live-server app --port=8766` and check the change at phone size (375×812) in the built-in browser. If the browser pane is hidden, the engine stalls; don't read that as a bug.
 - Clear test data afterwards: `localStorage` and the `chess-prep` IndexedDB database.
 

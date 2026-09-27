@@ -71,6 +71,9 @@ const scoreNote = (id) => `<div class="info-note" id="${id}" hidden><p><b>Score<
   <p>50% is even. For an opponent, lower is better for you; for you, higher is better. Opponents' scores come from their downloaded games against everyone, not just you.</p>
   <p>Check the number of games next to it: a score from a dozen games is a hint, one from hundreds is solid.</p></div>`;
 
+// status under "Games" once a download has run; the list can be empty (no games in recent archives)
+const gamesLine = (gs, pr, synced) => `${gs.length ? `${gs.length.toLocaleString()} games since ${dateOf(pr.since)}` : 'No games found'} · updated ${ago(synced)}`;
+
 function stats(items) {
   if (!items.length) return '';
   return `<div class="stats">${items.map(([v, l]) => `<div class="stat"><b>${esc(v)}</b><span>${esc(l)}</span></div>`).join('')}</div>`;
@@ -306,7 +309,7 @@ async function renderOpp(user) {
       ${cur ? `<p class="lede">${fig(cur.summary)}</p>` : ''}</header>
     ${stats([...ratingStats(user), ...(h2h.length ? [[`${r[0]}–${r[1]}–${r[2]}`, 'Your record vs them (W–D–L)']] : [])])}
     <section class="card"><div class="row"><h2>Games</h2><button class="btn" id="sync">${gs ? 'Refresh' : 'Download games'}</button></div>
-      <p class="small muted" id="sync-status" aria-live="polite">${gs ? `${gs.length.toLocaleString()} games since ${dateOf(pr.since)} · updated ${ago(synced)}` : 'Download their recent games to build their file (up to 12 months).'}</p></section>
+      <p class="small muted" id="sync-status" aria-live="polite">${gs ? gamesLine(gs, pr, synced) : 'Download their recent games to build their file (up to 12 months).'}</p></section>
     ${cur ? `<section class="card curated"><p class="eyebrow">Hand-written prep</p><h2>Coach's plan</h2>
       ${cur.plans.map((p, i) => `<details${i === 0 ? ' open' : ''}><summary><span class="eyebrow">${esc(p.eyebrow)}</span><br><b>${fig(p.title)}</b></summary>
         <div class="details-body"><div data-line="${i}">${viewerHtml(p.caption)}</div>${p.body.map((b) => `<p>${fig(b)}</p>`).join('')}
@@ -576,7 +579,7 @@ async function renderMe() {
       ${cur ? `<p class="lede">${fig(cur.summary)}</p>` : ''}</header>
     ${stats(ratingStats(user))}
     <section class="card"><div class="row"><h2>Games</h2><button class="btn" id="sync">${gs ? 'Refresh' : 'Download games'}</button></div>
-      <p class="small muted" id="sync-status" aria-live="polite">${gs ? `${gs.length.toLocaleString()} games since ${dateOf(pr.since)} · updated ${ago(synced)}` : 'Download your recent games to build your profile.'}</p></section>
+      <p class="small muted" id="sync-status" aria-live="polite">${gs ? gamesLine(gs, pr, synced) : 'Download your recent games to build your profile.'}</p></section>
     ${pr ? `<section class="card"><h2>Your game</h2>${list(describe(pr, true))}</section>` : ''}
     <section class="card"><h2>Engine review</h2>
       ${s?.reviewed ? `${stats([
@@ -586,7 +589,7 @@ async function renderMe() {
         [s.save.games ? `${s.save.pct}%` : '–', `Losing positions saved (${s.save.games})`],
         [s.punish.chances ? `${s.punish.pct}%` : '–', `Opponent blunders punished (${s.punish.chances})`]])}
         ${list(insights(s))}` : '<p class="small muted">Stockfish goes through your games move by move and finds where you lose the most. Your worst moments become puzzles in Drill.</p>'}
-      <div class="row"><button class="btn primary" id="review" ${gs ? '' : 'disabled'}>Review ${s?.reviewed ? '20 more' : 'my last 20'} games</button><button class="btn" id="stop" hidden>Stop</button></div>
+      <div class="row"><button class="btn primary" id="review" ${gs?.length ? '' : 'disabled'}>Review ${s?.reviewed ? '20 more' : 'my last 20'} games</button><button class="btn" id="stop" hidden>Stop</button></div>
       ${progress('review-progress')}
       <p class="small muted">${s?.reviewed ? `${s.reviewed} games reviewed. ` : ''}About 10 seconds per game. Keep the app open. Reviewed games are saved if you stop.</p></section>
     <section class="card"><h2>Lines that go badly for you ${scoreInfo('si-mine')}</h2>${scoreNote('si-mine')}

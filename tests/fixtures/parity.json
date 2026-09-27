@@ -1,0 +1,100 @@
+{
+ "_": "Expected values shared by the JS and Python tests, so the app and the pipeline agree.",
+ "sans": [
+  {
+   "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[White \"TestPlayer\"]\n[Black \"OppOne\"]\n[Result \"1-0\"]\n\n1. e4 {[%clk 0:02:59]} 1... e5 {[%clk 0:02:58]} 2. Nf3 {[%clk 0:02:55]} 2... Nc6 {[%clk 0:02:50]} 3. Bc4 {[%clk 0:02:50]} 3... Nf6 {[%clk 0:02:45]} 4. O-O {[%clk 0:02:40]} 4... Be7 {[%clk 0:02:30.5]} 1-0",
+   "sans": [
+    "e4",
+    "e5",
+    "Nf3",
+    "Nc6",
+    "Bc4",
+    "Nf6",
+    "O-O",
+    "Be7"
+   ]
+  },
+  {
+   "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[White \"OppTwo\"]\n[Black \"testplayer\"]\n[Result \"1-0\"]\n\n1. d4 {[%clk 0:10:00]} 1... d5 {[%clk 0:10:00]} 2. c4 {[%clk 0:09:55]} 2... e6 {[%clk 0:09:50]} 3. Nc3 {[%clk 0:09:40]} 3... Nf6 {[%clk 0:09:30]} 4. Bg5 {[%clk 0:09:20]} 4... Be7 {[%clk 0:00:01]} 1-0",
+   "sans": [
+    "d4",
+    "d5",
+    "c4",
+    "e6",
+    "Nc3",
+    "Nf6",
+    "Bg5",
+    "Be7"
+   ]
+  },
+  {
+   "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[White \"TestPlayer\"]\n[Black \"OppThree\"]\n[Result \"1/2-1/2\"]\n\n1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 a6 1/2-1/2",
+   "sans": [
+    "e4",
+    "c5",
+    "Nf3",
+    "d6",
+    "d4",
+    "cxd4",
+    "Nxd4",
+    "Nf6",
+    "Nc3",
+    "a6"
+   ]
+  },
+  {
+   "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[White \"TestPlayer\"]\n[Black \"OppFour\"]\n[Result \"1-0\"]\n\n1. e4 e5 1-0",
+   "sans": [
+    "e4",
+    "e5"
+   ]
+  },
+  {
+   "pgn": "[Event \"Live Chess\"]\n[Site \"Chess.com\"]\n[White \"OppFive\"]\n[Black \"TestPlayer\"]\n[Result \"0-1\"]\n\n1. e4 d5 2. exd5 Qxd5 3. Nc3 Qa5 4. d4 Nc6 5. Nf3 Bg4 6. Be2 O-O-O 0-1",
+   "sans": [
+    "e4",
+    "d5",
+    "exd5",
+    "Qxd5",
+    "Nc3",
+    "Qa5",
+    "d4",
+    "Nc6",
+    "Nf3",
+    "Bg4",
+    "Be2",
+    "O-O-O"
+   ]
+  }
+ ],
+ "winProb": [
+  [
+   -10000,
+   0.0
+  ],
+  [
+   -500,
+   13.692834
+  ],
+  [
+   -100,
+   40.89741
+  ],
+  [
+   0,
+   50.0
+  ],
+  [
+   100,
+   59.10259
+  ],
+  [
+   500,
+   86.307166
+  ],
+  [
+   10000,
+   100.0
+  ]
+ ]
+}

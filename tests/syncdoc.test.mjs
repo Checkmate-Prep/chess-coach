@@ -1,4 +1,4 @@
-// Merge rules for synced data (app/syncdoc.js). Run: npm test
+// Merge rules for synced data (app/syncdoc.js), shared by the app and the Worker.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { EMPTY, fromLocal, merge, toLocal, clean } from '../app/syncdoc.js';
