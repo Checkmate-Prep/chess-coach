@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 build_app.py)",
+      "Bash(python3 build_report.py)",
+      "Bash(python3 coach.py *)",
+      "Bash(python3 fetch.py *)",
+      "Bash(python3 analyze.py *)",
+      "Bash(python3 profile.py *)",
+      "Bash(python3 explore.py *)",
+      "Bash(node --check *)",
+      "Bash(npx live-server app *)",
+      "Bash(npx --yes live-server app *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git branch *)",
+      "Bash(git fetch *)",
+      "Bash(gh pr view *)",
+      "Bash(gh pr list *)",
+      "Bash(gh pr checks *)"
+    ],
+    "deny": [
+      "Read(./.dev.vars)",
+      "Bash(git push origin main)",
+      "Bash(git push * main)",
+      "Bash(git push * HEAD:main)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          { "type": "command", "command": "\"${CLAUDE_PROJECT_DIR}\"/.claude/hooks/rebuild-app.sh" }
+        ]
+      }
+    ]
+  }
+}

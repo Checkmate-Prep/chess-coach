@@ -4,6 +4,8 @@ A personal chess coach for preparing games against friends on chess.com.
 
 It downloads your games and your friends' games from the chess.com public API, runs Stockfish over them, and builds a profile of each player: openings and how they score with them, where their mistakes happen (opening, middlegame or endgame), how they handle the clock, and positions where they repeat the same mistake. The conclusions go into `notes.py`, and `build_report.py` turns everything into a prep book page with game plans, opening traps and drills from your own games.
 
+**How it's built:** this project is being built iteratively with Claude Code. [`docs/build-log.md`](docs/build-log.md) records every request, word for word, and what came of it.
+
 ## Setup
 
 ```bash
@@ -38,7 +40,7 @@ Players are set in `coach.py` (`ME`, `FRIENDS`). The engine analysis is cached p
 `app/` is an installable web app (PWA), published at https://simonletort.github.io/chess-coach/. Open it on a device and choose **Add to Home Screen**. Anyone can use it: enter your chess.com username, then add the people you play. There's no login, because everything used is public on chess.com.
 
 - **Prep:** an automatic file on each opponent, built locally from up to 1,500 of their recent games. It covers ratings, your head-to-head record, how they play, and the lines where they score badly. **Find traps** runs Stockfish on the device over the positions they reach most often and flags moves they keep repeating that the engine refutes, with the punishing line.
-- **Game plan:** every opponent file gets an automatic plan for both colours: which opening to play (preferring ones you already play, and ranked on a sample-adjusted score so a few lucky games can't decide it), what he usually answers, the engine-checked trap to aim for, lines where he scores badly, and advice on time control, clock and game length. Every number is counted from his games; no AI writes it.
+- **Game plan:** every opponent file gets an automatic plan for both colours: which opening to play (preferring ones you already play, and ranked on a sample-adjusted score so a few lucky games can't decide it), what they usually answer, the engine-checked trap to aim for, lines where they score badly, and advice on time control, clock and game length. Every number is counted from their games; no AI writes it.
 - **Explore:** tap through an opening and see what an opponent (or you) played next and how it scored.
 - **Drill:** punish each opponent's traps, play prepared lines from memory, and solve positions from your own games. Wrong answers are checked by the engine, so an equally good move also counts.
 - **You:** your profile plus an engine review of your games (blunders by phase, converting wins, punishing blunders, the clock). Your worst moments become puzzles.

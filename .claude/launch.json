@@ -1,0 +1,4 @@
+{"version":"0.0.1","configurations":[
+{"name":"app","runtimeExecutable":"python3","runtimeArgs":["-m","http.server","8766","-d","app"],"port":8766},
+{"name":"worker","runtimeExecutable":"/usr/local/bin/node","runtimeArgs":["node_modules/wrangler/bin/wrangler.js","dev","--port","8787","--var","ANTHROPIC_API_KEY:sk-ant-fake-for-local-test"],"port":8787}
+]}
