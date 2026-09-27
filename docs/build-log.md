@@ -497,3 +497,14 @@ The app shows an account card in Settings and a sign-in offer on the welcome scr
 > can you use the auth0 cli or similar to avoid manual setup?
 
 **What Claude did:** planned first and recommended options, and the user chose a phone push through ntfy.sh, pseudonymous stats and Cloudflare Workers Analytics Engine. New accounts: an Auth0 Action notifies on the first sign-in to the production application. Instead of the Auth0 CLI (which needs an interactive login) or the Deploy CLI (which manages the whole tenant), a small Node script creates or updates just this Action and its place in the Login flow through the Management API. It runs after each production deploy once the three secrets are set, and running it again changes nothing. Usage: the app sends the name of each screen it opens to a new `/api/event` endpoint, with a random device id and the account when signed in. It never sends opponents, usernames or drill ids (`prep/<user>` becomes `prep-opp`). The Worker checks the screen against a list shared with the app and writes it to Analytics Engine; `npm run stats` prints users per day, screens, hours and the latest devices. Settings has a switch to turn it off, shown only where stats are sent. Tests cover the Worker endpoint, the app side, the Action and the deploy helpers. Checked with `wrangler dev` and headless Chromium at phone size: events arrived, and none were sent after switching it off. The Auth0 script and the stats queries haven't been run against the real services yet. → [#27](https://github.com/Checkmate-Prep/chess-coach/pull/27)
+
+### 51. Getting the monitoring deploy through
+> check the production deploy
+
+> on which tenant personal or checkmateprep?
+
+> done, re-run the production deploy
+
+> do option 2, open the PR
+
+**What Claude did:** the first production deploy after #27 failed because Analytics Engine wasn't turned on in the Cloudflare account. Claude found this in the logs and pointed to the personal account, where production runs for now, and the user turned it on. The next run deployed the Worker, so usage stats are live. The Auth0 step then stopped at "Missing AUTH0_MGMT_CLIENT_ID": the Client ID wasn't a secret in the `production` environment. The workflow now reads it from a variable or a secret, like `CLOUDFLARE_ACCOUNT_ID`. The README says so, and says Analytics Engine has to be turned on in each Cloudflare account. → [#28](https://github.com/Checkmate-Prep/chess-coach/pull/28)

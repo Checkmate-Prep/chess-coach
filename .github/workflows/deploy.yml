@@ -5,7 +5,8 @@ name: Deploy to Cloudflare
 # since it isn't secret; a secret of that name works too).
 # Until those are set, the job skips the deploy instead of failing (the app still deploys to GitHub Pages).
 # Production also deploys the Auth0 Action that notifies new sign-ups (ops/auth0/), once the environment has
-# the secrets AUTH0_MGMT_CLIENT_ID, AUTH0_MGMT_CLIENT_SECRET and NTFY_TOPIC (see README).
+# the secrets AUTH0_MGMT_CLIENT_SECRET and NTFY_TOPIC, and AUTH0_MGMT_CLIENT_ID (a variable, since it isn't
+# secret; a secret of that name works too). See README.
 on:
   push:
     branches: [main, dev]
@@ -60,6 +61,6 @@ jobs:
         name: Deploy the Auth0 sign-up notification
         run: node ops/auth0/deploy-actions.mjs
         env:
-          AUTH0_MGMT_CLIENT_ID: ${{ secrets.AUTH0_MGMT_CLIENT_ID }}
+          AUTH0_MGMT_CLIENT_ID: ${{ vars.AUTH0_MGMT_CLIENT_ID || secrets.AUTH0_MGMT_CLIENT_ID }}
           AUTH0_MGMT_CLIENT_SECRET: ${{ secrets.AUTH0_MGMT_CLIENT_SECRET }}
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
