@@ -247,3 +247,78 @@ Both the hook's success and failure paths were tested. → [#7](https://github.c
 > could we see a little more details on the tests results in the PR?
 
 **What Claude did:** found no tests at all and planned two suites without adding any library to the app: Node's built-in test runner for the app's logic, with fakes for IndexedDB, chess.com and Stockfish, and Python's `unittest` for the pipeline. Test games are made up, never copied from `data/`. A shared file of expected values keeps the app and the pipeline agreeing on how they read moves and score positions. It wrote 114 tests. They cover every line of the app's logic modules and 63% of the pipeline, and they include a regression test that fails when the old late-month sync bug is put back. Claude reported what is still untested (the screens, the board, the prep book) and six small issues the tests surfaced, and changed none of them. When the pasted command failed on Node 18, it pointed to the new `.nvmrc`. A new CI workflow runs both suites on every PR; the user chose to make them required through GitHub branch protection rather than gating the deploy in the workflow. Claude confirmed the rule was active, then noticed the PR had no checks on its last commit: it conflicted with this log's entry 29, and GitHub skips checks on conflicting PRs. It merged `main` in to fix that. For more detail in the PR, it added a small reporter to each suite and a job that keeps one "Test results" comment on the PR up to date: counts, failures with their messages, coverage per file, and the modules no test loads. It checked the failure output with a deliberately broken test before pushing, and kept the required job names unchanged. → [#11](https://github.com/simonletort/chess-coach/pull/11)
+
+## 10. Freemium: accounts, sync and a name
+
+### 31. Using several devices
+> I'd like users of the app to be able to use multiple devices, in particular be able to access the data, settings and progress across their devices: phone, laptop for instance.
+> explain how you would suggest to do that.
+
+> why not having a server and login?
+
+**What Claude did:** listed what the app stores and pointed out that only a few KB need to travel (profile, opponents, names, drill progress). Games and engine results can be rebuilt on each device. Its first suggestion kept the app login-free: a sync code shown as a QR code, with the data encrypted in the browser and stored by a small Cloudflare Worker. Asked about a server and login, it explained when that is the better choice (sharing, coaching, recovery without a key, server-side work) and recommended making login optional so the app keeps working without an account.
+
+### 32. A freemium plan
+> I'm considering a freemium product, with free analysis for 100 games, and ask user to pay for more.
+> so I'd like to make it easy (no need to register to start), and progressively get user to share info (register to access data across devices), then get user to pay (subscribe if you want more than 100 games analyzed).
+> wdyt?
+
+> agree on the idea to charge linked to opponent prep. draft a doc
+
+> wdyt of replacing "opponents" by "friends"?
+
+> keep opponent
+
+**What Claude did:** agreed with the funnel (use it anonymously, register to sync, pay at the limit) but argued against charging per analyzed game. The engine runs on the user's device, the code is public, so the limit is easy to bypass, and free engine analysis is everywhere. It suggested charging for opponent prep and for what only a server can give (server analysis, alerts, sync), and checking whether payments were allowed by chess.com's terms and EU VAT rules. It then drafted the plan as a shared doc: tiers, the user journey, the architecture, risks and a four-phase roadmap with a demand test before any payment work. On "friends", it recommended keeping "opponents" for pricing and prep, since many opponents are strangers and "traps against your friends" reads oddly.
+
+### 33. Phase 1: accounts and sync
+> start phase 1: accounts and sync
+
+*Choices:* build on ai-prep but take into account that phase 1 will merge before ai-prep · what about auth0 free plan? · Separate PR later (Recommended) *(for removing the friends' hand-written prep)*
+
+**What Claude did:** checked Auth0's free plan (25,000 monthly users, social logins, passwordless email) and flagged that its built-in email sender is for testing only. It used Auth0 for sign-in and a Cloudflare Worker for sync, copying the unmerged `ai-prep` branch's Worker layout so that branch can merge on top later. Sync keeps one small document per account in D1. `syncdoc.js` holds the merge rules and is shared by the app and the Worker:
+- for each opponent the latest change wins
+- removals reach other devices
+- drill progress adds up
+- a device's first sync never overwrites the account
+
+The app shows an account card in Settings and a sign-in offer on the welcome screen, and hides both when there is no `/api` (GitHub Pages).
+
+**Iterations driven by testing:**
+- Claude tested the real API in `wrangler dev` with its own signing key standing in for Auth0: bad and expired tokens, users kept apart, bad input, and ten devices writing at once. The last showed that some writes were refused (a safe retry), so it added a short random wait between retries.
+- A two-device test in headless Chromium, with Auth0 and chess.com mocked, first failed for reasons in the test itself: data left in the local database from an earlier run, and a slow page drawing over the next one (an existing race). Once fixed, all checks passed.
+- Re-reading its own code, Claude found that an installed app opened offline would lose its account card. It now remembers the last server settings.
+- The test run surfaced an existing crash for players with no games. Claude suggested it as a separate task; it became entry 29 and #10.
+- chess.com's pages were blocked from the session, so Claude reported the API terms from search results (restrictions on "competing products", a contact address for questions) and recommended writing to chess.com before charging.
+
+### 34. A domain and a name
+> given the freemium strategy, should I purchase a domain? what name make sense?
+
+> I'd like to have chess in the domain name. I'm not a fan of scout. I like the idea of coach, prep, or game prep, maybe ai.
+
+> what do you think of aichesscoach.app
+
+> chessprep.???
+
+> mychessprep.com
+
+> chessmatchprep.com
+
+> checkmateprep.com
+
+> I'll buy checkmateprep.com
+
+> I already have a godaddy account
+
+> I also have a cloudflare account. if I switch to cloud hosting for the app like azure, would that be a problem?
+
+> I've purchased checkmateprep.com via cloudflare. please document in repo.
+
+**What Claude did:** recommended buying a domain before launch, because browsers keep each user's data per address, and moving later would empty everyone's app. For each suggestion it checked DNS and searched for existing products. It advised against aichesscoach.app, because aichesscoach.com is a live product with the same name and the name is crowded. It also advised against chessprep.*, because chessprep.app and two app-store apps already use it for the same kind of product. mychessprep.com, chessmatchprep.com and checkmateprep.com were all clear, and Claude called checkmateprep.com the most memorable and easiest to protect. It explained how to keep a GoDaddy registration with Cloudflare DNS, and that moving hosting to Azure later would mean porting only the Worker glue and the database, not the app. Once the domain was bought, it made production answer only on checkmateprep.com, with `www` redirecting and no `workers.dev` address. It documented the addresses, DNS, email and Auth0's login subdomain, and added a rule to `CLAUDE.md` that the domain is permanent.
+
+### 35. Checkmate Prep
+> yes, rename it to Checkmate Prep
+
+> yes, open the PR and add the build log
+
+**What Claude did:** renamed the app everywhere users see it (page title, header, home-screen name, description with the tagline "know your next opponent before the game") and kept `chess-coach` for the repo and internal names. Before opening the PR it found that `main` had moved on (#9, #10, #11). It merged `main` in and moved its merge-rule tests into the new `tests/` folder, so the required CI job runs them. Then it re-ran both test suites and the two-device browser test on the merged code. → [#12](https://github.com/simonletort/chess-coach/pull/12)

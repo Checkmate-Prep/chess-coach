@@ -1,7 +1,7 @@
 ---
 name: ship-change
 description: The checklist for landing any change in this repo, from branch to PR to build-log entry. Use when finishing a change, before opening or updating a pull request.
-allowed-tools: Bash(python3 build_app.py) Bash(node --check *) Bash(git status *) Bash(git diff *) Bash(git log *) Bash(gh pr view *) Bash(gh pr list *)
+allowed-tools: Bash(python3 build_app.py) Bash(node --check *) Bash(npm test) Bash(git status *) Bash(git diff *) Bash(git log *) Bash(gh pr view *) Bash(gh pr list *)
 ---
 
 # Ship a change
@@ -16,8 +16,9 @@ allowed-tools: Bash(python3 build_app.py) Bash(node --check *) Bash(git status *
 - After editing `app/`, the project hook runs `python3 build_app.py` automatically. After edits made outside Claude's tools, run it yourself: it stamps the service-worker cache name, and without that, installed apps keep the old files.
 - Syntax-check changed modules (they are ES modules, so check a `.mjs` copy):
   ```bash
-  for f in app board store chesscom stats engine analysis plan; do cp app/$f.js /tmp/chk-$f.mjs && node --check /tmp/chk-$f.mjs || echo "FAIL $f"; done
+  for f in app board store chesscom stats engine analysis plan sync syncdoc; do cp app/$f.js /tmp/chk-$f.mjs && node --check /tmp/chk-$f.mjs || echo "FAIL $f"; done
   ```
+- If `worker/`, `app/syncdoc.js` or `app/sync.js` changed: run the tests, and try the API with `npm run dev` (app + Worker at http://localhost:8787).
 - Preview with `npx live-server app --port=8766` and check the change at phone size (375×812) in the built-in browser. If the browser pane is hidden, the engine stalls; don't read that as a bug.
 - Clear test data afterwards: `localStorage` and the `chess-prep` IndexedDB database.
 

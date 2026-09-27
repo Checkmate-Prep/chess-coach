@@ -1,6 +1,6 @@
 {
-  "name": "AI Chess Coach",
-  "short_name": "Chess Coach",
+  "name": "Checkmate Prep",
+  "short_name": "Checkmate Prep",
   "description": "Opening prep, traps and drills for your games against the people you play on chess.com.",
   "start_url": "./",
   "scope": "./",

@@ -1,0 +1,21 @@
+// Cloudflare Worker: serves the app (app/, via the ASSETS binding) and the /api endpoints.
+// Settings per environment are in wrangler.toml.
+import { json } from './http.js';
+import { sync } from './sync.js';
+
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+    // One address per app, so one set of local data per user: www.checkmateprep.com -> checkmateprep.com.
+    if (url.hostname.startsWith('www.')) { url.hostname = url.hostname.slice(4); return Response.redirect(url.href, 301); }
+    // What this server offers. The app hides accounts when this is missing (GitHub Pages, a static server).
+    if (url.pathname === '/api/config') {
+      const auth = env.AUTH0_DOMAIN && env.AUTH0_CLIENT_ID && env.AUTH0_AUDIENCE
+        ? { domain: env.AUTH0_DOMAIN, clientId: env.AUTH0_CLIENT_ID, audience: env.AUTH0_AUDIENCE } : null;
+      return json({ auth });
+    }
+    if (url.pathname === '/api/sync') return sync(request, env);
+    if (url.pathname.startsWith('/api/')) return json({ error: 'Not found.' }, 404);
+    return env.ASSETS.fetch(request);
+  },
+};
