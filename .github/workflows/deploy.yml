@@ -1,7 +1,8 @@
 name: Deploy to Cloudflare
 
 # One Worker per environment (see wrangler.toml). Each job reads its secrets from the GitHub
-# Environment with the same name: CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID.
+# Environment with the same name: the secret CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID (a variable,
+# since it isn't secret; a secret of that name works too).
 # Until those are set, the job skips the deploy instead of failing (the app still deploys to GitHub Pages).
 on:
   push:
@@ -47,5 +48,5 @@ jobs:
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID || secrets.CLOUDFLARE_ACCOUNT_ID }}
           environment: ${{ github.event.inputs.environment || (github.ref_name == 'main' && 'production' || 'dev') }}
