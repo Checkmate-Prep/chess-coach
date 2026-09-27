@@ -369,3 +369,10 @@ The app shows an account card in Settings and a sign-in offer on the welcome scr
 
 **What Claude did:** added a checklist to the README for moving production to the project account after the domain move: export the D1 data, move the domain, recreate the DNS records, switch the GitHub secrets, redeploy, import, clean up. It tested the export and import commands on a local database first. That showed the export needs `--table docs`, to leave out Cloudflare's own tables, and that importing with `INSERT OR IGNORE` keeps rows written after the switch while restoring the rest. → [#14](https://github.com/Checkmate-Prep/chess-coach/pull/14)
 
+
+### 38. When "no traps" means "too few games"
+> troubleshoot why "https://checkmateprep.com/#prep/[an opponent]" says "No repeated losing moves in their most common positions. Their openings are sound; look at the lines where they score badly instead."
+
+> ok open pr
+
+**What Claude did:** traced the message to the trap card, then reran the trap scan outside the browser on the opponent's real games from chess.com, using native Stockfish and the app's own tree code. The opponent had 18 games in 12 months (12 as White, 6 as Black). Only one position qualified: 1.e4, which they played in all 12 White games and which is sound. None qualified as Black. So the scan worked, but "their openings are sound" rested on one check. Claude split the candidate search out of the scan so the page can count positions without the engine, and had the scan save how many it checked. The card now says when there are too few games to look for traps, and after an empty scan it says how many positions and games the result rests on. At first it made old saved scans run again, then reverted that: the button never shows once a result is saved, so old scans fall back to counting today's trees. There was no built-in browser in the session, so the new copy wasn't previewed. → [#15](https://github.com/Checkmate-Prep/chess-coach/pull/15)

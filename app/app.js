@@ -3,7 +3,7 @@ import { Board } from './board.js';
 import { ls, idb } from './store.js';
 import { player, syncGames, cachedGames } from './chesscom.js';
 import { buildTree, walk, profile, weakLines, pct } from './stats.js';
-import { reviewGames, reviewCache, summarize, findTraps, cachedTraps, isGoodMove } from './analysis.js';
+import { reviewGames, reviewCache, summarize, findTraps, cachedTraps, trapsChecked, trapCandidates, TRAP_MIN_N, isGoodMove } from './analysis.js';
 import { gamePlan } from './plan.js';
 import { whileAwake } from './engine.js';
 import { account, startSync, returningFromSignIn, signIn, signOut, syncNow, deleteSynced } from './sync.js';
@@ -298,6 +298,9 @@ async function renderOpp(user) {
   const pr = gs?.length ? profile(gs) : null;
   const [tw, tb] = await Promise.all([treeOf(user, 'white'), treeOf(user, 'black')]);
   const [trW, trB] = await Promise.all([cachedTraps(user, 'white'), cachedTraps(user, 'black')]);
+  // positions the scan checks (or checked); scans saved before this was counted fall back to today's trees
+  const [ckW, ckB] = await Promise.all([trapsChecked(user, 'white'), trapsChecked(user, 'black')]);
+  const checked = (ckW ?? trapCandidates(tw, 'white').length) + (ckB ?? trapCandidates(tb, 'black').length);
   const [myW, myB] = await Promise.all([treeOf(P.me.user, 'white'), treeOf(P.me.user, 'black')]);
   // head-to-head from your own games (they go further back than a busy opponent's latest 1,500)
   const h2h = ((await gamesOf(P.me.user)) || []).filter((g) => g.opp.toLowerCase() === user);
@@ -319,9 +322,9 @@ async function renderOpp(user) {
     ${pr ? `<section class="card"><h2>How they play</h2>${list(describe(pr, false))}</section>` : ''}
     <section class="card"><h2>Traps: moves they repeat that lose</h2>
       <p class="small muted">Stockfish checks the positions they reach most often and flags moves they keep playing that the engine refutes.</p>
-      ${trW || trB ? '' : `<button class="btn primary" id="traps" ${tw.n + tb.n ? '' : 'disabled'}>Find traps with Stockfish</button><p class="small muted">Takes 1–3 minutes. It runs on your device. Keep the app open.</p>`}
+      ${trW || trB || (tw.n + tb.n && !checked) ? '' : `<button class="btn primary" id="traps" ${tw.n + tb.n ? '' : 'disabled'}>Find traps with Stockfish</button><p class="small muted">Takes 1–3 minutes. It runs on your device. Keep the app open.</p>`}
       ${progress('trap-progress')}
-      <div id="trap-list">${trW || trB ? trapsSection(user, trW, trB) : ''}</div></section>
+      <div id="trap-list">${trW || trB || (tw.n + tb.n && !checked) ? trapsSection(user, trW, trB, checked, tw.n, tb.n) : ''}</div></section>
     <section class="card"><h2>Lines that go badly for them ${scoreInfo('si-weak')}</h2>${scoreNote('si-weak')}
       <h3>When they're White</h3>${weakHtml(weakLines(tw), 'white', user)}
       <h3>When they're Black</h3>${weakHtml(weakLines(tb), 'black', user)}</section>
@@ -402,9 +405,12 @@ async function renderOppList() {
       .then(() => { if ((location.hash || '#me') === '#prep') renderOppList(); });
   }
 }
-function trapsSection(user, w, b) {
+function trapsSection(user, w, b, checked, nW, nB) {
   const all = [...(w || []).map((t, i) => trapHtml(t, `white:${i}`, user, 'white')), ...(b || []).map((t, i) => trapHtml(t, `black:${i}`, user, 'black'))];
-  return all.length ? all.join('') : '<p class="muted">No repeated losing moves in their most common positions. Their openings are sound; look at the lines where they score badly instead.</p>';
+  if (all.length) return all.join('');
+  const games = `${nW} game${nW === 1 ? '' : 's'} as White and ${nB} as Black`;
+  if (!checked) return `<p class="muted">Not enough games to look for traps. They have ${games}, and a trap needs the same position at least ${TRAP_MIN_N} times.</p>`;
+  return `<p class="muted">Stockfish checked the ${checked} position${checked === 1 ? '' : 's'} they reach most often (from ${games}) and found no move they repeat that loses. ${checked < 5 ? 'That is a small sample: check again once they have played more games.' : 'Look at the lines where they score badly instead.'}</p>`;
 }
 function mountTraps(w, b) {
   for (const [color, list_] of [['white', w], ['black', b]]) {
