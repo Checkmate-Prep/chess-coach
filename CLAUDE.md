@@ -3,7 +3,8 @@
 A chess coach for preparing games against specific opponents on chess.com. Two parts:
 
 - **Python pipeline (runs on a Mac):** downloads games from the chess.com public API, runs native Stockfish 19 over them, builds player profiles, and packages the results. Hand-written coaching lives in `notes.py`.
-- **Web app (`app/`):** a static PWA published to GitHub Pages (https://simonletort.github.io/chess-coach/). Anyone enters their chess.com username and opponents; games, stats, traps, game plans and drills are all computed in the browser, including Stockfish (WASM). There is no server and no login.
+- **Web app (`app/`):** a static PWA published to GitHub Pages (https://simonletort.github.io/chess-coach/). Anyone enters their chess.com username and opponents; games, stats, traps, game plans and drills are all computed in the browser, including Stockfish (WASM). No account is needed.
+- **Worker (`worker/`):** a Cloudflare Worker that also serves `app/` and adds `/api`: optional sign-in (Auth0) and sync of opponents, names and drill progress across devices. The app hides accounts when there is no `/api` (GitHub Pages, `live-server`).
 
 See `README.md` for the user-facing description.
 
@@ -21,23 +22,29 @@ See `README.md` for the user-facing description.
 | `app/stats.js`, `app/plan.js` | Opening trees, profile stats, weak lines; the automatic game plan |
 | `app/engine.js`, `app/analysis.js` | Stockfish worker wrapper; game review, trap finder, puzzles |
 | `app/board.js`, `app/pieces.js` | SVG board with tap-to-move; piece artwork |
-| `app/vendor/` | Vendored `chess.js` 1.4.0 and Stockfish 19 lite single-threaded (GPL, see `COPYING.txt`) |
+| `app/sync.js`, `app/syncdoc.js` | Optional account: Auth0 sign-in and when to sync; what syncs and how copies merge (also used by the Worker) |
+| `app/vendor/` | Vendored `chess.js` 1.4.0, Stockfish 19 lite single-threaded (GPL, see `COPYING.txt`) and the Auth0 SPA SDK 2.27.0 (MIT) |
+| `worker/`, `wrangler.toml` | The Worker: `/api/config`, `/api/sync` (D1), Auth0 token checks; environments `dev`, `test`, `production` |
+| `test/` | Node tests for the merge rules (`npm test`) |
 
-Gitignored and rebuilt locally: `data/` (games, analysis, profiles), `bin/` (native Stockfish, auto-downloaded), `report.html`.
+Gitignored and rebuilt locally: `data/` (games, analysis, profiles), `bin/` (native Stockfish, auto-downloaded), `report.html`, `node_modules/`, `.wrangler/`, `.dev.vars`.
 
 ## Commands
 
 ```bash
 python3 coach.py refresh               # pipeline for everyone, then report + app data
 python3 build_app.py                   # after ANY change in app/ (see below)
-npx live-server app --port=8766        # local preview with auto-reload
+npx live-server app --port=8766        # local preview with auto-reload (no /api, so no accounts)
+npm test                               # merge rules for synced data
+npm run dev                            # app + Worker at http://localhost:8787 (accounts need .dev.vars)
 ```
 
 ## Rules that matter
 
 - **`app/` changes need `python3 build_app.py`.** It hashes the app into the service worker's cache name; without a new name, installed apps keep serving the old files. A project hook runs it automatically after Claude edits a file in `app/`; run it yourself after edits made any other way.
 - **Everything in `app/` is public**, including `prep.json` (the hand-written prep). Never put secrets or private data there.
-- **No build step or framework.** Plain ES modules; libraries are vendored. Keep it that way unless there's a strong reason.
+- **No build step or framework.** Plain ES modules; libraries are vendored. Keep it that way unless there's a strong reason. (The Worker is bundled by Wrangler; that doesn't touch `app/`.)
+- **Accounts are optional.** Everything must keep working signed out and without `/api`. Only data the user typed or earned syncs (`syncdoc.js`); a new synced field needs a merge rule and a test.
 - **Offline mode is disabled on localhost** (in `app.js` and `sw.js`) so local edits always show. Don't remove that.
 - **Engine calls go through `analyseSafe` and long jobs through `whileAwake`** (`engine.js`). Browsers pause hidden pages and the engine with them; timeouts only count visible time, and a stuck worker is replaced.
 - **Scores:** trees store points ×2 as integers (`p`), `pct(p, n)` gives the percentage. A score is always from the named player's point of view (win 1, draw ½, loss 0).

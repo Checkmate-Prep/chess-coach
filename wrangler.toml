@@ -1,0 +1,48 @@
+# Cloudflare Worker that serves app/ and the /api endpoints (worker/index.js).
+# Top level = local development (`npm run dev`). Deploys always name an environment:
+#   npx wrangler deploy --env dev|test|production   (normally done by .github/workflows/deploy.yml)
+# No secrets are needed: the Auth0 values below are public (the app shows them to every browser).
+# Leave them empty and the app runs without accounts.
+name = "chess-coach-local"
+main = "worker/index.js"
+compatibility_date = "2026-09-01"
+workers_dev = true
+preview_urls = false
+
+[assets]
+directory = "./app"
+binding = "ASSETS"
+run_worker_first = ["/api/*"]
+
+# Bindings and vars don't inherit, so each environment lists its own.
+# D1 databases without an id are created on the first deploy; the Worker creates its table.
+# Auth0: AUTH0_DOMAIN = the tenant (or its custom domain), AUTH0_CLIENT_ID = the Single Page Application,
+# AUTH0_AUDIENCE = the API identifier. Locally, override them in .dev.vars.
+[vars]
+AUTH0_DOMAIN = ""
+AUTH0_CLIENT_ID = ""
+AUTH0_AUDIENCE = ""
+[[d1_databases]]
+binding = "DB"
+[[ratelimits]]
+name = "BURST"
+namespace_id = "1000"
+simple = { limit = 30, period = 60 }
+
+[env.dev]
+name = "chess-coach-dev"
+vars = { AUTH0_DOMAIN = "", AUTH0_CLIENT_ID = "", AUTH0_AUDIENCE = "" }
+d1_databases = [{ binding = "DB" }]
+ratelimits = [{ name = "BURST", namespace_id = "1001", simple = { limit = 30, period = 60 } }]
+
+[env.test]
+name = "chess-coach-test"
+vars = { AUTH0_DOMAIN = "", AUTH0_CLIENT_ID = "", AUTH0_AUDIENCE = "" }
+d1_databases = [{ binding = "DB" }]
+ratelimits = [{ name = "BURST", namespace_id = "1002", simple = { limit = 30, period = 60 } }]
+
+[env.production]
+name = "chess-coach"
+vars = { AUTH0_DOMAIN = "", AUTH0_CLIENT_ID = "", AUTH0_AUDIENCE = "" }
+d1_databases = [{ binding = "DB" }]
+ratelimits = [{ name = "BURST", namespace_id = "1003", simple = { limit = 30, period = 60 } }]

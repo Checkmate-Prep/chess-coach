@@ -6,6 +6,7 @@ import { buildTree, walk, profile, weakLines, pct } from './stats.js';
 import { reviewGames, reviewCache, summarize, findTraps, cachedTraps, isGoodMove } from './analysis.js';
 import { gamePlan } from './plan.js';
 import { whileAwake } from './engine.js';
+import { account, startSync, returningFromSignIn, signIn, signOut, syncNow, deleteSynced } from './sync.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -128,7 +129,8 @@ async function renderSetup(first = false) {
   }
   view.innerHTML = `
     <header class="head">${first ? '<p class="eyebrow">Welcome</p>' : ''}<h1>${first ? 'Get started' : 'Settings'}</h1>
-      <p class="lede">${first ? 'Prepare for games against the people you actually play. Enter your chess.com username, then add your opponents. No password or login: everything used here is public on chess.com.' : 'Change your username or the opponents you prepare for.'}</p></header>
+      <p class="lede">${first ? 'Prepare for games against the people you actually play. Enter your chess.com username, then add your opponents. No account needed: everything used here is public on chess.com.' : 'Change your username or the opponents you prepare for.'}</p></header>
+    ${first ? '<div id="account-slot"></div>' : ''}
     <section class="card">${me ? '<h2>You</h2>' : ''}
       <label for="me-name"><b>Your name</b>${me ? '' : ' <span class="muted small">(optional)</span>'}</label>
       <input id="me-name" autocomplete="off" value="${esc(me?.name || '')}" placeholder="e.g. Alex" aria-describedby="me-name-status">
@@ -147,9 +149,11 @@ async function renderSetup(first = false) {
       <p class="small" id="opp-status" aria-live="polite"></p>
       ${suggestions.length ? `<p class="small muted">People you've played most:</p><div class="chips">${suggestions.map(([u, n]) => `<button class="chip" data-add="${esc(u)}">${esc(u)} <span class="muted">${n}</span></button>`).join('')}</div>` : ''}
     </section>
+    <div id="account-slot"></div>
     <section class="card"><h2>Stored locally on this device</h2><p class="small muted">Games and engine results are saved in this browser only. Clearing them frees space; they're downloaded again on the next refresh.</p>
       <button class="btn" id="clear-data">Clear saved games and analysis</button><p class="small" id="clear-status"></p></section>` : ''}`;
 
+  renderAccount();
   $('#me-form').onsubmit = async (e) => {
     e.preventDefault();
     const user = $('#me-input').value.trim().toLowerCase(); if (!user) return;
@@ -194,6 +198,53 @@ async function renderSetup(first = false) {
   view.querySelectorAll('[data-add]').forEach((b) => { b.onclick = () => add(b.dataset.add, $('#opp-status')); });
   view.querySelectorAll('[data-remove]').forEach((b) => { b.onclick = () => { P.opps = P.opps.filter((o) => o.user !== b.dataset.remove); ls.set('profile', P); renderSetup(); }; });
   $('#clear-data').onclick = async () => { await idb.clear(); Object.keys(games).forEach(invalidate); $('#clear-status').textContent = 'Cleared.'; };
+}
+
+// ---------- account (sync.js): the same opponents, names and drill progress on every device ----------
+function renderAccount() {
+  const slot = $('#account-slot');
+  if (!slot) return;
+  const first = !P?.me;
+  const err = account.error ? `<p class="small warn" role="alert">${esc(account.error)}</p>` : '';
+  if (!account.enabled) { slot.innerHTML = ''; return; }
+  if (!account.signedIn) {
+    slot.innerHTML = first
+      ? `<section class="card"><p class="small">Already use the app on another device? Sign in to bring your opponents and drill progress here.</p>
+        <button class="btn" data-acct="signin">Sign in</button>${err}</section>`
+      : `<section class="card"><h2>Your devices</h2>
+        <p class="small muted">Sign in to use the app on your phone and laptop with the same opponents, names and drill progress. Games and engine results stay on each device; they're downloaded again on the others.</p>
+        <button class="btn primary" data-acct="signin">Sign in</button>${err}</section>`;
+  } else {
+    const when = account.busy ? 'Syncing…' : account.at ? `Synced ${ago(account.at)}.` : 'Not synced yet.';
+    slot.innerHTML = first
+      ? `<section class="card"><p class="small">Signed in${account.email ? ` as <b>${esc(account.email)}</b>` : ''}. ${account.busy ? 'Syncing…' : account.at ? 'Nothing is saved on this account yet: enter your chess.com username below.' : ''}</p>${err}</section>`
+      : `<section class="card"><h2>Your account</h2>
+        <p class="small">Signed in${account.email ? ` as <b>${esc(account.email)}</b>` : ''}. Your opponents, names and drill progress sync to your other devices.</p>
+        <p class="small muted" aria-live="polite">${when}</p>${err}
+        <div class="row"><button class="btn" data-acct="sync" ${account.busy ? 'disabled' : ''}>Sync now</button><button class="btn" data-acct="signout">Sign out</button></div>
+        <details><summary class="small">Delete synced data</summary><div class="details-body">
+          <p class="small muted">Deletes your opponents, names and drill progress from the server, then signs you out. This device keeps its copy.</p>
+          <button class="btn" data-acct="delete">Delete synced data</button></div></details></section>`;
+  }
+  slot.querySelectorAll('[data-acct]').forEach((b) => {
+    b.onclick = async () => {
+      b.disabled = true;
+      const act = b.dataset.acct;
+      if (act === 'signin') await signIn();
+      if (act === 'sync') await syncNow();
+      if (act === 'signout') await signOut();
+      if (act === 'delete') await deleteSynced();
+      renderAccount();
+    };
+  });
+}
+/** Synced data arrived from another device: pick it up, and redraw lists (not a board or a job in progress). */
+function syncedDataArrived() {
+  const was = P;
+  P = ls.get('profile', null);
+  const tab = (location.hash.slice(1) || 'me').split('/');
+  const typing = document.activeElement?.matches('input, select, textarea');
+  if (!was?.me || (!typing && ((tab[0] === 'setup') || (tab[0] === 'prep' && !tab[1]) || (tab[0] === 'drill' && !tab[1])))) route();
 }
 
 // ---------- auto profile text ----------
@@ -608,7 +659,9 @@ window.addEventListener('hashchange', route);
 
 (async () => {
   try { PREP = await (await fetch('prep.json')).json(); } catch { /* hand-written prep is optional */ }
-  route();
+  // Back from Auth0's sign-in page: finish signing in and sync before the first screen, so it shows the synced data.
+  const accounts = { data: syncedDataArrived, status: renderAccount };
+  if (returningFromSignIn()) { await startSync(accounts); route(); } else { route(); startSync(accounts); }
   // Offline mode only on the real site: on localhost it would serve stale files during development,
   // so remove any worker and cache an earlier local run installed.
   const local = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
