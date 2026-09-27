@@ -29,7 +29,7 @@ Fields:
 
 Here is an example plan written by hand for another opponent, to show the tone and level of detail:
 {"eyebrow":"You have White","title":"1.e4 e5 2.Nf3 Nf6 3.Bc4! and wait for …Bc5","line":"e4 e5 Nf3 Nf6 Bc4 Bc5 Nxe5 Qe7 Bxf7+ Kf8 d4","key_from":6,
-"body":["He answers 3.Bc4 with 3…Bc5 in 85 of 102 games. That move is a mistake: <b>4.Nxe5!</b> takes a free pawn.","His usual reply is 4…Qe7 (10 of 13). Then <b>5.Bxf7+! Kf8 6.d4!</b> and you're about four pawns up. 6.d4 blocks the queen's attack on e5 and hits the bishop at the same time.","If he avoids it with 3…d6 (he scores 25% there), just develop: 4.Nc3, 5.d3 and 0-0."],
+"body":["They answer 3.Bc4 with 3…Bc5 in 85 of 102 games. That move is a mistake: <b>4.Nxe5!</b> takes a free pawn.","Their usual reply is 4…Qe7 (10 of 13). Then <b>5.Bxf7+! Kf8 6.d4!</b> and you're about four pawns up. 6.d4 blocks the queen's attack on e5 and hits the bishop at the same time.","If they avoid it with 3…d6 (they score 25% there), just develop: 4.Nc3, 5.d3 and 0-0."],
 "caption":"Gold moves are the trap."}`;
 
 const str = { type: 'string' };
