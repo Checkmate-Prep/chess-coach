@@ -2,7 +2,7 @@
 
 How this project is being built with [Claude Code](https://claude.com/claude-code), one request at a time.
 
-Each entry quotes the prompt **word for word**, typos included, and only lightly cleans it where privacy needs it (for example a local folder path). Then it says what Claude did, what changed along the way, and which pull request came out of it. Answers picked from multiple-choice questions Claude asked are shown as *Choice*.
+Each entry quotes the prompt **word for word**, lightly cleaned where privacy needs it: friends appear as Friend A and Friend B, a local folder path is shortened, and replaced text is shown in [brackets]. Two typos were fixed. Then it says what Claude did, what changed along the way, and which pull request came out of it. Answers picked from multiple-choice questions Claude asked are shown as *Choice*.
 
 **Summary:** from "I'd like an AI chess coach" to an installable web app with on-device Stockfish, automatic game plans and drills, in 7 pull requests over two days (26–27 September 2026).
 
@@ -12,15 +12,15 @@ Each entry quotes the prompt **word for word**, typos included, and only lightly
 
 ### 1. The idea
 > I'd like to have an ai chess coach that would help me prepare games against friends who play on chess.com
-> coach would learn my style, strenght and weaknesses from my previous games and puzzles on chess.com
+> coach would learn my style, strength and weaknesses from my previous games and puzzles on chess.com
 > and also analyze my friends style on chess.com to help me get ready for our games
 
 **What Claude did:** checked that chess.com's public API was reachable and that Python was available, proposed a plan (download games, analyze them with Stockfish, profile each player, write prep per friend), and asked for the usernames. It flagged a limit early: the public API exposes puzzle ratings but not puzzle history.
 
 ### 2. The players
 > me: https://www.chess.com/member/slnyc
-> etienne: https://www.chess.com/member/pepex654
-> greg: https://www.chess.com/member/gregmolin
+> [friend A]: https://www.chess.com/member/[friend A's username]
+> [friend B]: https://www.chess.com/member/[friend B's username]
 
 **What Claude did:** built the pipeline in a scratch folder:
 - `fetch.py` downloads the game archives.
@@ -28,11 +28,11 @@ Each entry quotes the prompt **word for word**, typos included, and only lightly
 - `profile.py` builds each player's statistics.
 - `explore.py` is an opening explorer.
 
-It analyzed 17 of Simon's games and 150 each for Etienne and Greg, checked every recommended line with the engine, and published a prep-book page with step-through boards.
+It analyzed 17 of Simon's games and 150 each for Friend A and Friend B, checked every recommended line with the engine, and published a prep-book page with step-through boards.
 
 **Findings along the way:**
-- Etienne answers `1.e4 e5 2.Nf3 Nf6 3.Bc4` with `3…Bc5?!` in 85 of 102 games. Stockfish shows `4.Nxe5! Qe7 5.Bxf7+! Kf8 6.d4!` wins about four pawns, and that the natural `6.Bb3??` throws it away.
-- Against Greg, `1.d4 d5 2.Bf4 Nc6 3.Nc3 Nf6 4.Nb5!` means every natural reply except `4…e5` loses a rook to `Nxc7+`.
+- Friend A answers `1.e4 e5 2.Nf3 Nf6 3.Bc4` with `3…Bc5?!` in 85 of 102 games. Stockfish shows `4.Nxe5! Qe7 5.Bxf7+! Kf8 6.d4!` wins about four pawns, and that the natural `6.Bb3??` throws it away.
+- Against Friend B, `1.d4 d5 2.Bf4 Nc6 3.Nc3 Nf6 4.Nb5!` means every natural reply except `4…e5` loses a rook to `Nxc7+`.
 - Simon's own pattern: he gives winning positions back, often by missing what the opponent's last move changed. Four of those moments became "find the move" drills.
 
 ## 2. Into a repository
@@ -86,7 +86,7 @@ It also set up a GitHub Pages deploy workflow. → [#2](https://github.com/simon
 - On the device: game review, a **trap finder** (moves an opponent keeps repeating that the engine refutes), and puzzles generated from the review.
 
 **Validation:**
-- The phone-side trap finder independently rediscovered Etienne's `3…Bc5` trap in 37 seconds.
+- The phone-side trap finder independently rediscovered Friend A's `3…Bc5` trap in 37 seconds.
 - The phone-side review matched the full Mac analysis: 3.1 opening blunders per 100 moves in both, and 64% of winning positions converted in both.
 
 → [#3](https://github.com/simonletort/chess-coach/pull/3)
@@ -132,7 +132,7 @@ Each of these went into [#4](https://github.com/simonletort/chess-coach/pull/4),
 > on page "Settings" remove the chess.com/user at the top
 
 ### 16. Too many opponents
-> switching on Prep tab is too crowder with more than 4 opponents. propose a solution
+> switching on Prep tab is too crowded with more than 4 opponents. propose a solution
 
 *Choice: Opponent list (from three mockups). Fix Explore too: yes, with a picker.*
 
@@ -142,7 +142,7 @@ Each of these went into [#4](https://github.com/simonletort/chess-coach/pull/4),
 > on /prep/opponent, the chess.com/user is displayed above the name of the player. move it just under the player name
 
 ### 18. Naming opponents
-> in settings, allow user to associate a name to the chess.com user name (like Etienne for pepex654)
+> in settings, allow user to associate a name to the chess.com user name (like [a friend's name] for [their username])
 
 **What Claude did:** added editable names, used everywhere through one `displayName()` helper, falling back to the hand-written names and then the username.
 
@@ -162,7 +162,7 @@ Each of these went into [#4](https://github.com/simonletort/chess-coach/pull/4),
 **What Claude did:** built `plan.js`. For each colour it gives the opening to play, his usual answer, the trap to aim for and a weak line, plus advice on time control and the clock. → [#5](https://github.com/simonletort/chess-coach/pull/5)
 
 **Iterations driven by testing:**
-- The first version recommended openings Simon never plays, on thin evidence. It told him to answer Etienne's 1.e4 with `1…b6` on only 21 games. Claude added three rules: prefer your own openings when close, rank on a sample-adjusted score, and require 40 or more games to recommend a new move.
+- The first version recommended openings Simon never plays, on thin evidence. It told him to answer Friend A's 1.e4 with `1…b6` on only 21 games. Claude added three rules: prefer your own openings when close, rank on a sample-adjusted score, and require 40 or more games to recommend a new move.
 - A trap scan hung forever at "0 of 78". Claude traced it to browsers pausing hidden pages, which stalls the engine. The same would happen on a phone in the background. The fix: engine time limits that only count visible time, automatic engine replacement, and a screen wake lock during long jobs.
 
 ### 22. Explaining scores
