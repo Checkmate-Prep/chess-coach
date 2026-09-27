@@ -66,6 +66,8 @@ export async function reviewGames(user, games, count, onProgress = () => {}, sig
   return cache;
 }
 export const reviewCache = (user) => idb.get(`review:${user}`).then((c) => c || {});
+/** How many of `games` have been reviewed. */
+export const reviewedCount = (games, cache) => games.filter((g) => cache[g.url]).length;
 
 /** Aggregate reviewed games into phase accuracy, conversion, clock and puzzle candidates. */
 export function summarize(games, cache) {

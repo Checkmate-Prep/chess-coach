@@ -4,7 +4,7 @@ import { PIECES } from './pieces.js';
 import { ls } from './store.js';
 import { player, savePlayers, syncGames, cachedGames } from './chesscom.js';
 import { buildTree, walk, profile, weakLines, pct, headToHead } from './stats.js';
-import { reviewGames, reviewCache, summarize, findTraps, cachedTraps, trapScan, trapCandidates, TRAP_MIN_N, isGoodMove } from './analysis.js';
+import { reviewGames, reviewCache, reviewedCount, summarize, findTraps, cachedTraps, trapScan, trapCandidates, TRAP_MIN_N, isGoodMove } from './analysis.js';
 import { gamePlan } from './plan.js';
 import { whileAwake } from './engine.js';
 import { account, startSync, returningFromSignIn, signIn, signOut, syncNow, deleteSynced, hasApi, token } from './sync.js';
@@ -69,6 +69,7 @@ function download(user) {
         document.querySelectorAll(`[data-dl="${user}"]`).forEach((el) => { el.textContent = dlText(user); });
       });
       invalidate(user);
+      queueReview(user);
     } finally { delete downloading[user]; delete monthOf[user]; }
   })();
 }
@@ -90,8 +91,10 @@ async function runQueue() {
 /** Players whose games are missing or more than a day old: download them in the background. */
 async function dailyDownloads() {
   if (!P?.me || navigator.onLine === false) return;
-  for (const user of [P.me.user, ...P.opps.map((o) => o.user)])
+  for (const user of [P.me.user, ...P.opps.map((o) => o.user)]) {
     if (Date.now() - ((await cachedGames(user))?.fetched || 0) > DAY) queueDownload(user);
+    else if (user !== P.me.user && (await reviewTodo(user)).length) queueReview(user); // new opponent data, or a review cut short last time
+  }
 }
 /** A background download finished or failed: redraw the screen if it was waiting for it (never a board or a job in progress). */
 function downloaded(user) {
@@ -99,6 +102,57 @@ function downloaded(user) {
   if (document.activeElement?.matches('input, select, textarea')) return;
   if (tab === 'prep' && !arg) renderOppList();
   else if ($(`[data-dl="${user}"][data-empty]`)) route();
+}
+
+// ---------- automatic engine review of an opponent's newest games, after each download ----------
+const AUTO_REVIEW = 20;                  // newest games reviewed per opponent (about 10 s each)
+const reviewing = {};                    // user -> [game, of] while their review runs
+const reviewQueue = [];                  // opponents waiting for the engine
+const reviewFailed = new Set();          // games Stockfish couldn't review: not tried again until the next launch
+let reviewDraining = false;
+const reviewPending = (user) => !!reviewing[user] || reviewQueue.includes(user);
+const rvText = (user) => reviewing[user] ? `Analyzing game ${reviewing[user][0] + 1} of ${reviewing[user][1]}…` : 'Waiting to analyze…';
+const studiedText = (n) => `${n.toLocaleString()} of their games studied`;
+/** Their newest games Stockfish hasn't reviewed yet. */
+async function reviewTodo(user) {
+  const gs = (await gamesOf(user)) || [], cache = await reviewCache(user);
+  return gs.slice(0, AUTO_REVIEW).filter((g) => !cache[g.url] && g.sans.length >= 10);
+}
+/** Review an opponent's newest games in the background, one opponent after another (the engine runs one job at a time). */
+function queueReview(user) {
+  if (!P?.opps.some((o) => o.user === user) || reviewPending(user) || reviewFailed.has(user)) return;
+  reviewQueue.push(user);
+  if (!reviewDraining) runReviews();
+}
+async function runReviews() {
+  reviewDraining = true;
+  while (reviewQueue.length) {
+    const user = reviewQueue[0];
+    try {
+      if (P?.opps.some((o) => o.user === user) && (await reviewTodo(user)).length) {
+        const gs = (await gamesOf(user)).slice(0, AUTO_REVIEW);
+        await whileAwake(() => reviewGames(user, gs, AUTO_REVIEW, (i, n) => { reviewing[user] = [i, n]; if (i < n) showReview(user, rvText(user)); }));
+        if ((await reviewTodo(user)).length) reviewFailed.add(user); // some games failed twice
+      }
+    } catch { reviewFailed.add(user); }
+    delete reviewing[user]; reviewQueue.shift(); reviewDone(user);
+  }
+  reviewDraining = false;
+}
+/** Status of an opponent's review, for the elements showing it. */
+async function rvStatus(user) {
+  if (reviewPending(user)) return rvText(user);
+  const n = reviewedCount((await gamesOf(user)) || [], await reviewCache(user));
+  return n ? studiedText(n) : '';
+}
+function showReview(user, text) {
+  document.querySelectorAll(`[data-rv="${user}"]`).forEach((el) => { el.textContent = text; el.hidden = !text; });
+}
+/** A review finished: redraw the list, or update the line on their file. */
+async function reviewDone(user) {
+  const [tab, arg] = (location.hash.slice(1) || 'me').split('/');
+  if (tab === 'prep' && !arg && !document.activeElement?.matches('input, select, textarea')) renderOppList();
+  else showReview(user, await rvStatus(user));
 }
 
 async function sync(user, btn, statusEl) {
@@ -429,13 +483,15 @@ async function renderOpp(user) {
   const h2h = headToHead(await gamesOf(P.me.user), gs, user, P.me.user);
   const r = h2h.rec; // your wins, draws, losses
   const name = oppName(user);
+  const rvLine = await rvStatus(user);
   view.innerHTML = `
     <a class="back" href="#prep">◀ Opponents</a>
     <header class="head"><h1>${esc(displayName(user))}</h1><a class="eyebrow profile-link" href="https://www.chess.com/member/${encodeURIComponent(name)}" target="_blank" rel="noopener">chess.com/${esc(name)}</a>
       ${cur ? `<p class="lede">${fig(cur.summary)}</p>` : ''}</header>
     ${stats([...ratingStats(user), ...(h2h.n ? [[`${r[0]}–${r[1]}–${r[2]}`, 'Your record vs them (W–D–L)']] : [])])}
     <section class="card"><div class="row"><h2>Games</h2><button class="btn" id="sync">${gs ? 'Refresh' : 'Download games'}</button></div>
-      <p class="small muted" id="sync-status" aria-live="polite" data-dl="${esc(user)}"${gs ? '' : ' data-empty'}>${pending(user) ? dlText(user) : gs ? gamesLine(gs, pr, synced) : 'Download their recent games to build their file (up to 12 months).'}</p></section>
+      <p class="small muted" id="sync-status" aria-live="polite" data-dl="${esc(user)}"${gs ? '' : ' data-empty'}>${pending(user) ? dlText(user) : gs ? gamesLine(gs, pr, synced) : 'Download their recent games to build their file (up to 12 months).'}</p>
+      <p class="small muted" data-rv="${esc(user)}"${rvLine ? '' : ' hidden'}>${rvLine}</p></section>
     ${cur ? `<section class="card curated"><p class="eyebrow">Hand-written prep</p><h2>Coach's plan</h2>
       ${cur.plans.map((p, i) => `<details${i === 0 ? ' open' : ''}><summary><span class="eyebrow">${esc(p.eyebrow)}</span><br><b>${fig(p.title)}</b></summary>
         <div class="details-body"><div data-line="${i}">${viewerHtml(p.caption)}</div>${p.body.map((b) => `<p>${fig(b)}</p>`).join('')}
@@ -513,7 +569,8 @@ async function renderOppList() {
     const theirs = await gamesOf(o.user);
     const h2h = headToHead(mine, theirs, o.user, P.me.user);
     const traps = ((await cachedTraps(o.user, 'white')) || []).length + ((await cachedTraps(o.user, 'black')) || []).length;
-    return { o, cur: curated(o.user), main, h2h, theirs, traps, info };
+    const studied = theirs ? reviewedCount(theirs, await reviewCache(o.user)) : 0;
+    return { o, cur: curated(o.user), main, h2h, theirs, traps, info, studied };
   }));
   // most games against you first, then the most recent; no games together last, by name
   rows.sort((a, b) => b.h2h.n - a.h2h.n || b.h2h.last - a.h2h.last || displayName(a.o.user).localeCompare(displayName(b.o.user)));
@@ -538,7 +595,7 @@ async function renderOppList() {
       <span class="opp-top"><b>${esc(displayName(r.o.user))}</b>${hasAlias(r.o.user) ? ` <span class="muted small">${esc(r.o.username)}</span>` : ''}<span class="chev" aria-hidden="true">›</span></span>
       ${ratingLine(r) ? `<span class="small">${ratingLine(r)}</span>` : ''}
       <span class="small muted">${vsLine(r)}</span>
-      <span class="badges"><span class="badge">${r.theirs ? (r.theirs.length ? `${r.theirs.length} of their games studied` : 'No games in the last 12 months') : pending(r.o.user) ? 'Downloading…' : 'Not downloaded yet'}</span>${r.traps ? `<span class="badge trap-badge">${r.traps} trap${r.traps > 1 ? 's' : ''} found</span>` : ''}${r.cur ? '<span class="badge">Hand-written prep</span>' : ''}</span>
+      <span class="badges"><span class="badge">${r.theirs ? (r.theirs.length ? `${r.theirs.length.toLocaleString()} of their games downloaded` : 'No games in the last 12 months') : pending(r.o.user) ? 'Downloading…' : 'Not downloaded yet'}</span>${reviewPending(r.o.user) || r.studied ? `<span class="badge" data-rv="${esc(r.o.user)}">${reviewPending(r.o.user) ? rvText(r.o.user) : studiedText(r.studied)}</span>` : ''}${r.traps ? `<span class="badge trap-badge">${r.traps} trap${r.traps > 1 ? 's' : ''} found</span>` : ''}${r.cur ? '<span class="badge">Hand-written prep</span>' : ''}</span>
     </a></li>`).join('')}</ul>`;
   // ratings for opponents added without a lookup (e.g. the hand-written ones): fetch once, then redraw.
   // Redraw only if a lookup worked: offline, every lookup fails and redrawing would start them all again.

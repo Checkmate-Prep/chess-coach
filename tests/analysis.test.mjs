@@ -2,7 +2,7 @@ import { test, describe, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { Chess } from '../app/vendor/chess.js';
-import { winProb, pvToSan, summarize, findTraps, cachedTraps, trapScan, trapCandidates, reviewGames, reviewCache, isGoodMove, BLUNDER } from '../app/analysis.js';
+import { winProb, pvToSan, summarize, findTraps, cachedTraps, trapScan, trapCandidates, reviewGames, reviewCache, reviewedCount, isGoodMove, BLUNDER } from '../app/analysis.js';
 import { installFakeIndexedDB, installBrowserGlobals, FakeWorker, game, node } from './helpers.mjs';
 
 const db = installFakeIndexedDB();
@@ -168,6 +168,14 @@ describe('findTraps', () => {
     FakeWorker.script = script({ [afterE4]: { cp: -20, best: 'e7e5' }, [afterF6]: { cp: 200, pv: ['d2d4'] } });
     const traps = await findTraps('p5', t, 'black');
     assert.deepEqual(traps.map((x) => [x.path, x.san, x.punish]), [[['e4'], 'f6', ['d4']]]);
+  });
+});
+
+describe('reviewedCount', () => {
+  test('counts the games that have a review', () => {
+    const gs = [game({ url: 'a' }), game({ url: 'b' }), game({ url: 'c' })];
+    assert.equal(reviewedCount(gs, { a: {}, c: {}, gone: {} }), 2);
+    assert.equal(reviewedCount(gs, {}), 0);
   });
 });
 

@@ -486,7 +486,12 @@ The app shows an account card in Settings and a sign-in offer on the welcome scr
 
 **What Claude did:** checked that `ai-prep` already had the same `notes.py` and `prep.json` as `main`, then removed `notes.py` from `main`. `main` now ships an empty `app/prep.json`, so the site no longer serves the notes or the friends' opening trees. `build_app.py` writes that empty file when `notes.py` is missing and `build_report.py` skips the report, so the pipeline still runs on `main`. The docs and the `prep-opponent` skill say the notes live on `ai-prep`. In the preview, setup as the player the notes were written for no longer adds opponents automatically. The notes remain in git history, and merging `main` into `ai-prep` later would delete them there too unless restored. → [#25](https://github.com/Checkmate-Prep/chess-coach/pull/25)
 
-### 49. Sign-up alerts and usage stats
+### 49. Stockfish reviews opponents' games after each download
+> after auto-downloading games, trigger an auto-review of games using stockfish. inform user by displaying similarly to 'downloading games', 'analyzing games'. currently after downloading games, "x of their games studied", it should be "x of their games downloaded" and after having reviewed y games with stockfish, display in addition "y of their games studied"
+
+**What Claude did:** after an opponent's games download (automatic or Refresh), Stockfish now reviews their 20 newest games in the background, one opponent at a time, through `whileAwake`. At launch it also picks up reviews that were cut short or never ran. While it runs, the Prep list badge and a line under Games on their file say "Waiting to analyze…" or "Analyzing game 3 of 20…". The list badge now reads "x of their games downloaded", with a second badge "y of their games studied" once games are reviewed. Games Stockfish can't review aren't retried until the next launch. Your own games still use the "Review my last 20 games" button. `reviewedCount()` in `analysis.js` does the counting and has a test. Checked with Playwright at phone size, with chess.com mocked from the test fixtures: "Analyzing game 1 of 2…", then "2 of their games studied" on the file and the list. Only 2 of the 4 fixture games are long enough to review. → [#26](https://github.com/Checkmate-Prep/chess-coach/pull/26)
+
+### 50. Sign-up alerts and usage stats
 > i'd like to get notified when a new user registers via sign in, I'd also like to get monitoring of the activity on the app: who is using, when, which screens. what do you recommend to have monitoring
 
 > can you use the auth0 cli or similar to avoid manual setup?
