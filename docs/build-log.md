@@ -434,7 +434,7 @@ The app shows an account card in Settings and a sign-in offer on the welcome scr
 **What Claude did:** this ran in a cloud session that couldn't reach chess.com, so Claude traced the message through the code. Once #15 had landed, it checked `main` and found that half the problem was fixed: the card no longer calls openings sound on a thin sample. The other half wasn't. A saved scan was never thrown away when the games changed, and a saved empty result hid the Find traps button, so "check again once they have played more games" could not be done. Scans saved before #15 also showed position counts taken from today's games, not the ones the scan had checked. Claude added `trapScan`, which returns the saved scan and whether it still matches their current games. After a Refresh that brings in new games, the card shows "Check again with Stockfish" and keeps any traps it already found until the new scan finishes. The position count is only shown for a scan of today's games. Tests cover an out-of-date scan, a rescan replacing it, and a scan saved before positions were counted. There was no browser in the session, so the card wasn't previewed. → [#19](https://github.com/Checkmate-Prep/chess-coach/pull/19)
 
 
-### 41. A Prep tab that explains itself
+### 43. A Prep tab that explains itself
 > https://checkmateprep.com/#prep needs clarifying text
 > currently
 > "Prep
@@ -447,3 +447,12 @@ The app shows an account card in Settings and a sign-in offer on the welcome scr
 > suggest a better location for "+ add opponent"
 
 **What Claude did:** planned first. The header now says what a file holds: the openings they play, where they go wrong, traps to set and a plan for your next game. It has an "＋ Add" button next to the title, replacing the row at the bottom of the list, which fell below the fold once you had a few opponents. Each card now shows their main rating next to yours in the same time control. It also shows how many games you've played each other, your wins, losses and draws, your score and the date of your last game, plus how many of their games were studied. Opponents are sorted by games played together, most first. Because the list was being rewritten anyway, it also fixed the loop found earlier: offline, the list no longer keeps looking up ratings and redrawing itself. → [#20](https://github.com/Checkmate-Prep/chess-coach/pull/20)
+
+### 44. A test for the Prep list's offline loop
+> In `app/app.js`, `renderOppList()` (the Prep tab landing) fetches ratings for opponents that have no saved `player:<user>` entry, then calls `renderOppList()` again once the fetches are done: [code]. If every lookup fails (offline, or chess.com down), nothing is saved. The redraw then finds the same players missing and fetches again, which loops forever while the Prep tab is open. [...] Fix: only redraw when at least one lookup succeeded. [...] Verify with a static server and Playwright, with `api.chess.com` blocked [...] and open a PR as described in CLAUDE.md.
+
+> check it in the built-in browser
+
+> add a test for this in tests/
+
+**What Claude did:** found that #20 had already fixed the loop a few minutes earlier, in the same way, so there was nothing to change. Playwright wasn't installed, so on request it checked `main` in the built-in browser at phone size instead, with chess.com requests forced to fail. The list rendered once and stayed: no new requests and no redraws in 5 seconds, and "＋ Add" opened on the first tap. With the old lines put back, the same setup made about 16,000 failed lookups and 4,000 redraws in 5 seconds. The first try missed the loop because the browser had cached the fixed file. `app.js` can't run in Node, so to test the fix Claude moved the lookup-and-save step into `savePlayers()` in `chesscom.js`, which resolves to how many players it saved; the Prep list redraws only when that is more than 0. Tests cover all found, all failing (nothing saved, each lookup tried once), some failing, and none to look up. The test helpers gained a fake `localStorage`. → [#21](https://github.com/Checkmate-Prep/chess-coach/pull/21)

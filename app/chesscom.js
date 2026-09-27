@@ -1,5 +1,5 @@
 // chess.com public API (CORS-enabled, no login needed).
-import { idb } from './store.js';
+import { idb, ls } from './store.js';
 
 const API = 'https://api.chess.com/pub/player/';
 const DRAWS = new Set(['agreed', 'repetition', 'stalemate', 'insufficient', '50move', 'timevsinsufficient']);
@@ -46,6 +46,15 @@ export async function player(user) {
     if (s?.last) ratings[tc] = { r: s.last.rating, w: s.record?.win || 0, l: s.record?.loss || 0, d: s.record?.draw || 0 };
   }
   return { user, name: profile.name || profile.username, username: profile.username, avatar: profile.avatar || null, ratings };
+}
+
+/**
+ * Look up players and save each as `player:<user>`. Resolves to how many were saved: 0 when chess.com
+ * can't be reached, so callers can skip a redraw that would only start the same lookups again.
+ */
+export async function savePlayers(users) {
+  const ok = await Promise.all(users.map((u) => player(u).then((info) => { ls.set(`player:${u}`, info); return true; }).catch(() => false)));
+  return ok.filter(Boolean).length;
 }
 
 /** Start of the month after 'YYYY/MM', in UTC milliseconds. */

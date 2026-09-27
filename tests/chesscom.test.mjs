@@ -1,14 +1,16 @@
 import { test, describe, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { sansOf, syncGames, player, cachedGames } from '../app/chesscom.js';
-import { installFakeIndexedDB, installFakeFetch } from './helpers.mjs';
+import { sansOf, syncGames, player, savePlayers, cachedGames } from '../app/chesscom.js';
+import { ls } from '../app/store.js';
+import { installFakeIndexedDB, installFakeLocalStorage, installFakeFetch } from './helpers.mjs';
 
 const fixture = (f) => JSON.parse(readFileSync(new URL(`fixtures/${f}`, import.meta.url)));
 const GAMES = fixture('games.json');
 const API = 'https://api.chess.com/pub/player/';
 const db = installFakeIndexedDB();
-beforeEach(() => db.clear());
+const store = installFakeLocalStorage();
+beforeEach(() => { db.clear(); store.clear(); });
 
 describe('sansOf', () => {
   test('matches the shared parity cases (same as explore.sans_of in Python)', () => {
@@ -148,5 +150,36 @@ describe('player', () => {
   test('unknown username rejects with code 404', async () => {
     installFakeFetch({});
     await assert.rejects(player('nobody'), { code: 404, message: 'not found' });
+  });
+});
+
+// The Prep list redraws after savePlayers only when it saved someone. Offline, every lookup fails;
+// a redraw would find the same players missing and look them up again, forever.
+describe('savePlayers', () => {
+  test('saves each player found and counts them', async () => {
+    installFakeFetch({ [`${API}testplayer`]: { username: 'TestPlayer' }, [`${API}otherplayer`]: { username: 'OtherPlayer' } });
+    assert.equal(await savePlayers(['testplayer', 'otherplayer']), 2);
+    assert.equal(ls.get('player:testplayer').username, 'TestPlayer');
+    assert.equal(ls.get('player:otherplayer').username, 'OtherPlayer');
+  });
+
+  test('offline: every lookup fails, nothing is saved and it resolves to 0', async () => {
+    const calls = [];
+    globalThis.fetch = async (url) => { calls.push(url); throw new TypeError('Failed to fetch'); };
+    assert.equal(await savePlayers(['testplayer', 'otherplayer']), 0);
+    assert.equal(store.size, 0);
+    assert.equal(calls.length, 4); // profile + stats for each, once
+  });
+
+  test('some lookups fail: the others are still saved and counted', async () => {
+    installFakeFetch({ [`${API}testplayer`]: { username: 'TestPlayer' }, [`${API}otherplayer`]: 500 });
+    assert.equal(await savePlayers(['testplayer', 'otherplayer', 'nobody']), 1);
+    assert.deepEqual([...store.keys()], ['player:testplayer']);
+  });
+
+  test('no players: nothing to look up', async () => {
+    const calls = installFakeFetch({});
+    assert.equal(await savePlayers([]), 0);
+    assert.equal(calls.length, 0);
   });
 });
