@@ -1,6 +1,8 @@
-# chess-coach
+# Checkmate Prep
 
-A personal chess coach for preparing games against friends on chess.com.
+**Know your next opponent before the game.** Checkmate Prep (https://checkmateprep.com) prepares you for games against the people you play on chess.com. This repository, `chess-coach`, holds the web app and the personal pipeline it grew out of.
+
+It started as a personal chess coach for preparing games against friends on chess.com.
 
 It downloads your games and your friends' games from the chess.com public API, runs Stockfish over them, and builds a profile of each player: openings and how they score with them, where their mistakes happen (opening, middlegame or endgame), how they handle the clock, and positions where they repeat the same mistake. The conclusions go into `notes.py`, and `build_report.py` turns everything into a prep book page with game plans, opening traps and drills from your own games.
 

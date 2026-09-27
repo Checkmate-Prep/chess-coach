@@ -1,6 +1,6 @@
 # chess-coach
 
-A chess coach for preparing games against specific opponents on chess.com. Two parts:
+**Checkmate Prep** (https://checkmateprep.com): a chess coach for preparing games against specific opponents on chess.com. The product is called Checkmate Prep everywhere users see it; the repo, the Worker names and internal identifiers stay `chess-coach`. Two parts:
 
 - **Python pipeline (runs on a Mac):** downloads games from the chess.com public API, runs native Stockfish 19 over them, builds player profiles, and packages the results. Hand-written coaching lives in `notes.py`.
 - **Web app (`app/`):** a static PWA published to GitHub Pages (https://simonletort.github.io/chess-coach/). Anyone enters their chess.com username and opponents; games, stats, traps, game plans and drills are all computed in the browser, including Stockfish (WASM). No account is needed.
