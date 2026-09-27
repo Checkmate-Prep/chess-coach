@@ -72,7 +72,8 @@ th:not(:first-child),td:not(:first-child){text-align:right}
 .tabbar{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--line);padding:6px 8px calc(env(safe-area-inset-bottom,0px) + 6px);z-index:10}
 .tabbar a{flex:1;max-width:140px;display:grid;justify-items:center;gap:1px;padding:4px 0;color:var(--muted);text-decoration:none;font:500 .72rem var(--sans)}
 .tabbar a span{font-size:1.35rem;line-height:1.2}
-.tabbar a[aria-current="true"]{color:var(--accent)}
+.tabbar a[aria-current="true"]{color:var(--accent);font-weight:600}
+.tabbar a[aria-current="true"] span{background:color-mix(in srgb,var(--accent) 16%,transparent)}
 h3{font:600 .95rem var(--sans);margin:6px 0 0}
 input{font:16px var(--sans);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:10px 12px;min-height:44px;flex:1;min-width:0}
 input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
@@ -100,7 +101,8 @@ details[open] summary::after{content:"－"}
 body.no-tabs .tabbar{display:none}
 body.no-tabs .view{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 32px)}
 @media (prefers-reduced-motion:reduce){.pbar span{transition:none}}
-.tabbar a span{display:grid;place-items:center;height:1.62rem}
+.tabbar a span{display:grid;place-items:center;height:1.62rem;width:3.4rem;border-radius:999px;transition:background-color .15s}
+@media (prefers-reduced-motion:reduce){.tabbar a span{transition:none}}
 .tabbar .ic{width:1.3rem;height:1.3rem}
 .plain a{color:var(--accent);font-weight:500;text-decoration:none}
 .appbar{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:calc(env(safe-area-inset-top,0px) + 10px) 16px 10px}
