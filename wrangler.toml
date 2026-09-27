@@ -41,8 +41,13 @@ vars = { AUTH0_DOMAIN = "", AUTH0_CLIENT_ID = "", AUTH0_AUDIENCE = "" }
 d1_databases = [{ binding = "DB" }]
 ratelimits = [{ name = "BURST", namespace_id = "1002", simple = { limit = 30, period = 60 } }]
 
+# Production answers only on checkmateprep.com (www redirects to it in worker/index.js). No workers.dev
+# address: the browser keeps each user's data per address, so there must be exactly one.
+# Deploying creates the DNS records; the domain's zone must be in the same Cloudflare account.
 [env.production]
 name = "chess-coach"
+workers_dev = false
+routes = [{ pattern = "checkmateprep.com", custom_domain = true }, { pattern = "www.checkmateprep.com", custom_domain = true }]
 vars = { AUTH0_DOMAIN = "", AUTH0_CLIENT_ID = "", AUTH0_AUDIENCE = "" }
 d1_databases = [{ binding = "DB" }]
 ratelimits = [{ name = "BURST", namespace_id = "1003", simple = { limit = 30, period = 60 } }]

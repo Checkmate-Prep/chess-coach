@@ -4,7 +4,7 @@ A chess coach for preparing games against specific opponents on chess.com. Two p
 
 - **Python pipeline (runs on a Mac):** downloads games from the chess.com public API, runs native Stockfish 19 over them, builds player profiles, and packages the results. Hand-written coaching lives in `notes.py`.
 - **Web app (`app/`):** a static PWA published to GitHub Pages (https://simonletort.github.io/chess-coach/). Anyone enters their chess.com username and opponents; games, stats, traps, game plans and drills are all computed in the browser, including Stockfish (WASM). No account is needed.
-- **Worker (`worker/`):** a Cloudflare Worker that also serves `app/` and adds `/api`: optional sign-in (Auth0) and sync of opponents, names and drill progress across devices. The app hides accounts when there is no `/api` (GitHub Pages, `live-server`).
+- **Worker (`worker/`):** a Cloudflare Worker that serves `app/` at **https://checkmateprep.com** (production) and adds `/api`: optional sign-in (Auth0) and sync of opponents, names and drill progress across devices. The app hides accounts when there is no `/api` (GitHub Pages, `live-server`).
 
 See `README.md` for the user-facing description.
 
@@ -45,6 +45,7 @@ npm run dev                            # app + Worker at http://localhost:8787 (
 - **Everything in `app/` is public**, including `prep.json` (the hand-written prep). Never put secrets or private data there.
 - **No build step or framework.** Plain ES modules; libraries are vendored. Keep it that way unless there's a strong reason. (The Worker is bundled by Wrangler; that doesn't touch `app/`.)
 - **Accounts are optional.** Everything must keep working signed out and without `/api`. Only data the user typed or earned syncs (`syncdoc.js`); a new synced field needs a merge rule and a test.
+- **checkmateprep.com is permanent.** Browsers keep each user's data per address, so never move production to another domain or add a second production address; `www` only redirects. The host behind the domain can change.
 - **Offline mode is disabled on localhost** (in `app.js` and `sw.js`) so local edits always show. Don't remove that.
 - **Engine calls go through `analyseSafe` and long jobs through `whileAwake`** (`engine.js`). Browsers pause hidden pages and the engine with them; timeouts only count visible time, and a stuck worker is replaced.
 - **Scores:** trees store points ×2 as integers (`p`), `pct(p, n)` gives the percentage. A score is always from the named player's point of view (win 1, draw ½, loss 0).
