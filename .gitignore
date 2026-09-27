@@ -17,3 +17,5 @@ node_modules/
 # Test coverage output
 .coverage
 htmlcov/
+# D1 exports (README: moving production) hold users' synced data
+*.sql
