@@ -9,3 +9,6 @@ __pycache__/
 .DS_Store
 # Claude Code: share project config (launch.json), keep personal settings out
 .claude/settings.local.json
+# Test coverage output
+.coverage
+htmlcov/
