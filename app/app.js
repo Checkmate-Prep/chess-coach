@@ -440,27 +440,43 @@ async function renderOppList() {
     return;
   }
   const mine = (await gamesOf(P.me.user)) || [];
+  const myRatings = ls.get(`player:${P.me.user}`, null)?.ratings || {};
+  const plays = (r) => r.w + r.l + r.d;
   const rows = await Promise.all(P.opps.map(async (o) => {
     const info = ls.get(`player:${o.user}`, null);
-    const games = (r) => r.w + r.l + r.d;
-    const main = Object.entries(info?.ratings || {}).sort((a, b) => games(b[1]) - games(a[1]))[0];
+    const main = Object.entries(info?.ratings || {}).sort((a, b) => plays(b[1]) - plays(a[1]))[0];
     const vs = mine.filter((g) => g.opp.toLowerCase() === o.user);
     const rec = vs.reduce((a, g) => { a[2 - g.pts]++; return a; }, [0, 0, 0]);
+    const last = vs.reduce((t, g) => Math.max(t, g.t), 0);
+    const studied = ((await gamesOf(o.user)) || []).length;
     const traps = ((await cachedTraps(o.user, 'white')) || []).length + ((await cachedTraps(o.user, 'black')) || []).length;
-    return { o, cur: curated(o.user), main, rec: vs.length ? rec : null, traps, info };
+    return { o, cur: curated(o.user), main, vs, rec, last, studied, traps, info };
   }));
-  view.innerHTML = `<header class="head"><h1>Prep</h1><p class="lede">Pick an opponent to open their file.</p></header>
-    <ul class="opps">${rows.map(({ o, cur, main, rec, traps }) => `<li><a href="#prep/${esc(o.user)}">
-      <span class="opp-top"><b>${esc(displayName(o.user))}</b>${hasAlias(o.user) ? ` <span class="muted small">${esc(o.username)}</span>` : ''}<span class="chev" aria-hidden="true">›</span></span>
-      <span class="small muted">${[main ? `${TC[main[0]]} ${main[1].r}` : '', rec ? `you ${rec[0]}–${rec[1]}–${rec[2]}` : ''].filter(Boolean).join(' · ') || 'Not downloaded yet'}</span>
-      ${traps || cur ? `<span class="badges">${traps ? `<span class="badge trap-badge">${traps} trap${traps > 1 ? 's' : ''} found</span>` : ''}${cur ? '<span class="badge">Hand-written prep</span>' : ''}</span>` : ''}
-    </a></li>`).join('')}
-    <li><a href="#add" class="add-row">＋ Add opponent</a></li></ul>`;
-  // ratings for opponents added without a lookup (e.g. the hand-written ones): fetch once, then redraw
+  // most games against you first, then the most recent; no games together last, by name
+  rows.sort((a, b) => b.vs.length - a.vs.length || b.last - a.last || displayName(a.o.user).localeCompare(displayName(b.o.user)));
+  const ratingLine = ({ main }) => {
+    if (!main) return '';
+    const mineR = myRatings[main[0]]?.r;
+    return `${TC[main[0]]} ${main[1].r}${mineR ? ` · you ${mineR}` : ''}`;
+  };
+  const vsLine = ({ vs, rec, last }) => vs.length
+    ? `${vs.length} game${vs.length > 1 ? 's' : ''} together · you won ${rec[0]}, lost ${rec[2]}, drew ${rec[1]} · ${pct(vs.reduce((p, g) => p + g.pts, 0), vs.length)}% · last ${dateOf(last)}`
+    : 'No games against you yet';
+  view.innerHTML = `<header class="head"><div class="head-row"><h1>Prep</h1><a class="btn primary btn-sm" href="#add">＋ Add</a></div>
+      <p class="lede">One file per opponent: the openings they play, where they go wrong, traps to set and a plan for your next game against them.</p>
+      ${rows.some((r) => r.vs.length) ? '<p class="small muted">Sorted by how many games you\'ve played each other.</p>' : ''}</header>
+    <ul class="opps">${rows.map((r) => `<li><a href="#prep/${esc(r.o.user)}">
+      <span class="opp-top"><b>${esc(displayName(r.o.user))}</b>${hasAlias(r.o.user) ? ` <span class="muted small">${esc(r.o.username)}</span>` : ''}<span class="chev" aria-hidden="true">›</span></span>
+      ${ratingLine(r) ? `<span class="small">${ratingLine(r)}</span>` : ''}
+      <span class="small muted">${vsLine(r)}</span>
+      <span class="badges"><span class="badge">${r.studied ? `${r.studied} of their games studied` : 'Not downloaded yet'}</span>${r.traps ? `<span class="badge trap-badge">${r.traps} trap${r.traps > 1 ? 's' : ''} found</span>` : ''}${r.cur ? '<span class="badge">Hand-written prep</span>' : ''}</span>
+    </a></li>`).join('')}</ul>`;
+  // ratings for opponents added without a lookup (e.g. the hand-written ones): fetch once, then redraw.
+  // Redraw only if a lookup worked: offline, every lookup fails and redrawing would start them all again.
   const missing = rows.filter((r) => !r.info).map((r) => r.o.user);
   if (missing.length) {
-    Promise.all(missing.map((u) => player(u).then((info) => ls.set(`player:${u}`, info)).catch(() => {})))
-      .then(() => { if ((location.hash || '#me') === '#prep') renderOppList(); });
+    Promise.all(missing.map((u) => player(u).then((info) => { ls.set(`player:${u}`, info); return true; }).catch(() => false)))
+      .then((ok) => { if (ok.some(Boolean) && (location.hash || '#me') === '#prep') renderOppList(); });
   }
 }
 function trapsSection(user, w, b, { current, tooFew, checked, nW, nB }) {
