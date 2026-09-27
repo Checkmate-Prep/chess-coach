@@ -48,6 +48,9 @@ export async function player(user) {
   return { user, name: profile.name || profile.username, username: profile.username, avatar: profile.avatar || null, ratings };
 }
 
+/** Start of the month after 'YYYY/MM', in UTC milliseconds. */
+const monthEnd = (month) => { const [y, m] = month.split('/'); return Date.UTC(+y, +m, 1); };
+
 /**
  * Download games newest-first (up to MAX_MONTHS / MAX_GAMES), merging with what is cached.
  * Months already complete in the cache are not fetched again.
@@ -57,16 +60,17 @@ export async function syncGames(user, onProgress = () => {}) {
   const cached = (await idb.get(`games:${user}`)) || { months: {}, games: [] };
   const { archives } = await getJSON(`${API}${user}/games/archives`);
   const recent = archives.slice(-MAX_MONTHS).reverse();
-  const nowKey = new Date().toISOString().slice(0, 7).replace('-', '/');
   let byUrl = new Map(cached.games.map((g) => [g.url, g]));
   let i = 0;
   for (const url of recent) {
     const month = url.split('/').slice(-2).join('/');
     onProgress(++i, recent.length);
-    if (cached.months[month] && month !== nowKey) continue;
+    // A month is complete once it was fetched after it ended (UTC, like chess.com's archives).
+    // Old caches store `true`, which compares as 1, so those months are fetched once more.
+    if (cached.months[month] >= monthEnd(month)) continue;
     const { games } = await getJSON(url);
     for (const g of games) if (g.rules === 'chess' && g.pgn) byUrl.set(g.url, compact(g, user));
-    cached.months[month] = true;
+    cached.months[month] = Date.now();
     if (byUrl.size >= MAX_GAMES) break;
   }
   const games = [...byUrl.values()].sort((a, b) => b.t - a.t).slice(0, MAX_GAMES);
