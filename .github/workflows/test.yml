@@ -8,6 +8,8 @@ on:
 permissions:
   contents: read
 
+# The job names "App (JavaScript)" and "Pipeline (Python)" are required checks on main (GitHub ruleset).
+# Renaming them blocks every merge until the ruleset is updated.
 jobs:
   app:
     name: App (JavaScript)
@@ -17,7 +19,21 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-      - run: node --test --experimental-test-coverage --test-coverage-exclude='app/vendor/**' --test-coverage-exclude='tests/**' 'tests/*.test.mjs'
+      - name: Run tests with coverage
+        run: >
+          node --test --experimental-test-coverage
+          --test-coverage-exclude='app/vendor/**' --test-coverage-exclude='tests/**'
+          --test-reporter=spec --test-reporter-destination=stdout
+          --test-reporter=./tests/summary-reporter.mjs --test-reporter-destination=app.md
+          'tests/*.test.mjs'
+      - name: Job summary
+        if: always()
+        run: cat app.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: summary-app
+          path: app.md
 
   pipeline:
     name: Pipeline (Python)
@@ -28,5 +44,61 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install -r requirements.txt -r requirements-dev.txt
-      - run: python -m coverage run -m unittest discover -s tests
-      - run: python -m coverage report
+      - name: Run tests with coverage
+        run: python -m coverage run tests/run_pipeline.py --summary pipeline.md
+      - name: Job summary
+        if: always()
+        run: |
+          python -m coverage report
+          total=$(python -m coverage report --format=total)
+          {
+            echo
+            echo "Coverage of the pipeline scripts: **${total}%** of lines and branches."
+            echo
+            python -m coverage report --format=markdown
+          } >> pipeline.md
+          cat pipeline.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: summary-pipeline
+          path: pipeline.md
+
+  report:
+    name: Test report
+    if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    needs: [app, pipeline]
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: summary-*
+          merge-multiple: true
+      - name: Post or update the PR comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          marker='<!-- test-report -->'
+          {
+            echo "$marker"
+            echo "## Test results"
+            echo
+            cat app.md 2>/dev/null || echo "### ⚠️ App (JavaScript): no summary (the job stopped early; see the logs)"
+            echo
+            cat pipeline.md 2>/dev/null || echo "### ⚠️ Pipeline (Python): no summary (the job stopped early; see the logs)"
+            echo
+            echo "<sub>Commit ${SHA::7} · [run logs]($RUN) · this comment is updated on every push</sub>"
+          } > comment.md
+          id=$(gh api "repos/$REPO/issues/$PR/comments" --paginate \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | startswith(\"$marker\"))) | .id" | head -n1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$REPO/issues/comments/$id" -F body=@comment.md > /dev/null
+          else
+            gh pr comment "$PR" --repo "$REPO" --body-file comment.md
+          fi

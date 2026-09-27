@@ -49,7 +49,7 @@ python3 -m unittest discover -s tests  # pipeline tests
 
 ## Testing
 
-- Automated tests live in `tests/` (not `app/`, which is published). `tests/helpers.mjs` fakes IndexedDB, `fetch` and the Stockfish worker, so app logic runs in Node without a browser or engine. CI (`.github/workflows/test.yml`) runs both suites on every PR.
+- Automated tests live in `tests/` (not `app/`, which is published). `tests/helpers.mjs` fakes IndexedDB, `fetch` and the Stockfish worker, so app logic runs in Node without a browser or engine. CI (`.github/workflows/test.yml`) runs both suites on every PR and keeps one "Test results" comment on the PR up to date (built by `tests/summary-reporter.mjs` and `tests/run_pipeline.py --summary`). The job names are required checks on `main`: don't rename them without updating the GitHub ruleset.
 - Fixtures are synthetic games in `tests/fixtures/`. Never copy real games from `data/` or friends' usernames into tests. `parity.json` holds values that the JS and Python suites both check, so the app and the pipeline agree.
 - Coverage: add `--experimental-test-coverage --test-coverage-exclude='app/vendor/**' --test-coverage-exclude='tests/**'` to the node command; for Python, `python3 -m coverage run -m unittest discover -s tests && python3 -m coverage report` (`pip install -r requirements-dev.txt`).
 - Not covered yet: `app.js` (UI), `board.js`, `sw.js`, `build_report.py`. Check those in the preview.
