@@ -321,4 +321,25 @@ The app shows an account card in Settings and a sign-in offer on the welcome scr
 
 > yes, open the PR and add the build log
 
-**What Claude did:** renamed the app everywhere users see it (page title, header, home-screen name, description with the tagline "know your next opponent before the game") and kept `chess-coach` for the repo and internal names. Before opening the PR it found that `main` had moved on (#9, #10, #11). It merged `main` in and moved its merge-rule tests into the new `tests/` folder, so the required CI job runs them. Then it re-ran both test suites and the two-device browser test on the merged code. → [#12](https://github.com/simonletort/chess-coach/pull/12)
+> yes, watch the PR
+
+> merge the PR
+
+**What Claude did:** renamed the app everywhere users see it (page title, header, home-screen name, description with the tagline "know your next opponent before the game") and kept `chess-coach` for the repo and internal names. Before opening the PR it found that `main` had moved on (#9, #10, #11). It merged `main` in and moved its merge-rule tests into the new `tests/` folder, so the required CI job runs them. Then it re-ran both test suites and the two-device browser test on the merged code. It watched the PR until CI was green, then squash-merged it when asked. → [#12](https://github.com/simonletort/chess-coach/pull/12)
+
+### 36. Setting up Auth0
+> should I use my personal email or create a dedicated email for the auth0 tenant
+
+> walk me through the auth0 setup step by step
+
+> how do I create a second auth0 tenant in the free plan
+
+> "You have reached the limit for Tenants in your current plan."
+
+> AUTH0_CLIENT_ID = 2tQ9JSSnfNd6GraU8bmoe9bQ5P64yMnm
+
+> prod
+
+> https://login.checkmateprep.com/ is ready
+
+**What Claude did:** recommended a dedicated mailbox with its own login to own the Auth0 account, rather than a forwarding-only address on the domain: if the domain or DNS ever broke, password-reset mail would stop arriving. It also suggested adding a personal email as a second admin. It then wrote the Auth0 setup in the order that avoids redoing steps (tenant, custom domain before Google, API, application, sign-in methods, branding), with the exact values the code expects. When the free plan refused a second tenant, it switched the plan to one tenant with two applications, one for production and one for dev and local runs. Before filling anything in, it checked DNS and found that `login.checkmateprep.com` already pointed at the tenant, which is in the US region, not the EU one it had suggested. It explained that US is fine and that switching would mean recreating the tenant. It filled in production's three public values, rewrote the README's Auth0 steps for one tenant, and fixed "one-time link" to "one-time code". It said plainly that a real sign-in couldn't be tested from the session. → [#13](https://github.com/simonletort/chess-coach/pull/13)
