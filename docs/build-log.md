@@ -190,3 +190,22 @@ Each of these went into [#4](https://github.com/simonletort/chess-coach/pull/4),
 > yes for backfill, word for word, lightly cleaned only where needed for privacy. and add rule in claude.md "After each PR, add an entry to docs/build-log.md, lightly clean the prompt where there is need for privacy."
 
 **What Claude did:** recommended `docs/build-log.md` over the wiki, a changelog or raw transcripts, then backfilled this log from the session and added the rule to `CLAUDE.md` so future sessions keep it up to date. → [#7](https://github.com/simonletort/chess-coach/pull/7)
+
+### 25. Cleaning up the log
+> fix the typos: "strenght" and "too crowder"
+> anonymize friends (I'll clean up the repo later)
+
+**What Claude did:** fixed the two typos, replaced the friends with Friend A and Friend B (with replaced text in [brackets]) and updated the log's intro. It noted that the branch's first log commit still had the names, and recommended squash-merging. → [#7](https://github.com/simonletort/chess-coach/pull/7)
+
+### 26. The `.claude/` folder
+> shouldn't we have some info in ./claude about settings, rules, skills, command, output-styles, agents, workflows or plugins
+
+> yes, add the three on existing doc branch and pr. also what rules files could be split out of claude.md?
+
+**What Claude did:** recommended three of the eight: shared settings with a hook, and two skills. It skipped the rest as not worth maintaining at this size. Then it checked the current Claude Code docs for exact formats before writing:
+- **`settings.json`:** pre-approves the common build, preview and read-only commands; denies reading the Worker's secrets file and pushing to `main`; and adds a hook that runs `build_app.py` whenever Claude edits `app/`, turning the most-forgotten rule into an automatic step.
+- **`build_app.py`** now works without local game data, so the hook doesn't fail on a fresh clone.
+- **`prep-opponent` skill:** the Mac workflow behind the hand-written prep, as a repeatable recipe.
+- **`ship-change` skill:** the checklist every PR has followed.
+
+Both the hook's success and failure paths were tested. → [#7](https://github.com/simonletort/chess-coach/pull/7)

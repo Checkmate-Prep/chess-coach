@@ -35,7 +35,7 @@ npx live-server app --port=8766        # local preview with auto-reload
 
 ## Rules that matter
 
-- **Run `python3 build_app.py` after editing anything in `app/`.** It hashes the app into the service worker's cache name; without a new name, installed apps keep serving the old files.
+- **`app/` changes need `python3 build_app.py`.** It hashes the app into the service worker's cache name; without a new name, installed apps keep serving the old files. A project hook runs it automatically after Claude edits a file in `app/`; run it yourself after edits made any other way.
 - **Everything in `app/` is public**, including `prep.json` (the hand-written prep). Never put secrets or private data there.
 - **No build step or framework.** Plain ES modules; libraries are vendored. Keep it that way unless there's a strong reason.
 - **Offline mode is disabled on localhost** (in `app.js` and `sw.js`) so local edits always show. Don't remove that.
@@ -57,3 +57,10 @@ npx live-server app --port=8766        # local preview with auto-reload
 - When a PR grows, update its title and description to match. PR descriptions list what was tested and what wasn't.
 - Commit messages say what changed and why.
 - After each PR, add an entry to docs/build-log.md, lightly clean the prompt where there is need for privacy.
+
+## Claude Code setup (`.claude/`)
+
+- `settings.json`: shared permissions (common build, preview and read-only git/gh commands run without asking; reading `.dev.vars` and pushing to `main` are denied) and the hook above (`hooks/rebuild-app.sh`). Personal overrides go in `settings.local.json`, which is gitignored.
+- `skills/prep-opponent`: write hand-written prep for an opponent (`/prep-opponent <username>`).
+- `skills/ship-change`: the checklist for landing a change (`/ship-change`).
+- `launch.json`: preview configurations for the built-in browser.
