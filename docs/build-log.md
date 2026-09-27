@@ -209,3 +209,8 @@ Each of these went into [#4](https://github.com/simonletort/chess-coach/pull/4),
 - **`ship-change` skill:** the checklist every PR has followed.
 
 Both the hook's success and failure paths were tested. → [#7](https://github.com/simonletort/chess-coach/pull/7)
+
+### 27. Auto memory
+> make sure autoMemoryEnabled is on. where are the memory files in the repo?
+
+**What Claude did:** confirmed auto memory was already on (the default; nothing disabled it) and set `autoMemoryEnabled: true` in the shared project settings to make it explicit. It explained that memory files are machine-local by design, not in the repo, and found the repo's memory folder empty. The one note Claude had saved earlier went to the scratch workspace's folder, because the session started there. Claude moved that knowledge into the repo's memory folder as three short notes (goals, workflow preferences, work in progress), keeping only what the code and `CLAUDE.md` don't already say. → [#7](https://github.com/simonletort/chess-coach/pull/7)
