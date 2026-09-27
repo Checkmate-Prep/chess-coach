@@ -2,7 +2,7 @@ import { Chess } from './vendor/chess.js';
 import { Board } from './board.js';
 import { PIECES } from './pieces.js';
 import { ls } from './store.js';
-import { player, syncGames, cachedGames } from './chesscom.js';
+import { player, savePlayers, syncGames, cachedGames } from './chesscom.js';
 import { buildTree, walk, profile, weakLines, pct, headToHead } from './stats.js';
 import { reviewGames, reviewCache, summarize, findTraps, cachedTraps, trapScan, trapCandidates, TRAP_MIN_N, isGoodMove } from './analysis.js';
 import { gamePlan } from './plan.js';
@@ -531,8 +531,7 @@ async function renderOppList() {
   // Redraw only if a lookup worked: offline, every lookup fails and redrawing would start them all again.
   const missing = rows.filter((r) => !r.info).map((r) => r.o.user);
   if (missing.length) {
-    Promise.all(missing.map((u) => player(u).then((info) => { ls.set(`player:${u}`, info); return true; }).catch(() => false)))
-      .then((ok) => { if (ok.some(Boolean) && (location.hash || '#me') === '#prep') renderOppList(); });
+    savePlayers(missing).then((saved) => { if (saved && (location.hash || '#me') === '#prep') renderOppList(); });
   }
 }
 function trapsSection(user, w, b, { current, tooFew, checked, nW, nB }) {
