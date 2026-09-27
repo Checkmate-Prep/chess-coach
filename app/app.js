@@ -7,7 +7,8 @@ import { buildTree, walk, profile, weakLines, pct, headToHead } from './stats.js
 import { reviewGames, reviewCache, reviewedCount, summarize, findTraps, cachedTraps, trapScan, trapCandidates, TRAP_MIN_N, isGoodMove } from './analysis.js';
 import { gamePlan } from './plan.js';
 import { whileAwake } from './engine.js';
-import { account, startSync, returningFromSignIn, signIn, signOut, syncNow, deleteSynced } from './sync.js';
+import { account, startSync, returningFromSignIn, signIn, signOut, syncNow, deleteSynced, hasApi, token } from './sync.js';
+import { track, startTracking, screenOf, sharing, setSharing } from './track.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -281,9 +282,11 @@ async function renderSetup(first = false) {
   view.innerHTML = `
     ${head}
     ${youCard + oppCard}
-    ${me ? '<div id="account-slot"></div>' : ''}`;
+    ${me ? '<div id="account-slot"></div>' : ''}
+    ${me ? '<div id="stats-slot"></div>' : ''}`;
 
   renderAccount();
+  renderStatsToggle();
   $('#me-form').onsubmit = async (e) => {
     e.preventDefault();
     const user = $('#me-input').value.trim().toLowerCase(); if (!user) return;
@@ -361,6 +364,16 @@ async function renderAddOpp() {
   $('#opp-form').onsubmit = (e) => { e.preventDefault(); addOpponent($('#opp-input').value, $('#opp-name').value, $('#opp-status')); };
   view.querySelectorAll('[data-add]').forEach((b) => { b.onclick = () => addOpponent(b.dataset.add, '', $('#opp-status')); });
   if (!step2) $('#opp-input').focus();
+}
+
+/** Settings: turn usage stats (track.js) on or off. Only where they're sent: a server with /api. */
+function renderStatsToggle() {
+  const slot = $('#stats-slot');
+  if (!slot) return;
+  if (!hasApi) { slot.innerHTML = ''; return; }
+  slot.innerHTML = `<section class="card"><label class="toggle"><input type="checkbox" id="usage-stats" ${sharing() ? 'checked' : ''}><b>Share usage stats</b></label>
+      <p class="small muted">Which screens are opened and when, with a random id for this device (and your account when signed in), to see how the app is used. Never your games, usernames or opponents. Kept 3 months.</p></section>`;
+  $('#usage-stats').onchange = (e) => setSharing(e.target.checked);
 }
 
 // ---------- account (sync.js): the same opponents, names and drill progress on every device ----------
@@ -817,6 +830,7 @@ function insights(s) {
 async function route() {
   const [tab, arg] = (location.hash.slice(1) || 'me').split('/');
   const needSetup = !P?.me;
+  track(screenOf(tab, arg, needSetup));
   document.body.classList.toggle('no-tabs', needSetup);
   document.querySelectorAll('.tabbar a').forEach((a) => a.setAttribute('aria-current', String(a.dataset.tab === (tab === 'add' ? 'prep' : tab))));
   try {
@@ -859,7 +873,8 @@ window.addEventListener('hashchange', route);
   try { PREP = await (await fetch('prep.json')).json(); } catch { /* hand-written prep is optional */ }
   // Back from Auth0's sign-in page: finish signing in and sync before the first screen, so it shows the synced data.
   const accounts = { data: syncedDataArrived, status: renderAccount };
-  if (returningFromSignIn()) { await startSync(accounts); route(); } else { route(); startSync(accounts); }
+  const stats = () => { startTracking({ api: hasApi, token }); renderStatsToggle(); };
+  if (returningFromSignIn()) { await startSync(accounts); route(); stats(); } else { route(); startSync(accounts).finally(stats); }
   // keep everyone's games fresh: missing or more than a day old, downloaded in the background
   dailyDownloads();
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') dailyDownloads(); });
