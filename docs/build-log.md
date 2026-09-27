@@ -470,3 +470,9 @@ The app shows an account card in Settings and a sign-in offer on the welcome scr
 > https://checkmateprep.com/#prep page only has "Prep" at the top, replace by "Prepare your next games"
 
 **What Claude did:** replaced the "Prep" heading with "Prepare your next games" on the Prep screen, with or without opponents. The tab label at the bottom stays "Prep". At phone size the title wraps to two lines, and the "＋ Add" button still sits beside it. → [#24](https://github.com/Checkmate-Prep/chess-coach/pull/24)
+
+
+### 47. Hand-written notes only on the ai-prep branch
+> keep the handwritten notes for [Friend B], [Friend A] and [me] only on the ai-prep branch, remove from main
+
+**What Claude did:** checked that `ai-prep` already had the same `notes.py` and `prep.json` as `main`, then removed `notes.py` from `main`. `main` now ships an empty `app/prep.json`, so the site no longer serves the notes or the friends' opening trees. `build_app.py` writes that empty file when `notes.py` is missing and `build_report.py` skips the report, so the pipeline still runs on `main`. The docs and the `prep-opponent` skill say the notes live on `ai-prep`. In the preview, setup as the player the notes were written for no longer adds opponents automatically. The notes remain in git history, and merging `main` into `ai-prep` later would delete them there too unless restored. → [#25](https://github.com/Checkmate-Prep/chess-coach/pull/25)
