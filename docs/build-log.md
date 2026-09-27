@@ -448,7 +448,24 @@ The app shows an account card in Settings and a sign-in offer on the welcome scr
 
 **What Claude did:** planned first. The header now says what a file holds: the openings they play, where they go wrong, traps to set and a plan for your next game. It has an "＋ Add" button next to the title, replacing the row at the bottom of the list, which fell below the fold once you had a few opponents. Each card now shows their main rating next to yours in the same time control. It also shows how many games you've played each other, your wins, losses and draws, your score and the date of your last game, plus how many of their games were studied. Opponents are sorted by games played together, most first. Because the list was being rewritten anyway, it also fixed the loop found earlier: offline, the list no longer keeps looking up ratings and redrawing itself. → [#20](https://github.com/Checkmate-Prep/chess-coach/pull/20)
 
-### 44. A test for the Prep list's offline loop
+
+### 44. Showing which tab you're on
+> bottom menu doesn't show on which screen the user is.
+> find a way to highlight "You" in the bottom menu if the current page is "You", and same for each page / menu item.
+
+**What Claude did:** planned first. The app already marked the current tab, but only by changing the text colour, and in light mode the two greens were almost the same. The current tab now has a tinted pill behind its icon and a bold label, in the accent colour, in light and dark mode. It was a CSS-only change: the routing already picked the right tab, including for an opponent's file (Prep) and a single drill (Drill). Every tab was checked at phone size in a headless browser in both colour schemes. → [#21](https://github.com/Checkmate-Prep/chess-coach/pull/21)
+
+
+### 45. Games download on their own
+> in prep, screen displays "no games against you yet" when it's not correct. the games have not been downloaded yet.
+> 2 things:
+>
+> * trigger auto download of games when adding "you" and any opponent + trigger an auto games download once a day
+> * display "games not downloaded yet" instead of "no games against you" if the games haven't been downloaded yet for one or both players
+
+**What Claude did:** planned first. Adding an opponent now downloads their games in the background, and their file shows the download month by month without a tap. Your own games already downloaded when you enter your username; that stays. At launch, and whenever the app comes back to the screen, it downloads anyone whose games are missing or more than a day old, one player at a time. chess.com isn't asked again for months already complete, so a daily refresh is about one month per player. The Prep cards now say "Downloading games…", "Games not downloaded yet", "Your games not downloaded yet" or "Their games not downloaded yet" when that's the reason no games show. "No games against you in the last 12 months" appears only once both players' games are downloaded. The head-to-head count now combines both downloads (a new `headToHead` in `stats.js`, with tests), so it's right even when only one side is downloaded. → [#22](https://github.com/Checkmate-Prep/chess-coach/pull/22)
+
+### 46. A test for the Prep list's offline loop
 > In `app/app.js`, `renderOppList()` (the Prep tab landing) fetches ratings for opponents that have no saved `player:<user>` entry, then calls `renderOppList()` again once the fetches are done: [code]. If every lookup fails (offline, or chess.com down), nothing is saved. The redraw then finds the same players missing and fetches again, which loops forever while the Prep tab is open. [...] Fix: only redraw when at least one lookup succeeded. [...] Verify with a static server and Playwright, with `api.chess.com` blocked [...] and open a PR as described in CLAUDE.md.
 
 > check it in the built-in browser

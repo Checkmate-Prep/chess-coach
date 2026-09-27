@@ -3,7 +3,7 @@ import { Board } from './board.js';
 import { PIECES } from './pieces.js';
 import { ls } from './store.js';
 import { player, savePlayers, syncGames, cachedGames } from './chesscom.js';
-import { buildTree, walk, profile, weakLines, pct } from './stats.js';
+import { buildTree, walk, profile, weakLines, pct, headToHead } from './stats.js';
 import { reviewGames, reviewCache, summarize, findTraps, cachedTraps, trapScan, trapCandidates, TRAP_MIN_N, isGoodMove } from './analysis.js';
 import { gamePlan } from './plan.js';
 import { whileAwake } from './engine.js';
@@ -49,14 +49,63 @@ const displayName = (user) => {
 const hasAlias = (user) => displayName(user).toLowerCase() !== oppName(user).toLowerCase();
 function invalidate(user) { delete games[user]; delete trees[`${user}:white`]; delete trees[`${user}:black`]; }
 
+// ---------- downloads: one at a time per player, shared by the Refresh buttons and the automatic ones ----------
+const DAY = 86400000;
+const downloading = {};                  // user -> the download in flight
+const monthOf = {};                      // user -> [month, of]
+const queue = [];                        // automatic downloads waiting their turn
+const failed = new Set();                // automatic downloads that failed: not tried again until the next launch
+let draining = false;
+const pending = (user) => !!downloading[user] || queue.includes(user);
+const dlText = (user) => monthOf[user] ? `Downloading month ${monthOf[user][0]} of ${monthOf[user][1]}…` : 'Waiting to download…';
+/** Download a player's profile and games; a second call while one runs waits for the same download. */
+function download(user) {
+  return downloading[user] ||= (async () => {
+    try {
+      ls.set(`player:${user}`, await player(user));
+      await syncGames(user, (i, n) => {
+        monthOf[user] = [i, n];
+        document.querySelectorAll(`[data-dl="${user}"]`).forEach((el) => { el.textContent = dlText(user); });
+      });
+      invalidate(user);
+    } finally { delete downloading[user]; delete monthOf[user]; }
+  })();
+}
+/** Download in the background, one player after another (gentle on chess.com). */
+function queueDownload(user) {
+  if (pending(user) || failed.has(user)) return;
+  queue.push(user);
+  if (!draining) runQueue();
+}
+async function runQueue() {
+  draining = true;
+  while (queue.length) {
+    const user = queue[0];
+    try { await download(user); } catch { failed.add(user); }
+    queue.shift(); downloaded(user);
+  }
+  draining = false;
+}
+/** Players whose games are missing or more than a day old: download them in the background. */
+async function dailyDownloads() {
+  if (!P?.me || navigator.onLine === false) return;
+  for (const user of [P.me.user, ...P.opps.map((o) => o.user)])
+    if (Date.now() - ((await cachedGames(user))?.fetched || 0) > DAY) queueDownload(user);
+}
+/** A background download finished or failed: redraw the screen if it was waiting for it (never a board or a job in progress). */
+function downloaded(user) {
+  const [tab, arg] = (location.hash.slice(1) || 'me').split('/');
+  if (document.activeElement?.matches('input, select, textarea')) return;
+  if (tab === 'prep' && !arg) renderOppList();
+  else if ($(`[data-dl="${user}"][data-empty]`)) route();
+}
+
 async function sync(user, btn, statusEl) {
   const label = btn?.textContent;
   if (btn) btn.disabled = true;
   try {
-    const info = await player(user);
-    ls.set(`player:${user}`, info);
-    await syncGames(user, (i, n) => { if (statusEl) statusEl.textContent = `Downloading month ${i} of ${n}…`; });
-    invalidate(user);
+    if (statusEl && !statusEl.textContent.startsWith('Downloading')) statusEl.textContent = 'Downloading…';
+    await download(user);
     return true;
   } catch (e) {
     if (statusEl) statusEl.innerHTML = `<span class="warn">${e.code === 404 ? `chess.com has no player called ${esc(user)}.` : "Couldn't reach chess.com. Check your connection and try again."}</span>`;
@@ -184,7 +233,7 @@ async function renderSetup(first = false) {
   $('#me-form').onsubmit = async (e) => {
     e.preventDefault();
     const user = $('#me-input').value.trim().toLowerCase(); if (!user) return;
-    const st = $('#me-status'); st.textContent = 'Downloading your games from chess.com…';
+    const st = $('#me-status'); st.dataset.dl = user; st.textContent = 'Downloading your games from chess.com…';
     if (!(await sync(user, e.submitter, st))) return;
     const info = ls.get(`player:${user}`);
     const opps = P?.opps || [];
@@ -193,6 +242,7 @@ async function renderSetup(first = false) {
     const name = $('#me-name').value.trim();
     P = { me: { user, username: info.username, ...(name ? { name } : {}) }, opps };
     ls.set('profile', P);
+    dailyDownloads(); // opponents that came with it (hand-written prep) download in the background
     if (first) location.hash = opps.length ? 'me' : 'add'; else renderSetup();
   };
   if (!me) return;
@@ -232,6 +282,7 @@ async function addOpponent(user, name, st) {
     const info = await player(user);
     ls.set(`player:${user}`, info);
     P.opps.push({ user, username: info.username, ...(name ? { name } : {}) }); ls.set('profile', P);
+    queueDownload(user);
     location.hash = `prep/${user}`;
   } catch (e) { st.innerHTML = `<span class="warn">${e.code === 404 ? `chess.com has no player called ${esc(user)}.` : "Couldn't reach chess.com."}</span>`; }
 }
@@ -300,6 +351,7 @@ function renderAccount() {
 function syncedDataArrived() {
   const was = P;
   P = ls.get('profile', null);
+  dailyDownloads();
   const tab = (location.hash.slice(1) || 'me').split('/');
   const typing = document.activeElement?.matches('input, select, textarea');
   if (!was?.me || (!typing && ((tab[0] === 'setup') || (tab[0] === 'prep' && !tab[1]) || (tab[0] === 'drill' && !tab[1])))) route();
@@ -360,17 +412,17 @@ async function renderOpp(user) {
   const checked = current ? scW.checked + scB.checked : trapCandidates(tw, 'white').length + trapCandidates(tb, 'black').length;
   const tooFew = !!(tw.n + tb.n) && !checked;
   const [myW, myB] = await Promise.all([treeOf(P.me.user, 'white'), treeOf(P.me.user, 'black')]);
-  // head-to-head from your own games (they go further back than a busy opponent's latest 1,500)
-  const h2h = ((await gamesOf(P.me.user)) || []).filter((g) => g.opp.toLowerCase() === user);
-  const r = h2h.reduce((a, g) => { a[2 - g.pts]++; return a; }, [0, 0, 0]); // your wins, draws, losses
+  // head-to-head from both downloads: yours go further back than a busy opponent's latest 1,500
+  const h2h = headToHead(await gamesOf(P.me.user), gs, user, P.me.user);
+  const r = h2h.rec; // your wins, draws, losses
   const name = oppName(user);
   view.innerHTML = `
     <a class="back" href="#prep">◀ Opponents</a>
     <header class="head"><h1>${esc(displayName(user))}</h1><a class="eyebrow profile-link" href="https://www.chess.com/member/${encodeURIComponent(name)}" target="_blank" rel="noopener">chess.com/${esc(name)}</a>
       ${cur ? `<p class="lede">${fig(cur.summary)}</p>` : ''}</header>
-    ${stats([...ratingStats(user), ...(h2h.length ? [[`${r[0]}–${r[1]}–${r[2]}`, 'Your record vs them (W–D–L)']] : [])])}
+    ${stats([...ratingStats(user), ...(h2h.n ? [[`${r[0]}–${r[1]}–${r[2]}`, 'Your record vs them (W–D–L)']] : [])])}
     <section class="card"><div class="row"><h2>Games</h2><button class="btn" id="sync">${gs ? 'Refresh' : 'Download games'}</button></div>
-      <p class="small muted" id="sync-status" aria-live="polite">${gs ? gamesLine(gs, pr, synced) : 'Download their recent games to build their file (up to 12 months).'}</p></section>
+      <p class="small muted" id="sync-status" aria-live="polite" data-dl="${esc(user)}"${gs ? '' : ' data-empty'}>${pending(user) ? dlText(user) : gs ? gamesLine(gs, pr, synced) : 'Download their recent games to build their file (up to 12 months).'}</p></section>
     ${cur ? `<section class="card curated"><p class="eyebrow">Hand-written prep</p><h2>Coach's plan</h2>
       ${cur.plans.map((p, i) => `<details${i === 0 ? ' open' : ''}><summary><span class="eyebrow">${esc(p.eyebrow)}</span><br><b>${fig(p.title)}</b></summary>
         <div class="details-body"><div data-line="${i}">${viewerHtml(p.caption)}</div>${p.body.map((b) => `<p>${fig(b)}</p>`).join('')}
@@ -439,37 +491,41 @@ async function renderOppList() {
     view.innerHTML = '<header class="head"><h1>Prep</h1><p class="lede">Add the people you play to get a file on each of them.</p></header><a class="btn primary" href="#add">Add an opponent</a>';
     return;
   }
-  const mine = (await gamesOf(P.me.user)) || [];
+  const mine = await gamesOf(P.me.user);
   const myRatings = ls.get(`player:${P.me.user}`, null)?.ratings || {};
   const plays = (r) => r.w + r.l + r.d;
   const rows = await Promise.all(P.opps.map(async (o) => {
     const info = ls.get(`player:${o.user}`, null);
     const main = Object.entries(info?.ratings || {}).sort((a, b) => plays(b[1]) - plays(a[1]))[0];
-    const vs = mine.filter((g) => g.opp.toLowerCase() === o.user);
-    const rec = vs.reduce((a, g) => { a[2 - g.pts]++; return a; }, [0, 0, 0]);
-    const last = vs.reduce((t, g) => Math.max(t, g.t), 0);
-    const studied = ((await gamesOf(o.user)) || []).length;
+    const theirs = await gamesOf(o.user);
+    const h2h = headToHead(mine, theirs, o.user, P.me.user);
     const traps = ((await cachedTraps(o.user, 'white')) || []).length + ((await cachedTraps(o.user, 'black')) || []).length;
-    return { o, cur: curated(o.user), main, vs, rec, last, studied, traps, info };
+    return { o, cur: curated(o.user), main, h2h, theirs, traps, info };
   }));
   // most games against you first, then the most recent; no games together last, by name
-  rows.sort((a, b) => b.vs.length - a.vs.length || b.last - a.last || displayName(a.o.user).localeCompare(displayName(b.o.user)));
+  rows.sort((a, b) => b.h2h.n - a.h2h.n || b.h2h.last - a.h2h.last || displayName(a.o.user).localeCompare(displayName(b.o.user)));
   const ratingLine = ({ main }) => {
     if (!main) return '';
     const mineR = myRatings[main[0]]?.r;
     return `${TC[main[0]]} ${main[1].r}${mineR ? ` · you ${mineR}` : ''}`;
   };
-  const vsLine = ({ vs, rec, last }) => vs.length
-    ? `${vs.length} game${vs.length > 1 ? 's' : ''} together · you won ${rec[0]}, lost ${rec[2]}, drew ${rec[1]} · ${pct(vs.reduce((p, g) => p + g.pts, 0), vs.length)}% · last ${dateOf(last)}`
-    : 'No games against you yet';
+  // no games found: say why, since it can mean the games aren't here yet rather than that you never played
+  const vsLine = ({ o, h2h: { n, rec, p, last }, theirs }) => {
+    if (n) return `${n} game${n > 1 ? 's' : ''} together · you won ${rec[0]}, lost ${rec[2]}, drew ${rec[1]} · ${pct(p, n)}% · last ${dateOf(last)}`;
+    if (pending(P.me.user) || pending(o.user)) return 'Downloading games…';
+    if (!mine && !theirs) return 'Games not downloaded yet';
+    if (!mine) return 'Your games not downloaded yet';
+    if (!theirs) return 'Their games not downloaded yet';
+    return 'No games against you in the last 12 months';
+  };
   view.innerHTML = `<header class="head"><div class="head-row"><h1>Prep</h1><a class="btn primary btn-sm" href="#add">＋ Add</a></div>
       <p class="lede">One file per opponent: the openings they play, where they go wrong, traps to set and a plan for your next game against them.</p>
-      ${rows.some((r) => r.vs.length) ? '<p class="small muted">Sorted by how many games you\'ve played each other.</p>' : ''}</header>
+      ${rows.some((r) => r.h2h.n) ? '<p class="small muted">Sorted by how many games you\'ve played each other.</p>' : ''}</header>
     <ul class="opps">${rows.map((r) => `<li><a href="#prep/${esc(r.o.user)}">
       <span class="opp-top"><b>${esc(displayName(r.o.user))}</b>${hasAlias(r.o.user) ? ` <span class="muted small">${esc(r.o.username)}</span>` : ''}<span class="chev" aria-hidden="true">›</span></span>
       ${ratingLine(r) ? `<span class="small">${ratingLine(r)}</span>` : ''}
       <span class="small muted">${vsLine(r)}</span>
-      <span class="badges"><span class="badge">${r.studied ? `${r.studied} of their games studied` : 'Not downloaded yet'}</span>${r.traps ? `<span class="badge trap-badge">${r.traps} trap${r.traps > 1 ? 's' : ''} found</span>` : ''}${r.cur ? '<span class="badge">Hand-written prep</span>' : ''}</span>
+      <span class="badges"><span class="badge">${r.theirs ? (r.theirs.length ? `${r.theirs.length} of their games studied` : 'No games in the last 12 months') : pending(r.o.user) ? 'Downloading…' : 'Not downloaded yet'}</span>${r.traps ? `<span class="badge trap-badge">${r.traps} trap${r.traps > 1 ? 's' : ''} found</span>` : ''}${r.cur ? '<span class="badge">Hand-written prep</span>' : ''}</span>
     </a></li>`).join('')}</ul>`;
   // ratings for opponents added without a lookup (e.g. the hand-written ones): fetch once, then redraw.
   // Redraw only if a lookup worked: offline, every lookup fails and redrawing would start them all again.
@@ -659,7 +715,7 @@ async function renderMe() {
       ${cur ? `<p class="lede">${fig(cur.summary)}</p>` : ''}</header>
     ${stats(ratingStats(user))}
     <section class="card"><div class="row"><h2>Games</h2><button class="btn" id="sync">${gs ? 'Refresh' : 'Download games'}</button></div>
-      <p class="small muted" id="sync-status" aria-live="polite">${gs ? gamesLine(gs, pr, synced) : 'Download your recent games to build your profile.'}</p></section>
+      <p class="small muted" id="sync-status" aria-live="polite" data-dl="${esc(user)}"${gs ? '' : ' data-empty'}>${pending(user) ? dlText(user) : gs ? gamesLine(gs, pr, synced) : 'Download your recent games to build your profile.'}</p></section>
     ${pr ? `<section class="card"><h2>Your game</h2>${list(describe(pr, true))}</section>` : ''}
     <section class="card"><h2>Engine review</h2>
       ${s?.reviewed ? `${stats([
@@ -747,6 +803,9 @@ window.addEventListener('hashchange', route);
   // Back from Auth0's sign-in page: finish signing in and sync before the first screen, so it shows the synced data.
   const accounts = { data: syncedDataArrived, status: renderAccount };
   if (returningFromSignIn()) { await startSync(accounts); route(); } else { route(); startSync(accounts); }
+  // keep everyone's games fresh: missing or more than a day old, downloaded in the background
+  dailyDownloads();
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') dailyDownloads(); });
   // Offline mode only on the real site: on localhost it would serve stale files during development,
   // so remove any worker and cache an earlier local run installed.
   const local = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
