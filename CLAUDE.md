@@ -56,3 +56,4 @@ npx live-server app --port=8766        # local preview with auto-reload
 - One branch and one PR per change, from an up-to-date `main`. Pushing `app/**` to `main` deploys to GitHub Pages (`.github/workflows/pages.yml`).
 - When a PR grows, update its title and description to match. PR descriptions list what was tested and what wasn't.
 - Commit messages say what changed and why.
+- After each PR, add an entry to docs/build-log.md, lightly clean the prompt where there is need for privacy.

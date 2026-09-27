@@ -4,6 +4,8 @@ A personal chess coach for preparing games against friends on chess.com.
 
 It downloads your games and your friends' games from the chess.com public API, runs Stockfish over them, and builds a profile of each player: openings and how they score with them, where their mistakes happen (opening, middlegame or endgame), how they handle the clock, and positions where they repeat the same mistake. The conclusions go into `notes.py`, and `build_report.py` turns everything into a prep book page with game plans, opening traps and drills from your own games.
 
+**How it's built:** this project is being built iteratively with Claude Code. [`docs/build-log.md`](docs/build-log.md) records every request, word for word, and what came of it.
+
 ## Setup
 
 ```bash
