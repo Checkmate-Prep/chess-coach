@@ -86,7 +86,7 @@ The product domain is **checkmateprep.com**, registered at Cloudflare Registrar 
 
 One-time setup:
 
-1. **Auth0:** the free plan allows one tenant, `checkmateprep.us.auth0.com` (US region), shared by all environments. It has one **API**, identifier `https://api.checkmateprep.com` (`AUTH0_AUDIENCE`; an identifier only, nothing needs to answer there), signing algorithm RS256, with **Allow Offline Access** on so the app stays signed in. It has two **Single Page Applications**, each with **Refresh Token Rotation** on:
+1. **Auth0:** the free plan allows one tenant, `checkmateprep.us.auth0.com` (US region), shared by all environments. It has one **API**, identifier `https://api.checkmateprep.com` (`AUTH0_AUDIENCE`; an identifier only, nothing needs to answer there), signing algorithm RS256, with **Allow Offline Access** on so the app stays signed in. It has two **Single Page Applications**, each with **Refresh Token Rotation** on, and each authorized on the API (**APIs → the API → Application Access → the application → User Access: Authorized**). Without that, sign-in comes back with "Client … is not authorized to access resource server":
 
    | Application | Used by | Callback, logout URLs | Web origins, CORS | `AUTH0_DOMAIN` |
    | --- | --- | --- | --- | --- |

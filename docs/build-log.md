@@ -351,3 +351,17 @@ The app shows an account card in Settings and a sign-in offer on the welcome scr
 > I moved repo to https://github.com/Checkmate-Prep/chess-coach
 
 **What Claude did:** recommended moving before adding the Cloudflare secrets, and warned that the GitHub Pages copy would change address with no redirect. On private repos, it found that GitHub's free plan drops environment secrets and required checks for private repos, both of which this repo relies on, so it recommended staying public. After the move, it confirmed that git and the PR still work through GitHub's redirect and updated the links. → [#13](https://github.com/Checkmate-Prep/chess-coach/pull/13)
+
+### 37. Going live
+> I've added the cloudflare token as env secret, and cloudflare id as env var. is it ok?
+> I also confrim the api id in auth0 is https://api.checkmateprep.com
+
+> yes, merge it once checks pass
+
+> I can access the app at [https://checkmateprep.com](https://checkmateprep.com/#me), and download games, review games. but sign in doesn't work
+> Sign-in didn't finish (Client "2tQ9JSSnfNd6GraU8bmoe9bQ5P64yMnm" is not authorized to access resource server "https://api.checkmateprep.com".). Try again.
+
+> sign in works now
+
+**What Claude did:** noticed the deploy workflow only read the account ID from secrets, so a variable would have been ignored. It made the workflow accept either, merged #13 once the checks passed on its last commit, and watched the first production deploy start. The app came up on checkmateprep.com, but sign-in was refused: newer Auth0 tenants require each application to be authorized on the API. Claude explained where to allow it, and sign-in then worked. It added that step to the README's Auth0 setup so the dev application doesn't hit the same wall.
+
