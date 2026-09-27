@@ -404,3 +404,13 @@ The app shows an account card in Settings and a sign-in offer on the welcome scr
 > instead of bringing to https://checkmateprep.com/#setup, ask for the chess.com username and optional nickname in a dedicated way.
 
 **What Claude did:** planned first, then added an "Add an opponent" screen (`#add`). It asks for their chess.com username and an optional nickname, and lists "People you've played most" to add with one tap. Every add link now goes there: the Prep list, the empty states, Settings, and step 2 of the new-user setup, which now uses the same screen with the "Step 2 of 3" heading. Settings keeps renaming and removing opponents only. Adding a duplicate or your own username now says so instead of doing nothing. In testing, the phone-size screenshots showed the Remove buttons in Settings sticking out of their card, so Claude fixed that too. It also noticed that the Prep list keeps re-downloading and redrawing when chess.com can't be reached, and suggested fixing that separately. → [#17](https://github.com/Checkmate-Prep/chess-coach/pull/17)
+
+
+### 41. Letting the trap scan run again after new games
+> troubleshoot why "https://checkmateprep.com/#prep/[opponent]" says "No repeated losing moves in their most common positions. Their openings are sound; look at the lines where they score badly instead."
+
+> I got Claude code inside vs code to do this. Check the code to confirm it's now fixed
+
+> Yes
+
+**What Claude did:** this ran in a cloud session that couldn't reach chess.com, so Claude traced the message through the code. Once #15 had landed, it checked `main` and found that half the problem was fixed: the card no longer calls openings sound on a thin sample. The other half wasn't. A saved scan was never thrown away when the games changed, and a saved empty result hid the Find traps button, so "check again once they have played more games" could not be done. Scans saved before #15 also showed position counts taken from today's games, not the ones the scan had checked. Claude added `trapScan`, which returns the saved scan and whether it still matches their current games. After a Refresh that brings in new games, the card shows "Check again with Stockfish" and keeps any traps it already found until the new scan finishes. The position count is only shown for a scan of today's games. Tests cover an out-of-date scan, a rescan replacing it, and a scan saved before positions were counted. There was no browser in the session, so the card wasn't previewed.
