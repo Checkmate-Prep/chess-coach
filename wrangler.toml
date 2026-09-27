@@ -16,8 +16,10 @@ run_worker_first = ["/api/*"]
 
 # Bindings and vars don't inherit, so each environment lists its own.
 # D1 databases without an id are created on the first deploy; the Worker creates its table.
-# Auth0: AUTH0_DOMAIN = the tenant (or its custom domain), AUTH0_CLIENT_ID = the Single Page Application,
-# AUTH0_AUDIENCE = the API identifier. Locally, override them in .dev.vars.
+# Auth0: one tenant (checkmateprep.us.auth0.com) with one API and two Single Page Applications:
+# "Checkmate Prep" for production, "Checkmate Prep (dev)" for dev, test and local runs.
+# AUTH0_DOMAIN = where sign-in happens (tokens must come from this exact domain), AUTH0_CLIENT_ID = the
+# application, AUTH0_AUDIENCE = the API identifier. Locally, set them in .dev.vars.
 [vars]
 AUTH0_DOMAIN = ""
 AUTH0_CLIENT_ID = ""
@@ -48,6 +50,6 @@ ratelimits = [{ name = "BURST", namespace_id = "1002", simple = { limit = 30, pe
 name = "chess-coach"
 workers_dev = false
 routes = [{ pattern = "checkmateprep.com", custom_domain = true }, { pattern = "www.checkmateprep.com", custom_domain = true }]
-vars = { AUTH0_DOMAIN = "", AUTH0_CLIENT_ID = "", AUTH0_AUDIENCE = "" }
+vars = { AUTH0_DOMAIN = "login.checkmateprep.com", AUTH0_CLIENT_ID = "2tQ9JSSnfNd6GraU8bmoe9bQ5P64yMnm", AUTH0_AUDIENCE = "https://api.checkmateprep.com" }
 d1_databases = [{ binding = "DB" }]
 ratelimits = [{ name = "BURST", namespace_id = "1003", simple = { limit = 30, period = 60 } }]
