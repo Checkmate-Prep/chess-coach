@@ -198,15 +198,15 @@ async function renderSetup(first = false) {
 
 // ---------- auto profile text ----------
 function describe(pr, you) {
-  const he = you ? 'You' : 'He', his = you ? 'your' : 'his', plays = you ? 'play' : 'plays';
+  const they = you ? 'You' : 'They', their = you ? 'your' : 'their';
   const out = [];
   const tcs = Object.entries(pr.byTc);
-  if (tcs.length) out.push(`${he} ${plays} mostly ${tcs.slice(0, 2).map(([tc, x]) => `${TC[tc].toLowerCase()} (${x.n} games, scoring ${x.score}%)`).join(' and ')} in this sample.`);
+  if (tcs.length) out.push(`${they} play mostly ${tcs.slice(0, 2).map(([tc, x]) => `${TC[tc].toLowerCase()} (${x.n} games, scoring ${x.score}%)`).join(' and ')} in this sample.`);
   const fm = pr.firstMove.reduce((a, x) => a + x.n, 0);
   if (fm) out.push(`As White: ${pr.firstMove.slice(0, 3).map((m) => `1.${m.san} in ${Math.round((100 * m.n) / fm)}% (scores ${m.score}%)`).join(', ')}.`);
   if (pr.vsE4.length) out.push(`Against 1.e4: ${pr.vsE4.map((m) => `1…${m.san} ×${m.n} (${m.score}%)`).join(', ')}.`);
   if (pr.vsD4.length) out.push(`Against 1.d4: ${pr.vsD4.map((m) => `1…${m.san} ×${m.n} (${m.score}%)`).join(', ')}.`);
-  if (pr.onTimePct >= 25) out.push(`${pr.onTimePct}% of ${his} decisive games end on the clock, so the clock is a big part of ${his} game.`);
+  if (pr.onTimePct >= 25) out.push(`${pr.onTimePct}% of ${their} decisive games end on the clock, so the clock is a big part of ${their} game.`);
   if (pr.castling.pct) out.push(`Castles in ${pr.castling.pct}% of games, around move ${pr.castling.avgMove}${pr.castling.queensidePct >= 20 ? `, queenside ${pr.castling.queensidePct}% of the time` : ''}.${pr.castling.neverPct >= 15 ? ` Leaves the king in the centre in ${pr.castling.neverPct}% of longer games.` : ''}`);
   if (pr.lengthScore.long.n >= 10 && pr.lengthScore.short.n >= 10) {
     const d = pr.lengthScore.long.score - pr.lengthScore.short.score;
@@ -223,9 +223,9 @@ function weakHtml(lines, color, user) {
 
 function trapHtml(t, key, user, color) {
   return `<article class="trap">
-    <p class="eyebrow">He has ${color === 'white' ? 'White' : 'Black'}</p>
+    <p class="eyebrow">They have ${color === 'white' ? 'White' : 'Black'}</p>
     <p><b class="mono">${fig(numbered([...t.path, t.played]))}</b></p>
-    <p class="small">He plays ${fig(t.played)} here in <b>${t.times} of ${t.of}</b> games and scores ${t.score}%. Stockfish: ${t.bestForHim ? `${fig(t.bestForHim)} was better. ` : ''}After ${fig(t.played)} his winning chances drop by about ${t.drop} points.</p>
+    <p class="small">They play ${fig(t.played)} here in <b>${t.times} of ${t.of}</b> games and scores ${t.score}%. Stockfish: ${t.bestForHim ? `${fig(t.bestForHim)} was better. ` : ''}After ${fig(t.played)} their winning chances drop by about ${t.drop} points.</p>
     <div data-trap="${key}">${viewerHtml(`Punish with ${fig(t.punish[0] || '?')}. Gold moves are the engine's line.`)}</div>
     <button class="btn primary" data-drill="trap:${esc(user)}:${color}:${key.split(':')[1]}">Drill it</button></article>`;
 }
@@ -253,25 +253,25 @@ async function renderOpp(user) {
     <a class="back" href="#prep">◀ Opponents</a>
     <header class="head"><h1>${esc(displayName(user))}</h1><a class="eyebrow profile-link" href="https://www.chess.com/member/${encodeURIComponent(name)}" target="_blank" rel="noopener">chess.com/${esc(name)}</a>
       ${cur ? `<p class="lede">${fig(cur.summary)}</p>` : ''}</header>
-    ${stats([...ratingStats(user), ...(h2h.length ? [[`${r[0]}–${r[1]}–${r[2]}`, 'Your record vs him (W–D–L)']] : [])])}
+    ${stats([...ratingStats(user), ...(h2h.length ? [[`${r[0]}–${r[1]}–${r[2]}`, 'Your record vs them (W–D–L)']] : [])])}
     <section class="card"><div class="row"><h2>Games</h2><button class="btn" id="sync">${gs ? 'Refresh' : 'Download games'}</button></div>
-      <p class="small muted" id="sync-status" aria-live="polite">${gs ? `${gs.length.toLocaleString()} games since ${dateOf(pr.since)} · updated ${ago(synced)}` : 'Download his recent games to build his file (up to 12 months).'}</p></section>
+      <p class="small muted" id="sync-status" aria-live="polite">${gs ? `${gs.length.toLocaleString()} games since ${dateOf(pr.since)} · updated ${ago(synced)}` : 'Download their recent games to build their file (up to 12 months).'}</p></section>
     ${cur ? `<section class="card curated"><p class="eyebrow">Hand-written prep</p><h2>Coach's plan</h2>
       ${cur.plans.map((p, i) => `<details${i === 0 ? ' open' : ''}><summary><span class="eyebrow">${esc(p.eyebrow)}</span><br><b>${fig(p.title)}</b></summary>
         <div class="details-body"><div data-line="${i}">${viewerHtml(p.caption)}</div>${p.body.map((b) => `<p>${fig(b)}</p>`).join('')}
         <button class="btn primary" data-drill="line:${esc(user)}:${i}">Drill this line</button></div></details>`).join('')}
       <details><summary><b>Game-day checklist</b></summary><div class="details-body">${list(cur.checklist, 'ol')}</div></details></section>` : ''}
     ${planHtml(gs?.length ? gamePlan({ pr, tw, tb, trW, trB, myW, myB }) : null, user, cur, trW, trB)}
-    ${pr ? `<section class="card"><h2>How he plays</h2>${list(describe(pr, false))}</section>` : ''}
-    <section class="card"><h2>Traps: moves he repeats that lose</h2>
-      <p class="small muted">Stockfish checks the positions he reaches most often and flags moves he keeps playing that the engine refutes.</p>
+    ${pr ? `<section class="card"><h2>How they play</h2>${list(describe(pr, false))}</section>` : ''}
+    <section class="card"><h2>Traps: moves they repeat that lose</h2>
+      <p class="small muted">Stockfish checks the positions they reach most often and flags moves they keep playing that the engine refutes.</p>
       ${trW || trB ? '' : `<button class="btn primary" id="traps" ${tw.n + tb.n ? '' : 'disabled'}>Find traps with Stockfish</button><p class="small muted">Takes 1–3 minutes. It runs on your device. Keep the app open.</p>`}
       ${progress('trap-progress')}
       <div id="trap-list">${trW || trB ? trapsSection(user, trW, trB) : ''}</div></section>
-    <section class="card"><h2>Lines that go badly for him ${scoreInfo('si-weak')}</h2>${scoreNote('si-weak')}
-      <h3>When he's White</h3>${weakHtml(weakLines(tw), 'white', user)}
-      <h3>When he's Black</h3>${weakHtml(weakLines(tb), 'black', user)}</section>
-    ${cur ? `<section class="card curated"><p class="eyebrow">Hand-written prep</p><h2>Where he goes wrong</h2>${list(cur.weak)}</section>` : ''}`;
+    <section class="card"><h2>Lines that go badly for them ${scoreInfo('si-weak')}</h2>${scoreNote('si-weak')}
+      <h3>When they're White</h3>${weakHtml(weakLines(tw), 'white', user)}
+      <h3>When they're Black</h3>${weakHtml(weakLines(tb), 'black', user)}</section>
+    ${cur ? `<section class="card curated"><p class="eyebrow">Hand-written prep</p><h2>Where they go wrong</h2>${list(cur.weak)}</section>` : ''}`;
   if (cur) cur.plans.forEach((p, i) => lineViewer($(`[data-line="${i}"]`, view), p.line.split(' '), !!p.flip, p.key_from));
   mountTraps(trW, trB);
   view.querySelectorAll('[data-plan]').forEach((host) => { const pl = PLAN_LINES[host.dataset.plan]; if (pl) lineViewer(host, pl.line, pl.flipped, pl.keyFrom); });
@@ -286,7 +286,7 @@ async function renderOpp(user) {
     try {
       await whileAwake(async () => {
         for (const [color, tree] of [['white', tw], ['black', tb]]) {
-          found[color] = await findTraps(user, tree, color, (i, n) => setProgress(bar, i, n, `Checking his positions as ${color === 'white' ? 'White' : 'Black'}: ${i} of ${n}`));
+          found[color] = await findTraps(user, tree, color, (i, n) => setProgress(bar, i, n, `Checking their positions as ${color === 'white' ? 'White' : 'Black'}: ${i} of ${n}`));
         }
       });
     } catch {
@@ -299,13 +299,13 @@ async function renderOpp(user) {
 }
 const PLAN_LINES = {};
 function planHtml(plan, user, cur, trW, trB) {
-  if (!plan) return `<section class="card"><h2>Game plan</h2><p class="small muted">Download his games to build a plan.</p></section>`;
+  if (!plan) return `<section class="card"><h2>Game plan</h2><p class="small muted">Download their games to build a plan.</p></section>`;
   const part = (key, title, sidePlan, flipped, trapColor, trapList) => {
     if (!sidePlan.points.length) return '';
     PLAN_LINES[key] = sidePlan.line ? { line: sidePlan.line, flipped, keyFrom: sidePlan.keyFrom } : null;
     const ti = sidePlan.trap ? (trapList || []).indexOf(sidePlan.trap) : -1;
     return `<h3>${title}</h3>${list(sidePlan.points)}
-      ${sidePlan.line ? `<div data-plan="${key}">${viewerHtml(sidePlan.trap ? 'Gold moves: his repeated mistake and the punishment.' : 'Gold moves: where he goes wrong.')}</div>` : ''}
+      ${sidePlan.line ? `<div data-plan="${key}">${viewerHtml(sidePlan.trap ? 'Gold moves: their repeated mistake and the punishment.' : 'Gold moves: where they go wrong.')}</div>` : ''}
       ${ti >= 0 ? `<button class="btn primary" data-drill="trap:${esc(user)}:${trapColor}:${ti}">Drill the trap</button>` : ''}`;
   };
   const body = [
@@ -314,8 +314,8 @@ function planHtml(plan, user, cur, trW, trB) {
     plan.manage.length ? `<h3>How to play the game</h3>${list(plan.manage)}` : '',
   ].join('');
   return `<section class="card plan-card"><h2>Game plan ${scoreInfo('si-plan')}</h2>${scoreNote('si-plan')}
-    <p class="small muted">${cur ? 'Built automatically from his games. The hand-written plan above goes deeper.' : 'Built automatically from his games: every number is counted from his results.'}</p>
-    ${body || '<p class="muted">Not enough games yet for a plan. Download more of his games.</p>'}
+    <p class="small muted">${cur ? 'Built automatically from their games. The hand-written plan above goes deeper.' : 'Built automatically from their games: every number is counted from their results.'}</p>
+    ${body || '<p class="muted">Not enough games yet for a plan. Download more of their games.</p>'}
     ${plan.trapsChecked ? '' : '<p class="small muted">Tap <b>Find traps</b> below to add engine-checked traps to this plan.</p>'}</section>`;
 }
 /** Prep landing: every opponent as a row, with main rating, your record and what's been prepared. */
@@ -350,7 +350,7 @@ async function renderOppList() {
 }
 function trapsSection(user, w, b) {
   const all = [...(w || []).map((t, i) => trapHtml(t, `white:${i}`, user, 'white')), ...(b || []).map((t, i) => trapHtml(t, `black:${i}`, user, 'black'))];
-  return all.length ? all.join('') : '<p class="muted">No repeated losing moves in his most common positions. His openings are sound; look at the lines where he scores badly instead.</p>';
+  return all.length ? all.join('') : '<p class="muted">No repeated losing moves in their most common positions. Their openings are sound; look at the lines where they score badly instead.</p>';
 }
 function mountTraps(w, b) {
   for (const [color, list_] of [['white', w], ['black', b]]) {
@@ -388,7 +388,7 @@ async function renderExplore() {
     ${rows.length ? `<ul class="moves">${rows.map((r) => `<li><button data-san="${esc(r.s)}"><span class="san">${fig(r.s)}</span>
         <span class="bar"><span style="width:${Math.round((100 * r.n) / total)}%"></span></span>
         <span class="num">${r.n}</span><span class="num sc ${r.sc >= 55 ? 'hi' : r.sc <= 45 ? 'lo' : ''}">${r.sc}%</span></button></li>`).join('')}</ul>
-      <p class="muted small">Bar: how often each move was played. %: ${isMe ? 'your' : 'his'} score after it. ${scoreInfo('si-ex')} Tap a move to follow it, or play any move on the board.</p>${scoreNote('si-ex')}`
+      <p class="muted small">Bar: how often each move was played. %: ${isMe ? 'your' : 'their'} score after it. ${scoreInfo('si-ex')} Tap a move to follow it, or play any move on the board.</p>${scoreNote('si-ex')}`
       : `<p class="muted">${noGames ? `No games downloaded for ${esc(who)} yet. Download them from the ${isMe ? 'You' : 'Prep'} tab.` : 'No games reach this position.'}</p>`}`;
   $('#ex-who').onchange = (e) => { ex.user = e.target.value; ex.moves = []; saveEx(); renderExplore(); };
   const board = new Board($('.explore-bd'), {
@@ -405,9 +405,9 @@ async function drills() {
     for (const color of ['white', 'black']) {
       ((await cachedTraps(o.user, color)) || []).forEach((t, i) => out.push({
         id: `trap:${o.user}:${color}:${i}`, group: `Traps vs ${displayName(o.user)}`, kind: 'pos',
-        title: `${numbered([...t.path, t.played])}. Punish it.`, sub: `He plays this in ${t.times} of ${t.of} games`,
+        title: `${numbered([...t.path, t.played])}. Punish it.`, sub: `They play this in ${t.times} of ${t.of} games`,
         fen: t.afterFen, best: t.punish[0],
-        prompt: `He just played ${t.played}, as he does in ${t.times} of ${t.of} games. Punish it.`,
+        prompt: `They just played ${t.played}, as they do in ${t.times} of ${t.of} games. Punish it.`,
         why: `Stockfish's line: ${numbered(t.punish, plyOf(t.afterFen))}`,
       }));
     }

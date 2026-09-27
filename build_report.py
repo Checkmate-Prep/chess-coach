@@ -87,14 +87,14 @@ def section_friend(key, f):
     parts.append(f'<header class="panel-head"><p class="eyebrow">Opponent file · chess.com/{key}</p><h2>{f["name"]}</h2><p class="lede">{fig(f["summary"])}</p></header>')
     parts.append('<div class="stats">' + "".join(pill(k, v) for k, v in f["stats"]) + "</div>")
     parts.append('<div class="grid2">')
-    for title, items in (("How he plays", f["style"]), ("Where he goes wrong", f["weak"])):
+    for title, items in (("How they play", f["style"]), ("Where they go wrong", f["weak"])):
         parts.append(f'<div class="card"><h3>{title}</h3><ul>' + "".join(f"<li>{fig(x)}</li>" for x in items) + "</ul></div>")
     parts.append("</div>")
     for i, plan in enumerate(f["plans"]):
         parts.append(f'<div class="plan"><div class="plan-text"><p class="eyebrow">{plan["eyebrow"]}</p><h3>{fig(plan["title"])}</h3>')
         parts.append("".join(f"<p>{fig(x)}</p>" for x in plan["body"]))
         if plan.get("table"):
-            parts.append('<div class="tbl"><table><thead><tr><th>Line</th><th>His games</th><th>His score</th></tr></thead><tbody>'
+            parts.append('<div class="tbl"><table><thead><tr><th>Line</th><th>Their games</th><th>Their score</th></tr></thead><tbody>'
                          + "".join(f'<tr><td class="mono">{fig(a)}</td><td class="n">{b}</td><td class="n">{c}</td></tr>' for a, b, c in plan["table"])
                          + "</tbody></table></div>")
         parts.append("</div>")
