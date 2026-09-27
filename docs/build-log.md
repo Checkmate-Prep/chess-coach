@@ -365,3 +365,7 @@ The app shows an account card in Settings and a sign-in offer on the welcome scr
 
 **What Claude did:** noticed the deploy workflow only read the account ID from secrets, so a variable would have been ignored. It made the workflow accept either, merged #13 once the checks passed on its last commit, and watched the first production deploy start. The app came up on checkmateprep.com, but sign-in was refused: newer Auth0 tenants require each application to be authorized on the API. Claude explained where to allow it, and sign-in then worked. It added that step to the README's Auth0 setup so the dev application doesn't hit the same wall.
 
+> yes, add the checklist and open the PR
+
+**What Claude did:** added a checklist to the README for moving production to the project account after the domain move: export the D1 data, move the domain, recreate the DNS records, switch the GitHub secrets, redeploy, import, clean up. It tested the export and import commands on a local database first. That showed the export needs `--table docs`, to leave out Cloudflare's own tables, and that importing with `INSERT OR IGNORE` keeps rows written after the switch while restoring the rest. → [#14](https://github.com/Checkmate-Prep/chess-coach/pull/14)
+

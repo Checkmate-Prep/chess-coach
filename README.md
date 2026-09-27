@@ -84,6 +84,35 @@ The product domain is **checkmateprep.com**, registered at Cloudflare Registrar 
 - **Email:** Cloudflare Email Routing (free) can forward an address like `hello@checkmateprep.com` to a personal inbox, for Auth0, payment and user mail. Sending sign-in emails needs a sending provider (below).
 - **Protect the domain:** auto-renew on, two-factor sign-in on the Cloudflare account.
 
+#### Moving production to the project Cloudflare account
+
+checkmateprep.com was registered in a personal Cloudflare account, so production (the Worker and its D1 database) runs there for now. Cloudflare only lets a domain move between accounts 10 days after registration. Then move everything to the project account together; users notice nothing, because the address and Auth0 stay the same.
+
+Before you start (in the personal account):
+- The registrant email is verified, with no pending registrant change, and **DNSSEC is off**.
+- Write down every DNS record on checkmateprep.com, at least the `login` CNAME for Auth0 and any Email Routing records. A move keeps none of the old account's settings.
+- Have a terminal in this repo with `npm install` done, and the personal account's token and ID at hand.
+
+1. **Export the data** (personal account):
+   ```bash
+   export CLOUDFLARE_API_TOKEN=<personal token> CLOUDFLARE_ACCOUNT_ID=<personal account id>
+   npx wrangler d1 export DB --remote --env production --table docs --no-schema --output prod.sql
+   sed 's/^INSERT INTO/INSERT OR IGNORE INTO/' prod.sql > prod-import.sql
+   ```
+   `prod.sql` holds every account's synced data: keep it private and out of git.
+2. **Move the domain:** in the personal account, open checkmateprep.com in **Domain Registration** and start the move to the project account; approve it from the project account's email within 5 days.
+3. **Recreate the DNS records** you wrote down, in the project account. The `login` CNAME needs the proxy **off**. Then check that Auth0 still shows `login.checkmateprep.com` as Ready.
+4. **Point production at the project account:** in GitHub, **Settings → Environments → `production`**, replace the secret `CLOUDFLARE_API_TOKEN` and the variable `CLOUDFLARE_ACCOUNT_ID` with the project account's (the token needs Workers, D1 edit and the checkmateprep.com zone).
+5. **Deploy:** **Actions → Deploy to Cloudflare → Run workflow → `production`**. This creates the Worker, the custom domains and an empty D1 database in the project account. If it fails because `checkmateprep.com` or `www` already has a record, delete that record and run it again.
+6. **Import the data** (project account). Sign-ins between steps 5 and 6 are safe: `INSERT OR IGNORE` keeps a row written since, and devices re-send their own data on their next sync.
+   ```bash
+   export CLOUDFLARE_API_TOKEN=<project token> CLOUDFLARE_ACCOUNT_ID=<project account id>
+   npx wrangler d1 execute DB --remote --env production --command "CREATE TABLE IF NOT EXISTS docs (sub TEXT PRIMARY KEY, doc TEXT NOT NULL, ver INTEGER NOT NULL, updated INTEGER NOT NULL)"
+   npx wrangler d1 execute DB --remote --env production --file prod-import.sql
+   ```
+7. **Check:** https://checkmateprep.com loads, `www` redirects, and signing in shows your opponents.
+8. **Clean up:** delete the old Worker `chess-coach` and its D1 database in the personal account, delete the personal account's API token, and delete `prod.sql` and `prod-import.sql`.
+
 One-time setup:
 
 1. **Auth0:** the free plan allows one tenant, `checkmateprep.us.auth0.com` (US region), shared by all environments. It has one **API**, identifier `https://api.checkmateprep.com` (`AUTH0_AUDIENCE`; an identifier only, nothing needs to answer there), signing algorithm RS256, with **Allow Offline Access** on so the app stays signed in. It has two **Single Page Applications**, each with **Refresh Token Rotation** on, and each authorized on the API (**APIs → the API → Application Access → the application → User Access: Authorized**). Without that, sign-in comes back with "Client … is not authorized to access resource server":
