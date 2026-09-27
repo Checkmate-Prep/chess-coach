@@ -113,14 +113,12 @@ export function summarize(games, cache) {
 }
 
 // ---------- trap finder ----------
+export const TRAP_MIN_N = 6; // a position must come up this many times to be checked
 /**
- * Find moves the player repeats that the engine refutes. `tree` is their opening tree as `color`.
- * Candidates: positions reached >= minN times where it is the player's move and one reply dominates.
+ * Positions worth checking for traps in `tree` (the player's opening tree as `color`): reached >= minN
+ * times with the player to move, where one reply dominates. No engine needed, so the UI can count them.
  */
-export async function findTraps(user, tree, color, onProgress = () => {}, { minN = 6, maxPly = 14 } = {}) {
-  const key = `traps:${user}:${color}`;
-  const cached = await idb.get(key);
-  if (cached && cached.n === tree.n) return cached.traps;
+export function trapCandidates(tree, color, { minN = TRAP_MIN_N, maxPly = 14 } = {}) {
   const mineParity = color === 'white' ? 0 : 1;
   const cands = [];
   const visit = (node, path) => {
@@ -133,6 +131,15 @@ export async function findTraps(user, tree, color, onProgress = () => {}, { minN
     for (const [san, child] of kids) if (child.n >= minN) visit(child, [...path, san]);
   };
   visit(tree, []);
+  return cands;
+}
+
+/** Find moves the player repeats that the engine refutes, among the trapCandidates of `tree`. */
+export async function findTraps(user, tree, color, onProgress = () => {}, opts = {}) {
+  const key = `traps:${user}:${color}`;
+  const cached = await idb.get(key);
+  if (cached && cached.n === tree.n) return cached.traps;
+  const cands = trapCandidates(tree, color, opts);
   const traps = [];
   for (let i = 0; i < cands.length; i++) {
     onProgress(i, cands.length);
@@ -158,10 +165,12 @@ export async function findTraps(user, tree, color, onProgress = () => {}, { minN
   // skip traps that sit inside an earlier trap's line
   const out = [];
   for (const t of traps) if (!out.some((o) => [...o.path, o.san].every((m, i) => t.path[i] === m))) out.push(t);
-  await idb.set(key, { n: tree.n, traps: out.slice(0, 8) });
+  await idb.set(key, { n: tree.n, checked: cands.length, traps: out.slice(0, 8) });
   return out.slice(0, 8);
 }
 export const cachedTraps = (user, color) => idb.get(`traps:${user}:${color}`).then((c) => c?.traps || null);
+/** How many positions the last scan checked, or null if unknown (no scan yet, or one saved before this was counted). */
+export const trapsChecked = (user, color) => idb.get(`traps:${user}:${color}`).then((c) => c?.checked ?? null);
 
 /** Is `san` in `fen` close enough to the engine's best (for accepting alternative puzzle answers)? */
 export async function isGoodMove(fen, san, bestSan) {

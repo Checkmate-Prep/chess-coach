@@ -2,7 +2,7 @@ import { test, describe, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { Chess } from '../app/vendor/chess.js';
-import { winProb, pvToSan, summarize, findTraps, cachedTraps, reviewGames, reviewCache, isGoodMove, BLUNDER } from '../app/analysis.js';
+import { winProb, pvToSan, summarize, findTraps, cachedTraps, trapsChecked, trapCandidates, reviewGames, reviewCache, isGoodMove, BLUNDER } from '../app/analysis.js';
 import { installFakeIndexedDB, installBrowserGlobals, FakeWorker, game, node } from './helpers.mjs';
 
 const db = installFakeIndexedDB();
@@ -104,6 +104,21 @@ describe('findTraps', () => {
     assert.deepEqual([t.path, t.san, t.played, t.times, t.of, t.bestForHim, t.punish], [['f3', 'e5'], 'g4', 'g4', 6, 8, 'Nc3', ['Qh4#']]);
     assert.deepEqual(progress, [[0, 2], [1, 2], [2, 2]]);
     assert.deepEqual(await cachedTraps('p1', 'white'), traps);
+    assert.equal(await trapsChecked('p1', 'white'), 2);
+  });
+
+  test('counts the positions it checks, even when it finds nothing', async () => {
+    FakeWorker.script = script({});
+    assert.equal(await trapsChecked('p6', 'white'), null);
+    assert.deepEqual(await findTraps('p6', tree(), 'white'), []);
+    assert.equal(await trapsChecked('p6', 'white'), 2);
+  });
+
+  test('candidates need the same position at least 6 times', () => {
+    assert.deepEqual(trapCandidates(tree(), 'white').map((c) => [c.path, c.san]), [[[], 'f3'], [['f3', 'e5'], 'g4']]);
+    // 6 games as Black, split after White's first move: nothing repeats often enough
+    const few = node(6, 6, { e4: node(4, 4, { e5: node(4, 4) }), d4: node(2, 2, { d5: node(2, 2) }) });
+    assert.deepEqual(trapCandidates(few, 'black'), []);
   });
 
   test('a later trap inside an earlier trap\'s line is dropped', async () => {
