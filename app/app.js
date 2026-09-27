@@ -1,7 +1,7 @@
 import { Chess } from './vendor/chess.js';
 import { Board } from './board.js';
 import { PIECES } from './pieces.js';
-import { ls, idb } from './store.js';
+import { ls } from './store.js';
 import { player, syncGames, cachedGames } from './chesscom.js';
 import { buildTree, walk, profile, weakLines, pct } from './stats.js';
 import { reviewGames, reviewCache, summarize, findTraps, cachedTraps, trapsChecked, trapCandidates, TRAP_MIN_N, isGoodMove } from './analysis.js';
@@ -178,9 +178,7 @@ async function renderSetup(first = false) {
   view.innerHTML = `
     ${head}
     ${youCard + oppCard}
-    ${me ? `<div id="account-slot"></div>
-    <section class="card"><h2>Stored locally on this device</h2><p class="small muted">Games and engine results are saved in this browser only. Clearing them frees space; they're downloaded again on the next refresh.</p>
-      <button class="btn" id="clear-data">Clear saved games and analysis</button><p class="small" id="clear-status"></p></section>` : ''}`;
+    ${me ? '<div id="account-slot"></div>' : ''}`;
 
   renderAccount();
   $('#me-form').onsubmit = async (e) => {
@@ -212,7 +210,6 @@ async function renderSetup(first = false) {
     inp.onkeydown = (e) => { if (e.key === 'Enter') inp.blur(); };
   });
   view.querySelectorAll('[data-remove]').forEach((b) => { b.onclick = () => { P.opps = P.opps.filter((o) => o.user !== b.dataset.remove); ls.set('profile', P); renderSetup(); }; });
-  $('#clear-data').onclick = async () => { await idb.clear(); Object.keys(games).forEach(invalidate); $('#clear-status').textContent = 'Cleared.'; };
 }
 
 // ---------- add an opponent ----------
@@ -283,9 +280,9 @@ function renderAccount() {
         <p class="small">Signed in${account.email ? ` as <b>${esc(account.email)}</b>` : ''}. Your opponents, names and drill progress sync to your other devices.</p>
         <p class="small muted" aria-live="polite">${when}</p>${err}
         <div class="row"><button class="btn" data-acct="sync" ${account.busy ? 'disabled' : ''}>Sync now</button><button class="btn" data-acct="signout">Sign out</button></div>
-        <details><summary class="small">Delete synced data</summary><div class="details-body">
-          <p class="small muted">Deletes your opponents, names and drill progress from the server, then signs you out. This device keeps its copy.</p>
-          <button class="btn" data-acct="delete">Delete synced data</button></div></details></section>`;
+        <details><summary class="small">Delete account</summary><div class="details-body">
+          <p class="small muted">Deletes your opponents, names and drill progress from the server, then signs you out. Data is also deleted from this device.</p>
+          <button class="btn" data-acct="delete">Delete account</button></div></details></section>`;
   }
   slot.querySelectorAll('[data-acct]').forEach((b) => {
     b.onclick = async () => {

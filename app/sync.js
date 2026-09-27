@@ -2,7 +2,7 @@
 // Only works when the app is served by the Worker (worker/index.js), which says whether accounts are set up
 // at /api/config. On GitHub Pages or a plain static server there is no /api, and accounts stay hidden.
 // What syncs and how conflicts merge: syncdoc.js.
-import { ls } from './store.js';
+import { idb, ls } from './store.js';
 import { fromLocal, merge, toLocal } from './syncdoc.js';
 
 const SYNCED = ['profile', 'done'];
@@ -109,15 +109,23 @@ export function signIn() {
   return client?.loginWithRedirect({ appState: { hash: location.hash } });
 }
 
-/** Stop syncing on this device. Its data stays here; the account keeps its copy. */
-export async function signOut() {
-  ls.del('sync-doc'); ls.del('sync-at');
+/**
+ * Sign out and remove everything this app stored on this device, so the next visit starts like a new one
+ * (welcome screen). The account keeps its copy; recent changes are sent first when the server is reachable,
+ * unless `send` is false (after deleting the account's data, sending would bring it back).
+ */
+export async function signOut({ send = true } = {}) {
+  if (send) await syncNow().catch(() => {});
+  clearTimeout(timer);
   Object.assign(account, { signedIn: false, email: '', at: 0, error: '' });
-  await client?.logout({ logoutParams: { returnTo: location.origin + location.pathname } });
+  await idb.clear(); ls.clear();
+  if (client) await client.logout({ logoutParams: { returnTo: location.origin + location.pathname } });
+  else location.replace(location.pathname);
 }
 
-/** Delete this account's synced data on the server, then sign out. */
+/** Delete this account's synced data on the server, then sign out (which also clears this device). */
 export async function deleteSynced() {
+  clearTimeout(timer); await running; // a sync landing after the delete would store the data again
   try {
     const token = await client.getTokenSilently();
     const r = await fetch('api/sync', { method: 'DELETE', headers: { authorization: `Bearer ${token}` } });
@@ -127,6 +135,6 @@ export async function deleteSynced() {
     onStatus();
     return false;
   }
-  await signOut();
+  await signOut({ send: false });
   return true;
 }

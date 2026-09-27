@@ -58,7 +58,7 @@ Signing in is optional. It keeps your chess.com username, your opponents, the na
 - **Sign-in** is handled by [Auth0](https://auth0.com) (free plan): Google, or a one-time code by email. The app never sees a password.
 - **Sync** runs on a Cloudflare Worker (`worker/`) with a D1 database. Each account has one small document (`app/syncdoc.js`). On every change, and whenever the app comes back into view, a device sends its copy and gets back the merge with the other devices'. For each opponent the latest change wins; drill progress from all devices adds up. Removals reach the other devices too.
 - **Where it runs:** accounts only appear when the app is served by the Worker. On GitHub Pages (no `/api`) the app works as before, without the Sign in button.
-- **Privacy:** the server stores the Auth0 user id and that document, nothing else. **Delete synced data** in Settings removes it.
+- **Privacy:** the server stores the Auth0 user id and that document, nothing else. **Delete account** in Settings removes it, and the copy on that device too. Signing out also clears the device, so the next visit starts from the welcome screen.
 
 | File | What it does |
 | --- | --- |

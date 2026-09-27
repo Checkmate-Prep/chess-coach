@@ -32,4 +32,5 @@ export const ls = {
   /** Call fn(key) after every set (sync.js uses it to notice changes to synced data). */
   watch(fn) { watchers.push(fn); },
   del(k) { try { localStorage.removeItem(k); } catch { /* storage unavailable */ } },
+  clear() { try { localStorage.clear(); } catch { /* storage unavailable */ } },
 };
