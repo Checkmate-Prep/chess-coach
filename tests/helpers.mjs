@@ -1,4 +1,4 @@
-// Test doubles for the browser APIs the app uses: IndexedDB, fetch, Web Worker (Stockfish), document.
+// Test doubles for the browser APIs the app uses: IndexedDB, localStorage, fetch, Web Worker (Stockfish), document.
 
 /** In-memory stand-in for the slice of IndexedDB that store.js uses. `data` can be inspected or cleared. */
 export function installFakeIndexedDB() {
@@ -24,6 +24,18 @@ export function installFakeIndexedDB() {
       setTimeout(() => { r.onupgradeneeded?.(); r.onsuccess?.(); });
       return r;
     },
+  };
+  return data;
+}
+
+/** In-memory localStorage (store.js `ls`). Returns the backing Map. */
+export function installFakeLocalStorage() {
+  const data = new Map();
+  globalThis.localStorage = {
+    getItem: (k) => (data.has(k) ? data.get(k) : null),
+    setItem: (k, v) => { data.set(k, String(v)); },
+    removeItem: (k) => { data.delete(k); },
+    clear: () => data.clear(),
   };
   return data;
 }
