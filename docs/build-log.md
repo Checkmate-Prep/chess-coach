@@ -432,3 +432,18 @@ The app shows an account card in Settings and a sign-in offer on the welcome scr
 > Yes
 
 **What Claude did:** this ran in a cloud session that couldn't reach chess.com, so Claude traced the message through the code. Once #15 had landed, it checked `main` and found that half the problem was fixed: the card no longer calls openings sound on a thin sample. The other half wasn't. A saved scan was never thrown away when the games changed, and a saved empty result hid the Find traps button, so "check again once they have played more games" could not be done. Scans saved before #15 also showed position counts taken from today's games, not the ones the scan had checked. Claude added `trapScan`, which returns the saved scan and whether it still matches their current games. After a Refresh that brings in new games, the card shows "Check again with Stockfish" and keeps any traps it already found until the new scan finishes. The position count is only shown for a scan of today's games. Tests cover an out-of-date scan, a rescan replacing it, and a scan saved before positions were counted. There was no browser in the session, so the card wasn't previewed. → [#19](https://github.com/Checkmate-Prep/chess-coach/pull/19)
+
+
+### 41. A Prep tab that explains itself
+> https://checkmateprep.com/#prep needs clarifying text
+> currently
+> "Prep
+> Pick an opponent to open their file."
+>
+> suggest text at the top to better explain what the prep screen is.
+>
+> also add more stats on each opponent card: sort by number of games played against each others.
+>
+> suggest a better location for "+ add opponent"
+
+**What Claude did:** planned first. The header now says what a file holds: the openings they play, where they go wrong, traps to set and a plan for your next game. It has an "＋ Add" button next to the title, replacing the row at the bottom of the list, which fell below the fold once you had a few opponents. Each card now shows their main rating next to yours in the same time control. It also shows how many games you've played each other, your wins, losses and draws, your score and the date of your last game, plus how many of their games were studied. Opponents are sorted by games played together, most first. Because the list was being rewritten anyway, it also fixed the loop found earlier: offline, the list no longer keeps looking up ratings and redrawing itself. → PR link below

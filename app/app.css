@@ -118,7 +118,6 @@ a.back{text-decoration:none}
 .badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
 .badge{font:500 .72rem var(--sans);padding:3px 8px;border-radius:999px;background:var(--bg);border:1px solid var(--line);color:var(--muted)}
 .trap-badge{color:var(--gold);border-color:color-mix(in srgb,var(--gold) 40%,var(--line))}
-.add-row{color:var(--accent)!important;font-weight:500;align-content:center}
 .picker{display:grid;gap:4px}
 .picker select{font:500 1rem var(--sans);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 36px 10px 12px;min-height:46px;appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;background-size:5px 5px;background-repeat:no-repeat}
 .picker select:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
@@ -146,3 +145,5 @@ h2 .info-btn{font-size:1.05rem}
 .steps li.now::before{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .view,.card,.add-form,.opp-edit,.opp-edit li{grid-template-columns:minmax(0,1fr)}
 .add-link{justify-self:start;color:var(--accent);font-weight:500;text-decoration:none;padding:4px 0}
+.head-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.btn-sm{min-height:36px;padding:6px 12px;font-size:.9rem;text-decoration:none;flex:none;display:inline-flex;align-items:center}
