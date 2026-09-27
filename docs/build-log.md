@@ -214,3 +214,12 @@ Both the hook's success and failure paths were tested. → [#7](https://github.c
 > make sure autoMemoryEnabled is on. where are the memory files in the repo?
 
 **What Claude did:** confirmed auto memory was already on (the default; nothing disabled it) and set `autoMemoryEnabled: true` in the shared project settings to make it explicit. It explained that memory files are machine-local by design, not in the repo, and found the repo's memory folder empty. The one note Claude had saved earlier went to the scratch workspace's folder, because the session started there. Claude moved that knowledge into the repo's memory folder as three short notes (goals, workflow preferences, work in progress), keeping only what the code and `CLAUDE.md` don't already say. → [#7](https://github.com/simonletort/chess-coach/pull/7)
+
+## 8. Bugs found by reading the code
+
+### 28. Missing late-month games
+> Explore the codebase and suggest a change
+
+> open dedicated branch and pr
+
+**What Claude did:** read the app's chess.com client and found that game sync marked the current month as complete. Once that month ended, it was never downloaded again, so games played between the last sync and the end of the month were silently missing from every opponent file. Claude suggested storing when each month was downloaded instead, and treating a month as complete only if that was after the month ended. Old caches repair themselves on the next sync. It tested the three cases in Node with a fake chess.com API before opening the PR. → [#9](https://github.com/simonletort/chess-coach/pull/9)
