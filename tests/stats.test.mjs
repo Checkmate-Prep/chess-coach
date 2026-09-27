@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { pct, buildTree, walk, mergeTrees, profile, weakLines, DEPTH } from '../app/stats.js';
+import { pct, buildTree, walk, mergeTrees, profile, weakLines, headToHead, DEPTH } from '../app/stats.js';
 import { game, node } from './helpers.mjs';
 
 describe('pct', () => {
@@ -189,5 +189,23 @@ describe('weakLines', () => {
   test('ties on score go to the line with more games', () => {
     const t = node(100, 50, { e4: node(100, 50, { a: node(10, 20), b: node(30, 20) }) });
     assert.deepEqual(weakLines(t).map((l) => l.moves[1]), ['b', 'a']);
+  });
+});
+
+describe('headToHead', () => {
+  const mine = [game({ url: 'a', opp: 'Rival', pts: 2, t: 100 }), game({ url: 'b', opp: 'rival', pts: 1, t: 300 }), game({ url: 'c', opp: 'other', pts: 0, t: 400 })];
+  const theirs = [game({ url: 'b', opp: 'Me', pts: 1, t: 300 }), game({ url: 'd', opp: 'me', pts: 2, t: 200 }), game({ url: 'e', opp: 'someone', pts: 2, t: 500 })];
+
+  test('counts only games between the two players, from your side', () => {
+    assert.deepEqual(headToHead(mine, [], 'rival', 'me'), { n: 2, rec: [1, 1, 0], p: 3, last: 300 });
+  });
+  test('turns their results round when only their games are downloaded', () => {
+    assert.deepEqual(headToHead(null, theirs, 'rival', 'me'), { n: 2, rec: [0, 1, 1], p: 1, last: 300 });
+  });
+  test('a game in both downloads counts once', () => {
+    assert.deepEqual(headToHead(mine, theirs, 'rival', 'me'), { n: 3, rec: [1, 1, 1], p: 3, last: 300 });
+  });
+  test('nothing downloaded gives no games', () => {
+    assert.deepEqual(headToHead(null, undefined, 'rival', 'me'), { n: 0, rec: [0, 0, 0], p: 0, last: 0 });
   });
 });
