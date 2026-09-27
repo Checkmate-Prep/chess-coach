@@ -47,7 +47,7 @@ It analyzed 17 of Simon's games and 150 each for Friend A and Friend B, checked 
 > gh auth login -h github.com
 > done
 
-**What Claude did:** the GitHub repo was empty, so there was no `main` to open a PR against. Claude pushed a minimal `main` (README and `.gitignore`), then opened the PR from a branch. The first push failed because the GitHub CLI's saved sign-in had expired; Simon signed in again from the terminal. → [#1](https://github.com/simonletort/chess-coach/pull/1)
+**What Claude did:** the GitHub repo was empty, so there was no `main` to open a PR against. Claude pushed a minimal `main` (README and `.gitignore`), then opened the PR from a branch. The first push failed because the GitHub CLI's saved sign-in had expired; Simon signed in again from the terminal. → [#1](https://github.com/Checkmate-Prep/chess-coach/pull/1)
 
 > merged
 
@@ -65,7 +65,7 @@ It analyzed 17 of Simon's games and 150 each for Friend A and Friend B, checked 
 - **Drill:** play the trap lines from memory and solve the puzzles.
 - **Offline support** through a service worker.
 
-It also set up a GitHub Pages deploy workflow. → [#2](https://github.com/simonletort/chess-coach/pull/2)
+It also set up a GitHub Pages deploy workflow. → [#2](https://github.com/Checkmate-Prep/chess-coach/pull/2)
 
 ## 4. Anyone can use it
 
@@ -89,7 +89,7 @@ It also set up a GitHub Pages deploy workflow. → [#2](https://github.com/simon
 - The phone-side trap finder independently rediscovered Friend A's `3…Bc5` trap in 37 seconds.
 - The phone-side review matched the full Mac analysis: 3.1 opening blunders per 100 moves in both, and 64% of winning positions converted in both.
 
-→ [#3](https://github.com/simonletort/chess-coach/pull/3)
+→ [#3](https://github.com/Checkmate-Prep/chess-coach/pull/3)
 
 ### 8. Testing it
 > how can I test the pr?
@@ -100,7 +100,7 @@ It also set up a GitHub Pages deploy workflow. → [#2](https://github.com/simon
 
 ## 5. Navigation polish
 
-Each of these went into [#4](https://github.com/simonletort/chess-coach/pull/4), checked at phone size after every change.
+Each of these went into [#4](https://github.com/Checkmate-Prep/chess-coach/pull/4), checked at phone size after every change.
 
 ### 9. Settings in the tab bar
 > instead of settings in https://simonletort.github.io/chess-coach/#me, have settings as an icon in the bottom bar, to the right of "You"
@@ -159,7 +159,7 @@ Each of these went into [#4](https://github.com/simonletort/chess-coach/pull/4),
 ### 21. Option B
 > do B
 
-**What Claude did:** built `plan.js`. For each colour it gives the opening to play, his usual answer, the trap to aim for and a weak line, plus advice on time control and the clock. → [#5](https://github.com/simonletort/chess-coach/pull/5)
+**What Claude did:** built `plan.js`. For each colour it gives the opening to play, his usual answer, the trap to aim for and a weak line, plus advice on time control and the clock. → [#5](https://github.com/Checkmate-Prep/chess-coach/pull/5)
 
 **Iterations driven by testing:**
 - The first version recommended openings Simon never plays, on thin evidence. It told him to answer Friend A's 1.e4 with `1…b6` on only 21 games. Claude added three rules: prefer your own openings when close, rank on a sample-adjusted score, and require 40 or more games to recommend a new move.
@@ -172,7 +172,7 @@ Each of these went into [#4](https://github.com/simonletort/chess-coach/pull/4),
 
 **What Claude did:** explained that a score is points earned (win 1, draw ½), and added an ⓘ note wherever scores appear.
 
-*Outside this session: #6 changed opponents from "he" to "they" throughout the app. Work on AI-written prep through a Cloudflare Worker (option C) is in progress on the `ai-prep` branch.* → [#6](https://github.com/simonletort/chess-coach/pull/6)
+*Outside this session: #6 changed opponents from "he" to "they" throughout the app. Work on AI-written prep through a Cloudflare Worker (option C) is in progress on the `ai-prep` branch.* → [#6](https://github.com/Checkmate-Prep/chess-coach/pull/6)
 
 ## 7. Documenting how it's built
 
@@ -181,7 +181,7 @@ Each of these went into [#4](https://github.com/simonletort/chess-coach/pull/4),
 
 > yes, do it on a separate branch
 
-**What Claude did:** found that its own earlier `.gitignore` rule excluded all of `.claude/`. It wrote `CLAUDE.md` (project map, commands, the rules that have mattered, testing, workflow) and narrowed the ignore rule so the launch config is shared. A near-miss: `git add -A` also picked up the Worker's local files from another branch. Claude caught it before committing and staged only the intended files. → [#7](https://github.com/simonletort/chess-coach/pull/7)
+**What Claude did:** found that its own earlier `.gitignore` rule excluded all of `.claude/`. It wrote `CLAUDE.md` (project map, commands, the rules that have mattered, testing, workflow) and narrowed the ignore rule so the launch config is shared. A near-miss: `git add -A` also picked up the Worker's local files from another branch. Claude caught it before committing and staged only the intended files. → [#7](https://github.com/Checkmate-Prep/chess-coach/pull/7)
 
 ### 24. This log
 > where in the repo could we store an high level overview of the history of the prompts and work done via Claude?
@@ -189,13 +189,13 @@ Each of these went into [#4](https://github.com/simonletort/chess-coach/pull/4),
 
 > yes for backfill, word for word, lightly cleaned only where needed for privacy. and add rule in claude.md "After each PR, add an entry to docs/build-log.md, lightly clean the prompt where there is need for privacy."
 
-**What Claude did:** recommended `docs/build-log.md` over the wiki, a changelog or raw transcripts, then backfilled this log from the session and added the rule to `CLAUDE.md` so future sessions keep it up to date. → [#7](https://github.com/simonletort/chess-coach/pull/7)
+**What Claude did:** recommended `docs/build-log.md` over the wiki, a changelog or raw transcripts, then backfilled this log from the session and added the rule to `CLAUDE.md` so future sessions keep it up to date. → [#7](https://github.com/Checkmate-Prep/chess-coach/pull/7)
 
 ### 25. Cleaning up the log
 > fix the typos: "strenght" and "too crowder"
 > anonymize friends (I'll clean up the repo later)
 
-**What Claude did:** fixed the two typos, replaced the friends with Friend A and Friend B (with replaced text in [brackets]) and updated the log's intro. It noted that the branch's first log commit still had the names, and recommended squash-merging. → [#7](https://github.com/simonletort/chess-coach/pull/7)
+**What Claude did:** fixed the two typos, replaced the friends with Friend A and Friend B (with replaced text in [brackets]) and updated the log's intro. It noted that the branch's first log commit still had the names, and recommended squash-merging. → [#7](https://github.com/Checkmate-Prep/chess-coach/pull/7)
 
 ### 26. The `.claude/` folder
 > shouldn't we have some info in ./claude about settings, rules, skills, command, output-styles, agents, workflows or plugins
@@ -208,12 +208,12 @@ Each of these went into [#4](https://github.com/simonletort/chess-coach/pull/4),
 - **`prep-opponent` skill:** the Mac workflow behind the hand-written prep, as a repeatable recipe.
 - **`ship-change` skill:** the checklist every PR has followed.
 
-Both the hook's success and failure paths were tested. → [#7](https://github.com/simonletort/chess-coach/pull/7)
+Both the hook's success and failure paths were tested. → [#7](https://github.com/Checkmate-Prep/chess-coach/pull/7)
 
 ### 27. Auto memory
 > make sure autoMemoryEnabled is on. where are the memory files in the repo?
 
-**What Claude did:** confirmed auto memory was already on (the default; nothing disabled it) and set `autoMemoryEnabled: true` in the shared project settings to make it explicit. It explained that memory files are machine-local by design, not in the repo, and found the repo's memory folder empty. The one note Claude had saved earlier went to the scratch workspace's folder, because the session started there. Claude moved that knowledge into the repo's memory folder as three short notes (goals, workflow preferences, work in progress), keeping only what the code and `CLAUDE.md` don't already say. → [#7](https://github.com/simonletort/chess-coach/pull/7)
+**What Claude did:** confirmed auto memory was already on (the default; nothing disabled it) and set `autoMemoryEnabled: true` in the shared project settings to make it explicit. It explained that memory files are machine-local by design, not in the repo, and found the repo's memory folder empty. The one note Claude had saved earlier went to the scratch workspace's folder, because the session started there. Claude moved that knowledge into the repo's memory folder as three short notes (goals, workflow preferences, work in progress), keeping only what the code and `CLAUDE.md` don't already say. → [#7](https://github.com/Checkmate-Prep/chess-coach/pull/7)
 
 ## 8. Bugs found by reading the code
 
@@ -222,7 +222,7 @@ Both the hook's success and failure paths were tested. → [#7](https://github.c
 
 > open dedicated branch and pr
 
-**What Claude did:** read the app's chess.com client and found that game sync marked the current month as complete. Once that month ended, it was never downloaded again, so games played between the last sync and the end of the month were silently missing from every opponent file. Claude suggested storing when each month was downloaded instead, and treating a month as complete only if that was after the month ended. Old caches repair themselves on the next sync. It tested the three cases in Node with a fake chess.com API before opening the PR. → [#9](https://github.com/simonletort/chess-coach/pull/9)
+**What Claude did:** read the app's chess.com client and found that game sync marked the current month as complete. Once that month ended, it was never downloaded again, so games played between the last sync and the end of the month were silently missing from every opponent file. Claude suggested storing when each month was downloaded instead, and treating a month as complete only if that was after the month ended. Old caches repair themselves on the next sync. It tested the three cases in Node with a fake chess.com API before opening the PR. → [#9](https://github.com/Checkmate-Prep/chess-coach/pull/9)
 
 ### 29. Empty game list crash
 > In `app/app.js`, `renderMe` and `renderOpp` build the "Games" card status as `${gs ? `${gs.length.toLocaleString()} games since ${dateOf(pr.since)} · updated ${ago(synced)}` : '...'}`. After downloading a player whose recent archives contain no games, `gs` is `[]` (truthy) while `pr` is `null` (`gs?.length ? profile(gs) : null`), so `pr.since` throws and the whole page shows "Something went wrong: Cannot read properties of null (reading 'since')".
@@ -231,7 +231,7 @@ Both the hook's success and failure paths were tested. → [#7](https://github.c
 >
 > Fix: treat an empty list like "no games yet" in both places (e.g. `gs?.length ? … : 'No games in the last 12 months.'` or similar plain copy), and check other `gs ?` uses in `app/app.js` (e.g. the review button `${gs ? '' : 'disabled'}` and `summarize` calls) for the same assumption. After editing `app/`, run `python3 build_app.py` (the project hook does it automatically for Claude edits). Syntax-check with `node --check` on a `.mjs` copy. Follow the repo's `/ship-change` checklist.
 
-**What Claude did:** reproduced the crash in headless Chromium with a mocked chess.com API, then routed both status lines through one helper that says "No games found · updated …" for an empty list. It also disabled the review button when there's nothing to review. It checked the other `gs` uses and found they already handle an empty list. It chose "No games found" over "in the last 12 months", because the app looks at the 12 most recent months that have games, which aren't always the last 12 calendar months. It re-ran the test with and without games before opening the PR. → [#10](https://github.com/simonletort/chess-coach/pull/10)
+**What Claude did:** reproduced the crash in headless Chromium with a mocked chess.com API, then routed both status lines through one helper that says "No games found · updated …" for an empty list. It also disabled the review button when there's nothing to review. It checked the other `gs` uses and found they already handle an empty list. It chose "No games found" over "in the last 12 months", because the app looks at the 12 most recent months that have games, which aren't always the last 12 calendar months. It re-ran the test with and without games before opening the PR. → [#10](https://github.com/Checkmate-Prep/chess-coach/pull/10)
 
 ## 9. Tests
 
@@ -246,7 +246,7 @@ Both the hook's success and failure paths were tested. → [#7](https://github.c
 
 > could we see a little more details on the tests results in the PR?
 
-**What Claude did:** found no tests at all and planned two suites without adding any library to the app: Node's built-in test runner for the app's logic, with fakes for IndexedDB, chess.com and Stockfish, and Python's `unittest` for the pipeline. Test games are made up, never copied from `data/`. A shared file of expected values keeps the app and the pipeline agreeing on how they read moves and score positions. It wrote 114 tests. They cover every line of the app's logic modules and 63% of the pipeline, and they include a regression test that fails when the old late-month sync bug is put back. Claude reported what is still untested (the screens, the board, the prep book) and six small issues the tests surfaced, and changed none of them. When the pasted command failed on Node 18, it pointed to the new `.nvmrc`. A new CI workflow runs both suites on every PR; the user chose to make them required through GitHub branch protection rather than gating the deploy in the workflow. Claude confirmed the rule was active, then noticed the PR had no checks on its last commit: it conflicted with this log's entry 29, and GitHub skips checks on conflicting PRs. It merged `main` in to fix that. For more detail in the PR, it added a small reporter to each suite and a job that keeps one "Test results" comment on the PR up to date: counts, failures with their messages, coverage per file, and the modules no test loads. It checked the failure output with a deliberately broken test before pushing, and kept the required job names unchanged. → [#11](https://github.com/simonletort/chess-coach/pull/11)
+**What Claude did:** found no tests at all and planned two suites without adding any library to the app: Node's built-in test runner for the app's logic, with fakes for IndexedDB, chess.com and Stockfish, and Python's `unittest` for the pipeline. Test games are made up, never copied from `data/`. A shared file of expected values keeps the app and the pipeline agreeing on how they read moves and score positions. It wrote 114 tests. They cover every line of the app's logic modules and 63% of the pipeline, and they include a regression test that fails when the old late-month sync bug is put back. Claude reported what is still untested (the screens, the board, the prep book) and six small issues the tests surfaced, and changed none of them. When the pasted command failed on Node 18, it pointed to the new `.nvmrc`. A new CI workflow runs both suites on every PR; the user chose to make them required through GitHub branch protection rather than gating the deploy in the workflow. Claude confirmed the rule was active, then noticed the PR had no checks on its last commit: it conflicted with this log's entry 29, and GitHub skips checks on conflicting PRs. It merged `main` in to fix that. For more detail in the PR, it added a small reporter to each suite and a job that keeps one "Test results" comment on the PR up to date: counts, failures with their messages, coverage per file, and the modules no test loads. It checked the failure output with a deliberately broken test before pushing, and kept the required job names unchanged. → [#11](https://github.com/Checkmate-Prep/chess-coach/pull/11)
 
 ## 10. Freemium: accounts, sync and a name
 
@@ -321,4 +321,33 @@ The app shows an account card in Settings and a sign-in offer on the welcome scr
 
 > yes, open the PR and add the build log
 
-**What Claude did:** renamed the app everywhere users see it (page title, header, home-screen name, description with the tagline "know your next opponent before the game") and kept `chess-coach` for the repo and internal names. Before opening the PR it found that `main` had moved on (#9, #10, #11). It merged `main` in and moved its merge-rule tests into the new `tests/` folder, so the required CI job runs them. Then it re-ran both test suites and the two-device browser test on the merged code. → [#12](https://github.com/simonletort/chess-coach/pull/12)
+> yes, watch the PR
+
+> merge the PR
+
+**What Claude did:** renamed the app everywhere users see it (page title, header, home-screen name, description with the tagline "know your next opponent before the game") and kept `chess-coach` for the repo and internal names. Before opening the PR it found that `main` had moved on (#9, #10, #11). It merged `main` in and moved its merge-rule tests into the new `tests/` folder, so the required CI job runs them. Then it re-ran both test suites and the two-device browser test on the merged code. It watched the PR until CI was green, then squash-merged it when asked. → [#12](https://github.com/Checkmate-Prep/chess-coach/pull/12)
+
+### 36. Setting up Auth0
+> should I use my personal email or create a dedicated email for the auth0 tenant
+
+> walk me through the auth0 setup step by step
+
+> how do I create a second auth0 tenant in the free plan
+
+> "You have reached the limit for Tenants in your current plan."
+
+> AUTH0_CLIENT_ID = 2tQ9JSSnfNd6GraU8bmoe9bQ5P64yMnm
+
+> prod
+
+> https://login.checkmateprep.com/ is ready
+
+**What Claude did:** recommended a dedicated mailbox with its own login to own the Auth0 account, rather than a forwarding-only address on the domain: if the domain or DNS ever broke, password-reset mail would stop arriving. It also suggested adding a personal email as a second admin. It then wrote the Auth0 setup in the order that avoids redoing steps (tenant, custom domain before Google, API, application, sign-in methods, branding), with the exact values the code expects. When the free plan refused a second tenant, it switched the plan to one tenant with two applications, one for production and one for dev and local runs. Before filling anything in, it checked DNS and found that `login.checkmateprep.com` already pointed at the tenant, which is in the US region, not the EU one it had suggested. It explained that US is fine and that switching would mean recreating the tenant. It filled in production's three public values, rewrote the README's Auth0 steps for one tenant, and fixed "one-time link" to "one-time code". It said plainly that a real sign-in couldn't be tested from the session.
+
+> should I move github repo to an org checkmateprep before?
+
+> can I have a private repo for free in an org?
+
+> I moved repo to https://github.com/Checkmate-Prep/chess-coach
+
+**What Claude did:** recommended moving before adding the Cloudflare secrets, and warned that the GitHub Pages copy would change address with no redirect. On private repos, it found that GitHub's free plan drops environment secrets and required checks for private repos, both of which this repo relies on, so it recommended staying public. After the move, it confirmed that git and the PR still work through GitHub's redirect and updated the links. → [#13](https://github.com/Checkmate-Prep/chess-coach/pull/13)
