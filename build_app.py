@@ -4,7 +4,10 @@ Usage: python3 build_app.py   -> writes app/prep.json and app/pieces.js
 """
 import hashlib, json, pathlib, re
 import chess.svg
-from notes import ME, FRIENDS
+try:
+    from notes import ME, FRIENDS
+except ImportError:  # hand-written prep lives on the ai-prep branch, not on main
+    ME, FRIENDS = None, {}
 from explore import sans_of, DRAWS
 
 ROOT = pathlib.Path(__file__).parent
@@ -51,6 +54,9 @@ def plain(text):
 def main():
     # Without local game data (a fresh clone, or the edit hook on another machine), keep the
     # published prep.json and only refresh piece art and the cache name.
+    if ME is None:
+        write_empty_prep()
+        return stamp()
     users = [*FRIENDS, "slnyc"]
     missing = [u for u in users if not (ROOT / f"data/{u}.json").exists()]
     if missing:
@@ -58,6 +64,12 @@ def main():
     else:
         write_prep()
     stamp()
+
+
+def write_empty_prep():
+    """No notes.py: ship a prep.json with no hand-written prep (the app treats it as optional)."""
+    APP.mkdir(exist_ok=True)
+    (APP / "prep.json").write_text(json.dumps({"built": None, "me": None, "friends": []}, separators=(",", ":")))
 
 
 def write_prep():

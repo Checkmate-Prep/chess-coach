@@ -1,7 +1,10 @@
 """Render the prep book (report.html) from profiles + the coach's notes in notes.py."""
 import html, json, pathlib, re
 import chess, chess.svg
-from notes import ME, FRIENDS
+try:
+    from notes import ME, FRIENDS
+except ImportError:  # hand-written prep lives on the ai-prep branch, not on main
+    ME = FRIENDS = None
 
 ROOT = pathlib.Path(__file__).parent
 FIG = {"K": "♔", "Q": "♕", "R": "♖", "B": "♗", "N": "♘"}
@@ -170,4 +173,7 @@ def build():
 
 
 if __name__ == "__main__":
-    build()
+    if ME is None:
+        print("no notes.py (it lives on the ai-prep branch): skipping report.html")
+    else:
+        build()

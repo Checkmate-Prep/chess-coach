@@ -2,7 +2,7 @@
 
 **Checkmate Prep** (https://checkmateprep.com): a chess coach for preparing games against specific opponents on chess.com. The product is called Checkmate Prep everywhere users see it; the repo, the Worker names and internal identifiers stay `chess-coach`. Two parts:
 
-- **Python pipeline (runs on a Mac):** downloads games from the chess.com public API, runs native Stockfish 19 over them, builds player profiles, and packages the results. Hand-written coaching lives in `notes.py`.
+- **Python pipeline (runs on a Mac):** downloads games from the chess.com public API, runs native Stockfish 19 over them, builds player profiles, and packages the results. Hand-written coaching lives in `notes.py`, on the `ai-prep` branch only.
 - **Web app (`app/`):** a static PWA published to GitHub Pages (https://checkmate-prep.github.io/chess-coach/). Anyone enters their chess.com username and opponents; games, stats, traps, game plans and drills are all computed in the browser, including Stockfish (WASM). No account is needed.
 - **Worker (`worker/`):** a Cloudflare Worker that serves `app/` at **https://checkmateprep.com** (production) and adds `/api`: optional sign-in (Auth0) and sync of opponents, names and drill progress across devices. The app hides accounts when there is no `/api` (GitHub Pages, `live-server`).
 
@@ -14,7 +14,7 @@ See `README.md` for the user-facing description.
 | --- | --- |
 | `fetch.py`, `analyze.py`, `profile.py`, `explore.py` | Pipeline steps: download archives, engine-evaluate every move (cached per game), build profiles, opening explorer |
 | `coach.py` | `refresh` runs the pipeline for you + friends, then rebuilds the report and the app data |
-| `notes.py` | **Hand-written prep** (written by Claude from the analysis, not generated). Edit it to change conclusions |
+| `notes.py` | **Hand-written prep** (written by Claude from the analysis, not generated). Only on the `ai-prep` branch; without it, `build_app.py` writes an empty `prep.json` and `build_report.py` skips the report |
 | `build_report.py` | Renders `report.html` (the prep-book artifact) from profiles + `notes.py` |
 | `build_app.py` | Packs `notes.py` + opening trees into `app/prep.json` and stamps the service-worker cache name |
 | `app/app.js` | UI: routing (`#me`, `#prep`, `#prep/<user>`, `#explore`, `#drill[/id]`, `#setup`) and all screens |

@@ -9,6 +9,8 @@ allowed-tools: Bash(python3 fetch.py *) Bash(python3 analyze.py *) Bash(python3 
 
 Hand-written prep is Claude's own analysis, written into `notes.py`. The pipeline supplies the evidence; you draw the conclusions and check every recommended line with Stockfish. The app shows the result as "Hand-written prep" on that opponent's file.
 
+**Branch:** `notes.py` is kept off `main`; it lives on the `ai-prep` branch. Work there, and never merge it into `main`.
+
 **Privacy first.** Everything in `notes.py` ships in `app/prep.json`, which is public on GitHub Pages. Before starting, confirm with the user that publishing prep on this opponent is fine.
 
 ## 1. Get the data
