@@ -1,5 +1,6 @@
 import { Chess } from './vendor/chess.js';
 import { Board } from './board.js';
+import { PIECES } from './pieces.js';
 import { ls, idb } from './store.js';
 import { player, syncGames, cachedGames } from './chesscom.js';
 import { buildTree, walk, profile, weakLines, pct } from './stats.js';
@@ -120,9 +121,38 @@ const viewerHtml = (cap) => `<div class="viewer"><div class="bd"></div><div clas
   <div class="nav"><button data-nav="first" aria-label="Start">⏮</button><button data-nav="prev" aria-label="Back">◀</button><button data-nav="next" aria-label="Forward">▶</button><button data-nav="last" aria-label="End">⏭</button></div>
   ${cap ? `<p class="cap">${fig(cap)}</p>` : ''}</div>`;
 
+// ---------- first run: welcome, new user, existing user ----------
+/** A strip of board: you (white king) facing your next opponent (black knight). Pieces from pieces.js. */
+function heroSvg() {
+  const sq = (i) => `<rect x="${i * 45}" width="45" height="45" class="${i % 2 ? 'hero-dk' : 'hero-lt'}"/>`;
+  return `<svg class="hero" viewBox="0 0 225 66" aria-hidden="true" focusable="false">
+    ${[0, 1, 2, 3, 4].map(sq).join('')}
+    <path d="M52 22.5h112" class="hero-path"/><path d="M160 17l7 5.5-7 5.5" class="hero-path"/>
+    <g>${PIECES.K}</g><g transform="translate(180 0)">${PIECES.n}</g>
+    <text x="22.5" y="61" class="hero-lbl">You</text><text x="202.5" y="61" class="hero-lbl">Them</text></svg>`;
+}
+
+function renderWelcome() {
+  view.innerHTML = `
+    <header class="head welcome">${heroSvg()}<p class="eyebrow">Welcome to Checkmate Prep</p><h1>Prepare for your next opponent</h1>
+      <p class="lede">Checkmate Prep studies the chess.com games of the people you're about to play (a friend, a club rival, your next tournament pairing) and turns them into a game plan: the openings they play, where they go wrong, and traps to set.</p></header>
+    <div class="choices"><a class="btn primary" href="#start">I'm new here</a><div id="account-slot" data-mode="welcome"></div></div>`;
+  renderAccount();
+}
+
+function renderSignIn() {
+  view.innerHTML = `
+    <a class="back" href="#">◀ Back</a>
+    <header class="head"><p class="eyebrow">Existing account</p><h1>Welcome back</h1>
+      <p class="lede">Sign in to bring your opponents, names and drill progress to this device. Your games are downloaded again from chess.com.</p></header>
+    <div id="account-slot" data-mode="signin"></div>`;
+  renderAccount();
+}
+
 // ---------- setup ----------
 async function renderSetup(first = false) {
   const me = P?.me;
+  const step2 = me && !P.opps.length;
   const suggestions = [];
   if (me) {
     const count = {};
@@ -130,29 +160,39 @@ async function renderSetup(first = false) {
     for (const [u, n] of Object.entries(count).sort((a, b) => b[1] - a[1]))
       if (n >= 2 && !P.opps.some((o) => o.user === u) && suggestions.length < 6) suggestions.push([u, n]);
   }
-  view.innerHTML = `
-    <header class="head">${first ? '<p class="eyebrow">Welcome</p>' : ''}<h1>${first ? 'Get started' : 'Settings'}</h1>
-      <p class="lede">${first ? 'Prepare for games against the people you actually play. Enter your chess.com username, then add your opponents. No account needed: everything used here is public on chess.com.' : 'Change your username or the opponents you prepare for.'}</p></header>
-    ${first ? '<div id="account-slot"></div>' : ''}
-    <section class="card">${me ? '<h2>You</h2>' : ''}
-      <label for="me-name"><b>Your name</b>${me ? '' : ' <span class="muted small">(optional)</span>'}</label>
-      <input id="me-name" autocomplete="off" value="${esc(me?.name || '')}" placeholder="e.g. Alex" aria-describedby="me-name-status">
-      ${me ? '<p class="small muted" id="me-name-status" aria-live="polite">Shown at the top of your You page.</p>' : ''}
+  const head = first
+    ? `<a class="back" href="#">◀ Back</a>
+    <header class="head"><p class="eyebrow">Step 1 of 3</p><h1>Get started</h1></header>
+    <section class="card"><h2>How it works</h2><ol class="steps">
+      <li class="now"><div><b>Your chess.com username.</b> We download your public games to see how you play. No sign-up, no password.</div></li>
+      <li><div><b>Add the people you'll play.</b> Friends, rivals, anyone on chess.com. Their games are public too.</div></li>
+      <li><div><b>Get your prep.</b> Their favourite openings, weak lines, traps and drills, all worked out on this device.</div></li></ol></section>`
+    : step2
+      ? `<header class="head"><p class="eyebrow">Step 2 of 3</p><h1>Who do you want to prepare for?</h1>
+      <p class="lede">Add the chess.com username of someone you'll play: a friend, a club rival or your next opponent. The app reads their games and builds a file on them. You can add more later in Settings.</p></header>`
+      : `<header class="head"><h1>Settings</h1><p class="lede">Change your username or the opponents you prepare for.</p></header>`;
+  const youCard = `<section class="card">${me ? '<h2>You</h2>' : ''}
       <form id="me-form" class="add-form"><label for="me-input"><b>Your chess.com username</b></label>
         <div class="row"><input id="me-input" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(me?.username || '')}" placeholder="e.g. hikaru" required><button class="btn primary">${me ? 'Change' : 'Continue'}</button></div>
-        <p class="small" id="me-status" aria-live="polite"></p></form></section>
-    ${me ? `<section class="card"><h2>Opponents</h2>
+        <p class="small" id="me-status" aria-live="polite"></p></form>
+      <label for="me-name"><b>Your name</b>${me ? '' : ' <span class="muted small">(optional)</span>'}</label>
+      <input id="me-name" autocomplete="off" value="${esc(me?.name || '')}" placeholder="e.g. Alex" aria-describedby="me-name-status">
+      ${me ? '<p class="small muted" id="me-name-status" aria-live="polite">Shown at the top of your You page.</p>' : ''}</section>`;
+  const oppCard = me ? `<section class="card">${step2 ? '' : '<h2>Opponents</h2>'}
       ${P.opps.length ? `<ul class="plain opp-edit">${P.opps.map((o) => `<li>
         <div class="row"><input id="name-${esc(o.user)}" data-name="${esc(o.user)}" value="${esc(hasAlias(o.user) ? displayName(o.user) : '')}" placeholder="Add a name" aria-label="Name for ${esc(o.username)}" autocomplete="off">
           <button class="btn" data-remove="${esc(o.user)}" aria-label="Remove ${esc(o.username)}">Remove</button></div>
         <a class="small muted" href="#prep/${esc(o.user)}">chess.com/${esc(o.username)}</a></li>`).join('')}</ul>
-      <p class="small muted" id="name-status" aria-live="polite">Names are only shown in this app.</p>` : '<p class="muted">No opponents yet.</p>'}
+      <p class="small muted" id="name-status" aria-live="polite">Names are only shown in this app.</p>` : ''}
       <form id="opp-form" class="add-form"><input id="opp-input" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Opponent's chess.com username" required aria-label="Opponent's chess.com username">
         <div class="row"><input id="opp-name" autocomplete="off" placeholder="Name (optional)" aria-label="Name for this opponent (optional)"><button class="btn primary">Add</button></div></form>
       <p class="small" id="opp-status" aria-live="polite"></p>
       ${suggestions.length ? `<p class="small muted">People you've played most:</p><div class="chips">${suggestions.map(([u, n]) => `<button class="chip" data-add="${esc(u)}">${esc(u)} <span class="muted">${n}</span></button>`).join('')}</div>` : ''}
-    </section>
-    <div id="account-slot"></div>
+    </section>` : '';
+  view.innerHTML = `
+    ${head}
+    ${step2 ? oppCard + youCard : youCard + oppCard}
+    ${me ? `<div id="account-slot"></div>
     <section class="card"><h2>Stored locally on this device</h2><p class="small muted">Games and engine results are saved in this browser only. Clearing them frees space; they're downloaded again on the next refresh.</p>
       <button class="btn" id="clear-data">Clear saved games and analysis</button><p class="small" id="clear-status"></p></section>` : ''}`;
 
@@ -207,21 +247,21 @@ async function renderSetup(first = false) {
 function renderAccount() {
   const slot = $('#account-slot');
   if (!slot) return;
-  const first = !P?.me;
+  const mode = slot.dataset.mode;
   const err = account.error ? `<p class="small warn" role="alert">${esc(account.error)}</p>` : '';
-  if (!account.enabled) { slot.innerHTML = ''; return; }
-  if (!account.signedIn) {
-    slot.innerHTML = first
-      ? `<section class="card"><p class="small">Already use the app on another device? Sign in to bring your opponents and drill progress here.</p>
-        <button class="btn" data-acct="signin">Sign in</button>${err}</section>`
-      : `<section class="card"><h2>Your devices</h2>
+  if (mode === 'welcome') { slot.innerHTML = account.enabled && !account.signedIn ? '<a class="btn" href="#signin">I already have an account</a>' : ''; return; }
+  if (mode === 'signin') {
+    if (!account.enabled) slot.innerHTML = '<p class="muted">Sign-in isn\'t available here. <a href="#">Set up without an account</a>.</p>';
+    else if (!account.signedIn) slot.innerHTML = `<button class="btn primary" data-acct="signin">Sign in</button>${err}`;
+    else slot.innerHTML = `<section class="card"><p class="small">Signed in${account.email ? ` as <b>${esc(account.email)}</b>` : ''}.</p>
+      ${account.busy || (!account.at && !account.error) ? '<p class="small muted" aria-live="polite">Getting your data…</p>' : '<p>Nothing is saved on this account yet.</p><a class="btn primary" href="#start">Set up as a new user</a>'}${err}</section>`;
+  } else if (!account.enabled) { slot.innerHTML = ''; return; } else if (!account.signedIn) {
+    slot.innerHTML = `<section class="card"><h2>Your devices</h2>
         <p class="small muted">Sign in to use the app on your phone and laptop with the same opponents, names and drill progress. Games and engine results stay on each device; they're downloaded again on the others.</p>
         <button class="btn primary" data-acct="signin">Sign in</button>${err}</section>`;
   } else {
     const when = account.busy ? 'Syncing…' : account.at ? `Synced ${ago(account.at)}.` : 'Not synced yet.';
-    slot.innerHTML = first
-      ? `<section class="card"><p class="small">Signed in${account.email ? ` as <b>${esc(account.email)}</b>` : ''}. ${account.busy ? 'Syncing…' : account.at ? 'Nothing is saved on this account yet: enter your chess.com username below.' : ''}</p>${err}</section>`
-      : `<section class="card"><h2>Your account</h2>
+    slot.innerHTML = `<section class="card"><h2>Your account</h2>
         <p class="small">Signed in${account.email ? ` as <b>${esc(account.email)}</b>` : ''}. Your opponents, names and drill progress sync to your other devices.</p>
         <p class="small muted" aria-live="polite">${when}</p>${err}
         <div class="row"><button class="btn" data-acct="sync" ${account.busy ? 'disabled' : ''}>Sync now</button><button class="btn" data-acct="signout">Sign out</button></div>
@@ -633,7 +673,8 @@ async function route() {
   document.body.classList.toggle('no-tabs', needSetup);
   document.querySelectorAll('.tabbar a').forEach((a) => a.setAttribute('aria-current', String(a.dataset.tab === tab)));
   try {
-    if (needSetup) await renderSetup(true);
+    if (needSetup) await (tab === 'start' ? renderSetup(true) : tab === 'signin' ? renderSignIn() : renderWelcome());
+    else if (tab === 'start' || tab === 'signin') location.replace('#me');
     else if (tab === 'setup') await renderSetup();
     else if (tab === 'explore') await renderExplore();
     else if (tab === 'drill') await (arg ? renderDrill(decodeURIComponent(arg)) : renderDrillList());
