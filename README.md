@@ -58,16 +58,29 @@ Signing in is optional. It keeps your chess.com username, your opponents, the na
 - **Sign-in** is handled by [Auth0](https://auth0.com) (free plan): Google, or a one-time code by email. The app never sees a password.
 - **Sync** runs on a Cloudflare Worker (`worker/`) with a D1 database. Each account has one small document (`app/syncdoc.js`). On every change, and whenever the app comes back into view, a device sends its copy and gets back the merge with the other devices'. For each opponent the latest change wins; drill progress from all devices adds up. Removals reach the other devices too.
 - **Where it runs:** accounts only appear when the app is served by the Worker. On GitHub Pages (no `/api`) the app works as before, without the Sign in button.
-- **Privacy:** the server stores the Auth0 user id and that document, nothing else. **Delete account** in Settings removes it, and the copy on that device too. Signing out also clears the device, so the next visit starts from the welcome screen.
+- **Privacy:** for sync, the server stores the Auth0 user id and that document, nothing else. **Delete account** in Settings removes it, and the copy on that device too. Signing out also clears the device, so the next visit starts from the welcome screen. Usage stats are separate (below).
 
 | File | What it does |
 | --- | --- |
 | `app/sync.js` | Sign-in (Auth0 SPA SDK, vendored in `app/vendor/auth0/`), when to sync, applying changes from other devices |
 | `app/syncdoc.js` | What syncs and how two copies merge; shared by the app and the Worker |
 | `worker/index.js`, `worker/sync.js`, `worker/auth.js` | `/api/config` (is sign-in set up?), `/api/sync` (merge and store, delete), checking Auth0 tokens |
-| `wrangler.toml` | The Worker and its environments (`dev`, `test`, `production`): Auth0 settings, D1 database, rate limit |
+| `worker/events.js`, `app/track.js` | `/api/event`: which screens are opened (see Monitoring) |
+| `wrangler.toml` | The Worker and its environments (`dev`, `test`, `production`): Auth0 settings, D1 database, usage stats dataset, rate limit |
 | `.github/workflows/deploy.yml` | Deploys `main` to production and `dev` to dev. Run it by hand to deploy any environment |
 | `tests/syncdoc.test.mjs` | Merge rules, run with the other app tests (`npm test`) |
+
+### Monitoring
+
+- **New accounts:** an Auth0 Action (`ops/auth0/notify-signup.js`) sends a phone notification through [ntfy.sh](https://ntfy.sh) the first time someone signs in to the production application, with their email and how they signed in. Dev and test sign-ins don't notify. It's deployed by `ops/auth0/deploy-actions.mjs` through the Auth0 Management API, and runs after each production deploy. It only touches this one Action and its place in the Login flow, and running it again changes nothing.
+- **Usage:** each time a screen opens, the app (`app/track.js`) sends its name to `/api/event` (`worker/events.js`), which writes it to [Workers Analytics Engine](https://developers.cloudflare.com/analytics/analytics-engine/). A screen that opens again after 30 minutes away counts as a new visit. Stored: the screen (`me`, `prep`, `prep-opp`, `explore`, `drill`, `drill-item`, `setup`, `add`, `welcome`, `start`, `signin`), a random id for the device, the Auth0 user id when signed in, and the country. Never usernames, opponents, games, the IP address or the browser. Data is kept 3 months. Settings has a **Share usage stats** switch (on by default). Nothing is sent on GitHub Pages or a static server.
+- **Reading it:** `CLOUDFLARE_ACCOUNT_ID=… CLOUDFLARE_API_TOKEN=… npm run stats` prints active devices and signed-in accounts per day, screens, hours of the day (UTC) and the latest devices. Add `-- --env dev` or `-- --days 7` to change the environment or the period. The token needs **Account Analytics: Read**; a separate read-only token is best.
+
+One-time setup for the sign-up notification:
+
+1. **ntfy:** pick a long random topic name (for example `openssl rand -hex 16`). Anyone who knows it can read it. Install the ntfy app on your phone and subscribe to it.
+2. **Auth0:** **Applications → Create Application → Machine to Machine**, named "Deploy actions", authorized on the **Auth0 Management API** with the permissions `read:actions`, `create:actions` and `update:actions`.
+3. **GitHub:** in **Settings → Environments → `production`**, add the secrets `AUTH0_MGMT_CLIENT_ID` and `AUTH0_MGMT_CLIENT_SECRET` (from that application) and `NTFY_TOPIC`. The next production deploy creates the Action; until then the deploy says it was skipped. To run it by hand: `AUTH0_MGMT_CLIENT_ID=… AUTH0_MGMT_CLIENT_SECRET=… NTFY_TOPIC=… npm run auth0:deploy`. Add `-- --force` to redeploy after changing the topic.
 
 #### Domain: checkmateprep.com
 

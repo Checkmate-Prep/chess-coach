@@ -25,7 +25,9 @@ See `README.md` for the user-facing description.
 | `tests/` | Node (`node:test`) tests for the app modules, Python `unittest` for the pipeline; synthetic fixtures |
 | `app/sync.js`, `app/syncdoc.js` | Optional account: Auth0 sign-in and when to sync; what syncs and how copies merge (also used by the Worker) |
 | `app/vendor/` | Vendored `chess.js` 1.4.0, Stockfish 19 lite single-threaded (GPL, see `COPYING.txt`) and the Auth0 SPA SDK 2.27.0 (MIT) |
-| `worker/`, `wrangler.toml` | The Worker: `/api/config`, `/api/sync` (D1), Auth0 token checks; environments `dev`, `test`, `production` |
+| `worker/`, `wrangler.toml` | The Worker: `/api/config`, `/api/sync` (D1), `/api/event` (usage stats, Analytics Engine), Auth0 token checks; environments `dev`, `test`, `production` |
+| `app/track.js`, `scripts/stats.mjs` | Usage stats: which screens are opened (never usernames or opponents); `npm run stats` reads them |
+| `ops/auth0/` | Auth0 Action that notifies new sign-ups (ntfy.sh), and the script that deploys it (runs in `deploy.yml`) |
 
 Gitignored and rebuilt locally: `data/` (games, analysis, profiles), `bin/` (native Stockfish, auto-downloaded), `report.html`, `node_modules/`, `.wrangler/`, `.dev.vars`.
 

@@ -26,6 +26,10 @@ AUTH0_CLIENT_ID = ""
 AUTH0_AUDIENCE = ""
 [[d1_databases]]
 binding = "DB"
+# Usage stats (worker/events.js). The dataset is created by the first event written; data is kept 3 months.
+[[analytics_engine_datasets]]
+binding = "EVENTS"
+dataset = "checkmate_events_local"
 [[ratelimits]]
 name = "BURST"
 namespace_id = "1000"
@@ -35,12 +39,14 @@ simple = { limit = 30, period = 60 }
 name = "chess-coach-dev"
 vars = { AUTH0_DOMAIN = "", AUTH0_CLIENT_ID = "", AUTH0_AUDIENCE = "" }
 d1_databases = [{ binding = "DB" }]
+analytics_engine_datasets = [{ binding = "EVENTS", dataset = "checkmate_events_dev" }]
 ratelimits = [{ name = "BURST", namespace_id = "1001", simple = { limit = 30, period = 60 } }]
 
 [env.test]
 name = "chess-coach-test"
 vars = { AUTH0_DOMAIN = "", AUTH0_CLIENT_ID = "", AUTH0_AUDIENCE = "" }
 d1_databases = [{ binding = "DB" }]
+analytics_engine_datasets = [{ binding = "EVENTS", dataset = "checkmate_events_test" }]
 ratelimits = [{ name = "BURST", namespace_id = "1002", simple = { limit = 30, period = 60 } }]
 
 # Production answers only on checkmateprep.com (www redirects to it in worker/index.js). No workers.dev
@@ -52,4 +58,5 @@ workers_dev = false
 routes = [{ pattern = "checkmateprep.com", custom_domain = true }, { pattern = "www.checkmateprep.com", custom_domain = true }]
 vars = { AUTH0_DOMAIN = "login.checkmateprep.com", AUTH0_CLIENT_ID = "2tQ9JSSnfNd6GraU8bmoe9bQ5P64yMnm", AUTH0_AUDIENCE = "https://api.checkmateprep.com" }
 d1_databases = [{ binding = "DB" }]
+analytics_engine_datasets = [{ binding = "EVENTS", dataset = "checkmate_events_production" }]
 ratelimits = [{ name = "BURST", namespace_id = "1003", simple = { limit = 30, period = 60 } }]

@@ -78,6 +78,7 @@ h3{font:600 .95rem var(--sans);margin:6px 0 0}
 input{font:16px var(--sans);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:10px 12px;min-height:44px;flex:1;min-width:0}
 input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 label{display:block}
+label.toggle{display:flex;align-items:center;gap:10px;min-height:44px}label.toggle input{flex:none;width:22px;height:22px;min-height:0;margin:0;padding:0;accent-color:var(--accent)}
 form.row{margin:0}
 .plain{list-style:none;padding:0;gap:6px}
 .plain li{padding:4px 0}

@@ -8,6 +8,8 @@ import { fromLocal, merge, toLocal } from './syncdoc.js';
 const SYNCED = ['profile', 'done'];
 /** What the UI shows. `at`: last successful sync. */
 export const account = { enabled: false, signedIn: false, email: '', at: ls.get('sync-at', 0), busy: false, error: '' };
+/** True once this server answered /api/config (the Worker). False on GitHub Pages, a static server, or offline. */
+export let hasApi = false;
 let client = null, applying = false, timer = null, running = null, again = false;
 let onData = () => {}, onStatus = () => {};
 
@@ -26,6 +28,7 @@ export async function startSync({ data, status }) {
   try {
     const r = await fetch('api/config', { cache: 'no-store' });
     cfg = r.ok ? (await r.json()).auth || null : null;
+    hasApi = r.ok;
     if (cfg) ls.set('auth-config', cfg); else ls.del('auth-config');
   } catch { /* offline, or no server */ }
   if (!cfg) { if (isCallback()) history.replaceState(null, '', location.pathname); return; }
@@ -103,6 +106,12 @@ function apply(merged, prev) {
   applying = true;
   try { if (newProfile) ls.set('profile', next.profile); if (newDone) ls.set('done', next.done); } finally { applying = false; }
   onData();
+}
+
+/** The account's access token for /api calls, or null when signed out or it can't be had. */
+export async function token() {
+  if (!client || !account.signedIn) return null;
+  try { return await client.getTokenSilently(); } catch { return null; }
 }
 
 export function signIn() {

@@ -2,6 +2,8 @@
 // Settings per environment are in wrangler.toml.
 import { json } from './http.js';
 import { sync } from './sync.js';
+import { event } from './events.js';
+import { userOf } from './auth.js';
 
 export default {
   async fetch(request, env) {
@@ -15,6 +17,7 @@ export default {
       return json({ auth });
     }
     if (url.pathname === '/api/sync') return sync(request, env);
+    if (url.pathname === '/api/event') return event(request, env, userOf);
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found.' }, 404);
     return env.ASSETS.fetch(request);
   },
