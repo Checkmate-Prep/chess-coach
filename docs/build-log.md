@@ -406,7 +406,25 @@ The app shows an account card in Settings and a sign-in offer on the welcome scr
 **What Claude did:** planned first, then added an "Add an opponent" screen (`#add`). It asks for their chess.com username and an optional nickname, and lists "People you've played most" to add with one tap. Every add link now goes there: the Prep list, the empty states, Settings, and step 2 of the new-user setup, which now uses the same screen with the "Step 2 of 3" heading. Settings keeps renaming and removing opponents only. Adding a duplicate or your own username now says so instead of doing nothing. In testing, the phone-size screenshots showed the Remove buttons in Settings sticking out of their card, so Claude fixed that too. It also noticed that the Prep list keeps re-downloading and redrawing when chess.com can't be reached, and suggested fixing that separately. → [#17](https://github.com/Checkmate-Prep/chess-coach/pull/17)
 
 
-### 41. Letting the trap scan run again after new games
+### 41. Sign out means signed out
+> I want to improve sign-out experience.
+> Currently in "settings" there are 2 buttons that are both related to sign-out: "sign-out" and also "clear saved games and analysis".
+>
+> It's confusing.
+>
+> Remove the bottom section that says "Stored locally on this device
+> Games and engine results are saved in this browser only. Clearing them frees space; they're downloaded again on the next refresh.
+> Clear saved games and analysis"
+>
+> Also, currently when clicking "sign out" the user still gets all their info when they refresh and access https://checkmateprep.com/
+> after clicking sign-out, the user should be back as if they had opened a brand new session, and be back on the welcome page.
+>
+> Last, "Delete sync data", should be "Delete account", and it should not have "This device keeps its copy.", it should instead "Data is also deleted from this device."
+
+**What Claude did:** planned first. It removed the "Stored locally on this device" card from Settings. Sign-out used to forget only the sync state, so the profile, opponents, drill progress and saved games stayed in the browser. Now it clears all of that (localStorage and the IndexedDB games and analysis) before logging out of Auth0, which lands on the welcome screen. It sends recent changes to the account first when the server can be reached, so the last edits aren't lost. "Delete synced data" is now "Delete account" and says the data is also deleted from this device. It also skips that final sync and waits for any sync already running, since either would store the data on the server again after the delete. The Settings screen was checked at phone size in a headless browser. Signing out needs the Worker and Auth0, which the session didn't have, so that path wasn't tried in a browser. → [#18](https://github.com/Checkmate-Prep/chess-coach/pull/18)
+
+
+### 42. Letting the trap scan run again after new games
 > troubleshoot why "https://checkmateprep.com/#prep/[opponent]" says "No repeated losing moves in their most common positions. Their openings are sound; look at the lines where they score badly instead."
 
 > I got Claude code inside vs code to do this. Check the code to confirm it's now fixed
