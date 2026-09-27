@@ -465,7 +465,13 @@ The app shows an account card in Settings and a sign-in offer on the welcome scr
 
 **What Claude did:** planned first. Adding an opponent now downloads their games in the background, and their file shows the download month by month without a tap. Your own games already downloaded when you enter your username; that stays. At launch, and whenever the app comes back to the screen, it downloads anyone whose games are missing or more than a day old, one player at a time. chess.com isn't asked again for months already complete, so a daily refresh is about one month per player. The Prep cards now say "Downloading games…", "Games not downloaded yet", "Your games not downloaded yet" or "Their games not downloaded yet" when that's the reason no games show. "No games against you in the last 12 months" appears only once both players' games are downloaded. The head-to-head count now combines both downloads (a new `headToHead` in `stats.js`, with tests), so it's right even when only one side is downloaded. → [#22](https://github.com/Checkmate-Prep/chess-coach/pull/22)
 
-### 46. A test for the Prep list's offline loop
+
+### 46. A clearer title for the Prep screen
+> https://checkmateprep.com/#prep page only has "Prep" at the top, replace by "Prepare your next games"
+
+**What Claude did:** replaced the "Prep" heading with "Prepare your next games" on the Prep screen, with or without opponents. The tab label at the bottom stays "Prep". At phone size the title wraps to two lines, and the "＋ Add" button still sits beside it. → [#24](https://github.com/Checkmate-Prep/chess-coach/pull/24)
+
+### 47. A test for the Prep list's offline loop
 > In `app/app.js`, `renderOppList()` (the Prep tab landing) fetches ratings for opponents that have no saved `player:<user>` entry, then calls `renderOppList()` again once the fetches are done: [code]. If every lookup fails (offline, or chess.com down), nothing is saved. The redraw then finds the same players missing and fetches again, which loops forever while the Prep tab is open. [...] Fix: only redraw when at least one lookup succeeded. [...] Verify with a static server and Playwright, with `api.chess.com` blocked [...] and open a PR as described in CLAUDE.md.
 
 > check it in the built-in browser

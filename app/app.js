@@ -394,7 +394,7 @@ function trapHtml(t, key, user, color) {
 // ---------- opponent file ----------
 async function renderOpp(user) {
   if (!P.opps.length) {
-    view.innerHTML = '<header class="head"><h1>Prep</h1><p class="lede">Add the people you play to get a file on each of them.</p></header><a class="btn primary" href="#add">Add an opponent</a>';
+    view.innerHTML = '<header class="head"><h1>Prepare your next games</h1><p class="lede">Add the people you play to get a file on each of them.</p></header><a class="btn primary" href="#add">Add an opponent</a>';
     return;
   }
   if (!P.opps.some((o) => o.user === user)) return renderOppList();
@@ -488,7 +488,7 @@ function planHtml(plan, user, cur, trW, trB) {
 /** Prep landing: every opponent as a row, with main rating, your record and what's been prepared. */
 async function renderOppList() {
   if (!P.opps.length) {
-    view.innerHTML = '<header class="head"><h1>Prep</h1><p class="lede">Add the people you play to get a file on each of them.</p></header><a class="btn primary" href="#add">Add an opponent</a>';
+    view.innerHTML = '<header class="head"><h1>Prepare your next games</h1><p class="lede">Add the people you play to get a file on each of them.</p></header><a class="btn primary" href="#add">Add an opponent</a>';
     return;
   }
   const mine = await gamesOf(P.me.user);
@@ -518,7 +518,7 @@ async function renderOppList() {
     if (!theirs) return 'Their games not downloaded yet';
     return 'No games against you in the last 12 months';
   };
-  view.innerHTML = `<header class="head"><div class="head-row"><h1>Prep</h1><a class="btn primary btn-sm" href="#add">＋ Add</a></div>
+  view.innerHTML = `<header class="head"><div class="head-row"><h1>Prepare your next games</h1><a class="btn primary btn-sm" href="#add">＋ Add</a></div>
       <p class="lede">One file per opponent: the openings they play, where they go wrong, traps to set and a plan for your next game against them.</p>
       ${rows.some((r) => r.h2h.n) ? '<p class="small muted">Sorted by how many games you\'ve played each other.</p>' : ''}</header>
     <ul class="opps">${rows.map((r) => `<li><a href="#prep/${esc(r.o.user)}">
