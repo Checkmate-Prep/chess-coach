@@ -2,7 +2,7 @@ import { test, describe, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { Chess } from '../app/vendor/chess.js';
-import { winProb, pvToSan, summarize, findTraps, cachedTraps, trapsChecked, trapCandidates, reviewGames, reviewCache, isGoodMove, BLUNDER } from '../app/analysis.js';
+import { winProb, pvToSan, summarize, findTraps, cachedTraps, trapScan, trapCandidates, reviewGames, reviewCache, isGoodMove, BLUNDER } from '../app/analysis.js';
 import { installFakeIndexedDB, installBrowserGlobals, FakeWorker, game, node } from './helpers.mjs';
 
 const db = installFakeIndexedDB();
@@ -104,14 +104,34 @@ describe('findTraps', () => {
     assert.deepEqual([t.path, t.san, t.played, t.times, t.of, t.bestForHim, t.punish], [['f3', 'e5'], 'g4', 'g4', 6, 8, 'Nc3', ['Qh4#']]);
     assert.deepEqual(progress, [[0, 2], [1, 2], [2, 2]]);
     assert.deepEqual(await cachedTraps('p1', 'white'), traps);
-    assert.equal(await trapsChecked('p1', 'white'), 2);
+    assert.equal((await trapScan('p1', 'white', tree())).checked, 2);
   });
 
   test('counts the positions it checks, even when it finds nothing', async () => {
     FakeWorker.script = script({});
-    assert.equal(await trapsChecked('p6', 'white'), null);
+    assert.equal(await trapScan('p6', 'white', tree()), null);
     assert.deepEqual(await findTraps('p6', tree(), 'white'), []);
-    assert.equal(await trapsChecked('p6', 'white'), 2);
+    assert.deepEqual(await trapScan('p6', 'white', tree()), { traps: [], current: true, checked: 2 });
+  });
+
+  test('a scan is out of date once their games change, and a new scan replaces it', async () => {
+    FakeWorker.script = script({});
+    await findTraps('p7', tree(), 'white');
+    // two more games as White (after a Refresh)
+    const more = node(12, 60, { f3: node(8, 40, { e5: node(8, 40, { g4: node(6, 0) }) }), e4: node(4, 60) });
+    assert.deepEqual(await trapScan('p7', 'white', more), { traps: [], current: false, checked: null });
+    FakeWorker.script = script({
+      [START]: { cp: 30, best: 'e2e4' }, [afterF3]: { cp: 20, best: 'e7e5' },
+      [afterF3E5]: { cp: -40, best: 'b1c3' }, [afterG4]: { mate: 1, pv: ['d8h4'] },
+    });
+    assert.equal((await findTraps('p7', more, 'white')).length, 1);
+    const scan = await trapScan('p7', 'white', more);
+    assert.deepEqual([scan.current, scan.checked, scan.traps.length], [true, 2, 1]);
+  });
+
+  test('a scan saved before positions were counted uses the candidates of the same games', async () => {
+    db.set('traps:p8:white', { n: 10, traps: [] });
+    assert.deepEqual(await trapScan('p8', 'white', tree()), { traps: [], current: true, checked: 2 });
   });
 
   test('candidates need the same position at least 6 times', () => {

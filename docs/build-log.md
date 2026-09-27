@@ -422,3 +422,13 @@ The app shows an account card in Settings and a sign-in offer on the welcome scr
 > Last, "Delete sync data", should be "Delete account", and it should not have "This device keeps its copy.", it should instead "Data is also deleted from this device."
 
 **What Claude did:** planned first. It removed the "Stored locally on this device" card from Settings. Sign-out used to forget only the sync state, so the profile, opponents, drill progress and saved games stayed in the browser. Now it clears all of that (localStorage and the IndexedDB games and analysis) before logging out of Auth0, which lands on the welcome screen. It sends recent changes to the account first when the server can be reached, so the last edits aren't lost. "Delete synced data" is now "Delete account" and says the data is also deleted from this device. It also skips that final sync and waits for any sync already running, since either would store the data on the server again after the delete. The Settings screen was checked at phone size in a headless browser. Signing out needs the Worker and Auth0, which the session didn't have, so that path wasn't tried in a browser. → [#18](https://github.com/Checkmate-Prep/chess-coach/pull/18)
+
+
+### 42. Letting the trap scan run again after new games
+> troubleshoot why "https://checkmateprep.com/#prep/[opponent]" says "No repeated losing moves in their most common positions. Their openings are sound; look at the lines where they score badly instead."
+
+> I got Claude code inside vs code to do this. Check the code to confirm it's now fixed
+
+> Yes
+
+**What Claude did:** this ran in a cloud session that couldn't reach chess.com, so Claude traced the message through the code. Once #15 had landed, it checked `main` and found that half the problem was fixed: the card no longer calls openings sound on a thin sample. The other half wasn't. A saved scan was never thrown away when the games changed, and a saved empty result hid the Find traps button, so "check again once they have played more games" could not be done. Scans saved before #15 also showed position counts taken from today's games, not the ones the scan had checked. Claude added `trapScan`, which returns the saved scan and whether it still matches their current games. After a Refresh that brings in new games, the card shows "Check again with Stockfish" and keeps any traps it already found until the new scan finishes. The position count is only shown for a scan of today's games. Tests cover an out-of-date scan, a rescan replacing it, and a scan saved before positions were counted. There was no browser in the session, so the card wasn't previewed. → [#19](https://github.com/Checkmate-Prep/chess-coach/pull/19)

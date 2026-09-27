@@ -169,8 +169,17 @@ export async function findTraps(user, tree, color, onProgress = () => {}, opts =
   return out.slice(0, 8);
 }
 export const cachedTraps = (user, color) => idb.get(`traps:${user}:${color}`).then((c) => c?.traps || null);
-/** How many positions the last scan checked, or null if unknown (no scan yet, or one saved before this was counted). */
-export const trapsChecked = (user, color) => idb.get(`traps:${user}:${color}`).then((c) => c?.checked ?? null);
+/**
+ * The saved scan for `tree` (the player's opening tree as `color`), or null if there is none. `current` is false
+ * once their games have changed since the scan; `checked` (positions the scan checked) is then null.
+ */
+export async function trapScan(user, color, tree) {
+  const c = await idb.get(`traps:${user}:${color}`);
+  if (!c) return null;
+  const current = c.n === tree.n;
+  // scans saved before `checked` was counted: the tree is unchanged, so its candidates are the ones checked
+  return { traps: c.traps, current, checked: current ? (c.checked ?? trapCandidates(tree, color).length) : null };
+}
 
 /** Is `san` in `fen` close enough to the engine's best (for accepting alternative puzzle answers)? */
 export async function isGoodMove(fen, san, bestSan) {
