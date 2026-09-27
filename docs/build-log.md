@@ -223,3 +223,14 @@ Both the hook's success and failure paths were tested. → [#7](https://github.c
 > open dedicated branch and pr
 
 **What Claude did:** read the app's chess.com client and found that game sync marked the current month as complete. Once that month ended, it was never downloaded again, so games played between the last sync and the end of the month were silently missing from every opponent file. Claude suggested storing when each month was downloaded instead, and treating a month as complete only if that was after the month ended. Old caches repair themselves on the next sync. It tested the three cases in Node with a fake chess.com API before opening the PR. → [#9](https://github.com/simonletort/chess-coach/pull/9)
+
+## 9. Tests
+
+### 29. Test coverage
+> plan how to improve test coverage. suggest tests to be written for this app. then run them, and report about current test coverage and suggestions to improve that
+
+> are the tests added to gh actions ci/cd
+
+> push branch and open pr. I'll go with option 1
+
+**What Claude did:** found no tests at all and planned two suites without adding any library to the app: Node's built-in test runner for the app's logic, with fakes for IndexedDB, chess.com and Stockfish, and Python's `unittest` for the pipeline. Test games are made up, never copied from `data/`. A shared file of expected values keeps the app and the pipeline agreeing on how they read moves and score positions. It wrote 114 tests. They cover every line of the app's logic modules and 63% of the pipeline, and they include a regression test that fails when the old late-month sync bug is put back. Claude reported what is still untested (the screens, the board, the prep book) and six small issues the tests surfaced, and changed none of them. When the pasted command failed on Node 18, it pointed to the new `.nvmrc`. A new CI workflow runs both suites on every PR; the user chose to make them required through GitHub branch protection rather than gating the deploy in the workflow. → [#11](https://github.com/simonletort/chess-coach/pull/11)
