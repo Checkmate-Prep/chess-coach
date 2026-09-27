@@ -64,3 +64,4 @@ npx live-server app --port=8766        # local preview with auto-reload
 - `skills/prep-opponent`: write hand-written prep for an opponent (`/prep-opponent <username>`).
 - `skills/ship-change`: the checklist for landing a change (`/ship-change`).
 - `launch.json`: preview configurations for the built-in browser.
+- Auto memory is on (`autoMemoryEnabled` in `settings.json`). Memory files are machine-local, not in the repo: `~/.claude/projects/<this repo>/memory/`, with `MEMORY.md` as the index. Keep facts derivable from the code or this file out of memory.
