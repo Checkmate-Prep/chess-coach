@@ -49,6 +49,18 @@ def plain(text):
 
 
 def main():
+    # Without local game data (a fresh clone, or the edit hook on another machine), keep the
+    # published prep.json and only refresh piece art and the cache name.
+    users = [*FRIENDS, "slnyc"]
+    missing = [u for u in users if not (ROOT / f"data/{u}.json").exists()]
+    if missing:
+        print(f"no local game data for {', '.join(missing)}: keeping app/prep.json")
+    else:
+        write_prep()
+    stamp()
+
+
+def write_prep():
     friends = []
     for key, f in FRIENDS.items():
         tw, last = tree(key, "white")
@@ -71,6 +83,9 @@ def main():
     }
     APP.mkdir(exist_ok=True)
     (APP / "prep.json").write_text(json.dumps(prep, separators=(",", ":"), ensure_ascii=False))
+
+
+def stamp():
     pieces = {k: v for k, v in chess.svg.PIECES.items()}
     (APP / "pieces.js").write_text(
         "// Piece artwork: cburnett set via python-chess (GPL-3.0 / CC BY-SA 3.0).\n"

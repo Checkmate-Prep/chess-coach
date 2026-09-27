@@ -1,6 +1,6 @@
 // Engine-backed analysis on the device: game review, repeated-mistake (trap) finder, puzzle generation.
 import { Chess } from './vendor/chess.js';
-import { engine } from './engine.js';
+import { analyseSafe } from './engine.js';
 import { idb } from './store.js';
 import { walk } from './stats.js';
 
@@ -24,9 +24,8 @@ export function pvToSan(fen, pv, max = 6) {
 /** Evaluate every move of one game. Returns compact per-move arrays plus detail for bad moves. */
 async function reviewGame(g) {
   const board = new Chess();
-  const E = engine();
   const loss = [], pieces = [], evals = [], bad = [];
-  let info = await E.analyse(board.fen(), GAME_NODES);
+  let info = await analyseSafe(board.fen(), GAME_NODES);
   for (let i = 0; i < g.sans.length; i++) {
     const fen = board.fen();
     let mv;
@@ -34,7 +33,7 @@ async function reviewGame(g) {
     const before = info.cp;
     let after;
     if (board.isGameOver()) { after = board.isCheckmate() ? 10000 : 0; info = { cp: 0, pv: [] }; }
-    else { info = await E.analyse(board.fen(), GAME_NODES); after = -info.cp; }
+    else { info = await analyseSafe(board.fen(), GAME_NODES); after = -info.cp; }
     const l = Math.max(0, winProb(before) - winProb(after));
     loss.push(Math.round(l * 10) / 10);
     pieces.push(board.board().flat().filter(Boolean).length);
@@ -43,7 +42,7 @@ async function reviewGame(g) {
   }
   // best moves only for the bad moves (a second, targeted search)
   for (const b of bad) {
-    const r = await E.analyse(b.fen, GAME_NODES * 2);
+    const r = await analyseSafe(b.fen, GAME_NODES * 2);
     b.best = uciToSan(b.fen, r.best);
     b.line = pvToSan(b.fen, r.pv, 5);
   }
@@ -60,7 +59,7 @@ export async function reviewGames(user, games, count, onProgress = () => {}, sig
   const todo = games.filter((g) => !cache[g.url] && g.sans.length >= 10).slice(0, count);
   for (let i = 0; i < todo.length && !signal.stop; i++) {
     onProgress(i, todo.length, todo[i]);
-    cache[todo[i].url] = await reviewGame(todo[i]);
+    try { cache[todo[i].url] = await reviewGame(todo[i]); } catch { continue; } // engine failed twice: skip this game
     await idb.set(key, cache);
   }
   onProgress(todo.length, todo.length, null);
@@ -134,7 +133,6 @@ export async function findTraps(user, tree, color, onProgress = () => {}, { minN
     for (const [san, child] of kids) if (child.n >= minN) visit(child, [...path, san]);
   };
   visit(tree, []);
-  const E = engine();
   const traps = [];
   for (let i = 0; i < cands.length; i++) {
     onProgress(i, cands.length);
@@ -142,11 +140,11 @@ export async function findTraps(user, tree, color, onProgress = () => {}, { minN
     const g = new Chess();
     try { for (const m of c.path) g.move(m); } catch { continue; }
     const fen = g.fen();
-    const before = await E.analyse(fen, TRAP_NODES);                 // player's POV
+    const before = await analyseSafe(fen, TRAP_NODES);                 // player's POV
     if (before.cp < -150 || before.cp > 400) continue;               // already decided
     let mv; try { mv = g.move(c.san); } catch { continue; }
     const afterFen = g.fen();
-    const reply = await E.analyse(afterFen, TRAP_NODES);             // opponent's POV
+    const reply = await analyseSafe(afterFen, TRAP_NODES);             // opponent's POV
     const after = -reply.cp;
     const drop = winProb(before.cp) - winProb(after);
     const bestSan = uciToSan(fen, before.best);
@@ -168,10 +166,9 @@ export const cachedTraps = (user, color) => idb.get(`traps:${user}:${color}`).th
 /** Is `san` in `fen` close enough to the engine's best (for accepting alternative puzzle answers)? */
 export async function isGoodMove(fen, san, bestSan) {
   const g = new Chess(fen);
-  const E = engine();
-  const best = await E.analyse(fen, TRAP_NODES);
+  const best = await analyseSafe(fen, TRAP_NODES);
   try { g.move(san); } catch { return false; }
-  const after = -(await E.analyse(g.fen(), TRAP_NODES)).cp;
+  const after = -(await analyseSafe(g.fen(), TRAP_NODES)).cp;
   return winProb(best.cp) - winProb(after) < 4 || san === bestSan;
 }
 

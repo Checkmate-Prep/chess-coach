@@ -7,7 +7,8 @@ data/*
 report.html
 __pycache__/
 .DS_Store
-.claude/
+# Claude Code: share project config (launch.json), keep personal settings out
+.claude/settings.local.json
 # Cloudflare Worker (npm install, wrangler dev)
 node_modules/
 .wrangler/
