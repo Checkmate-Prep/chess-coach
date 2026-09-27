@@ -447,3 +447,10 @@ The app shows an account card in Settings and a sign-in offer on the welcome scr
 > suggest a better location for "+ add opponent"
 
 **What Claude did:** planned first. The header now says what a file holds: the openings they play, where they go wrong, traps to set and a plan for your next game. It has an "＋ Add" button next to the title, replacing the row at the bottom of the list, which fell below the fold once you had a few opponents. Each card now shows their main rating next to yours in the same time control. It also shows how many games you've played each other, your wins, losses and draws, your score and the date of your last game, plus how many of their games were studied. Opponents are sorted by games played together, most first. Because the list was being rewritten anyway, it also fixed the loop found earlier: offline, the list no longer keeps looking up ratings and redrawing itself. → [#20](https://github.com/Checkmate-Prep/chess-coach/pull/20)
+
+
+### 43. Showing which tab you're on
+> bottom menu doesn't show on which screen the user is.
+> find a way to highlight "You" in the bottom menu if the current page is "You", and same for each page / menu item.
+
+**What Claude did:** planned first. The app already marked the current tab, but only by changing the text colour, and in light mode the two greens were almost the same. The current tab now has a tinted pill behind its icon and a bold label, in the accent colour, in light and dark mode. It was a CSS-only change: the routing already picked the right tab, including for an opponent's file (Prep) and a single drill (Drill). Every tab was checked at phone size in a headless browser in both colour schemes.
