@@ -447,3 +447,13 @@ The app shows an account card in Settings and a sign-in offer on the welcome scr
 > suggest a better location for "+ add opponent"
 
 **What Claude did:** planned first. The header now says what a file holds: the openings they play, where they go wrong, traps to set and a plan for your next game. It has an "＋ Add" button next to the title, replacing the row at the bottom of the list, which fell below the fold once you had a few opponents. Each card now shows their main rating next to yours in the same time control. It also shows how many games you've played each other, your wins, losses and draws, your score and the date of your last game, plus how many of their games were studied. Opponents are sorted by games played together, most first. Because the list was being rewritten anyway, it also fixed the loop found earlier: offline, the list no longer keeps looking up ratings and redrawing itself. → [#20](https://github.com/Checkmate-Prep/chess-coach/pull/20)
+
+
+### 42. Games download on their own
+> in prep, screen displays "no games against you yet" when it's not correct. the games have not been downloaded yet.
+> 2 things:
+>
+> * trigger auto download of games when adding "you" and any opponent + trigger an auto games download once a day
+> * display "games not downloaded yet" instead of "no games against you" if the games haven't been downloaded yet for one or both players
+
+**What Claude did:** planned first. Adding an opponent now downloads their games in the background, and their file shows the download month by month without a tap. Your own games already downloaded when you enter your username; that stays. At launch, and whenever the app comes back to the screen, it downloads anyone whose games are missing or more than a day old, one player at a time. chess.com isn't asked again for months already complete, so a daily refresh is about one month per player. The Prep cards now say "Downloading games…", "Games not downloaded yet", "Your games not downloaded yet" or "Their games not downloaded yet" when that's the reason no games show. "No games against you in the last 12 months" appears only once both players' games are downloaded. The head-to-head count now combines both downloads (a new `headToHead` in `stats.js`, with tests), so it's right even when only one side is downloaded. → PR link below
