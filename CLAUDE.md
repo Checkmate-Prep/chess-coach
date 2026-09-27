@@ -21,6 +21,7 @@ See `README.md` for the user-facing description.
 | `app/stats.js`, `app/plan.js` | Opening trees, profile stats, weak lines; the automatic game plan |
 | `app/engine.js`, `app/analysis.js` | Stockfish worker wrapper; game review, trap finder, puzzles |
 | `app/board.js`, `app/pieces.js` | SVG board with tap-to-move; piece artwork |
+| `tests/` | Node (`node:test`) tests for the app modules, Python `unittest` for the pipeline; synthetic fixtures |
 | `app/vendor/` | Vendored `chess.js` 1.4.0 and Stockfish 19 lite single-threaded (GPL, see `COPYING.txt`) |
 
 Gitignored and rebuilt locally: `data/` (games, analysis, profiles), `bin/` (native Stockfish, auto-downloaded), `report.html`.
@@ -31,6 +32,8 @@ Gitignored and rebuilt locally: `data/` (games, analysis, profiles), `bin/` (nat
 python3 coach.py refresh               # pipeline for everyone, then report + app data
 python3 build_app.py                   # after ANY change in app/ (see below)
 npx live-server app --port=8766        # local preview with auto-reload
+node --test 'tests/*.test.mjs'         # app tests (Node 22+, see .nvmrc)
+python3 -m unittest discover -s tests  # pipeline tests
 ```
 
 ## Rules that matter
@@ -46,6 +49,10 @@ npx live-server app --port=8766        # local preview with auto-reload
 
 ## Testing
 
+- Automated tests live in `tests/` (not `app/`, which is published). `tests/helpers.mjs` fakes IndexedDB, `fetch` and the Stockfish worker, so app logic runs in Node without a browser or engine. CI (`.github/workflows/test.yml`) runs both suites on every PR and keeps one "Test results" comment on the PR up to date (built by `tests/summary-reporter.mjs` and `tests/run_pipeline.py --summary`). The job names are required checks on `main`: don't rename them without updating the GitHub ruleset.
+- Fixtures are synthetic games in `tests/fixtures/`. Never copy real games from `data/` or friends' usernames into tests. `parity.json` holds values that the JS and Python suites both check, so the app and the pipeline agree.
+- Coverage: add `--experimental-test-coverage --test-coverage-exclude='app/vendor/**' --test-coverage-exclude='tests/**'` to the node command; for Python, `python3 -m coverage run -m unittest discover -s tests && python3 -m coverage report` (`pip install -r requirements-dev.txt`).
+- Not covered yet: `app.js` (UI), `board.js`, `sw.js`, `build_report.py`. Check those in the preview.
 - Preview at phone size (375×812) in the desktop app's built-in browser. Clear `localStorage` and the `chess-prep` IndexedDB database after a test run.
 - The built-in browser can't register service workers, so offline mode can only be checked on a real device.
 - **If the browser pane is hidden, the page is hidden and Stockfish stalls.** A trap scan stuck at "0 of N" is expected there, not a bug; run engine tests with the pane visible.
