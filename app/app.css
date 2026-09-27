@@ -132,3 +132,16 @@ a.back{text-decoration:none}
 .info-btn[aria-expanded="true"]{color:var(--ink)}
 h2 .info-btn{font-size:1.05rem}
 .info-note{display:grid;gap:6px;font-size:.88rem;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.welcome{gap:10px}
+.hero{width:100%;max-width:260px;height:auto;margin:4px 0 8px}
+.hero-lt{fill:var(--sq-light)}.hero-dk{fill:var(--sq-dark)}
+.hero-path{fill:none;stroke:var(--gold);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1 5}
+.hero-path+.hero-path{stroke-dasharray:none}
+.hero-lbl{font:500 8px var(--mono);letter-spacing:.06em;text-transform:uppercase;fill:var(--muted);text-anchor:middle}
+.choices{display:grid;gap:10px}
+.choices .btn{display:flex;justify-content:center;align-items:center;text-decoration:none;justify-self:stretch;width:100%}
+.steps{list-style:none;padding:0;gap:12px;counter-reset:step}
+.steps li{display:grid;grid-template-columns:28px 1fr;gap:12px;align-items:start;counter-increment:step;font-size:.95rem}
+.steps li::before{content:counter(step);width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--bg);border:1px solid var(--line);font:600 .85rem/1 var(--sans);color:var(--muted)}
+.steps li.now::before{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.view,.card,.add-form{grid-template-columns:minmax(0,1fr)}

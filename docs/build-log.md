@@ -376,3 +376,23 @@ The app shows an account card in Settings and a sign-in offer on the welcome scr
 > ok open pr
 
 **What Claude did:** traced the message to the trap card, then reran the trap scan outside the browser on the opponent's real games from chess.com, using native Stockfish and the app's own tree code. The opponent had 18 games in 12 months (12 as White, 6 as Black). Only one position qualified: 1.e4, which they played in all 12 White games and which is sound. None qualified as Black. So the scan worked, but "their openings are sound" rested on one check. Claude split the candidate search out of the scan so the page can count positions without the engine, and had the scan save how many it checked. The card now says when there are too few games to look for traps, and after an empty scan it says how many positions and games the result rests on. At first it made old saved scans run again, then reverted that: the button never shows once a result is saved, so old scans fall back to counting today's trees. There was no built-in browser in the session, so the new copy wasn't previewed. → [#15](https://github.com/Checkmate-Prep/chess-coach/pull/15)
+
+
+### 39. A welcome screen that explains the app
+> I'd like to improve the experience for a new user.
+>
+> The current message is too short and lack graphics:
+> "Get started
+> Prepare for games against the people you actually play. Enter your chess.com username, then add your opponents. No account needed: everything used here is public on chess.com."
+>
+> A beta tester feedback was "I didn't understand why I had to 'pick your opponent'".
+>
+> Correct by saying that you start by providing your chess.com username, and that sign in to this app is optional (only if you want to use app across devices).
+>
+> Emphasize the value of the app: Prepare chess game against specific opponents whether friends, people you plan to play against.
+
+> what do you think of removing from Welcome screen: [the note saying sign-in is optional]. We can get user to create an account later, no?
+
+> welcome screen should have option for "new user" (current plan) "existing user" (bring them to screen where they can sign-in)
+
+**What Claude did:** planned first, then split first run into three screens. The welcome screen has a small board drawing (your king facing their knight), a pitch about preparing for specific people, and two choices. "I'm new here" leads to "Get started", which lists three numbered steps before the username form: your username, the people you'll play, your prep. "I already have an account" leads to a sign-in screen. That choice only shows where accounts exist, and an account with nothing saved offers "Set up as a new user". After the username, the Settings screen now opens as step 2, "Who do you want to prepare for?", with the opponent form first and a line on why. Sign-in no longer appears during new-user setup; the existing card in Settings offers it later. Along the way, the phone-size screenshots showed forms spilling past their cards at 375px (on `main` too), so Claude fixed the grid columns. → PR link below
