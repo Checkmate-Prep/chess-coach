@@ -471,6 +471,7 @@ The app shows an account card in Settings and a sign-in offer on the welcome scr
 
 **What Claude did:** replaced the "Prep" heading with "Prepare your next games" on the Prep screen, with or without opponents. The tab label at the bottom stays "Prep". At phone size the title wraps to two lines, and the "＋ Add" button still sits beside it. → [#24](https://github.com/Checkmate-Prep/chess-coach/pull/24)
 
+
 ### 47. A test for the Prep list's offline loop
 > In `app/app.js`, `renderOppList()` (the Prep tab landing) fetches ratings for opponents that have no saved `player:<user>` entry, then calls `renderOppList()` again once the fetches are done: [code]. If every lookup fails (offline, or chess.com down), nothing is saved. The redraw then finds the same players missing and fetches again, which loops forever while the Prep tab is open. [...] Fix: only redraw when at least one lookup succeeded. [...] Verify with a static server and Playwright, with `api.chess.com` blocked [...] and open a PR as described in CLAUDE.md.
 
@@ -479,3 +480,8 @@ The app shows an account card in Settings and a sign-in offer on the welcome scr
 > add a test for this in tests/
 
 **What Claude did:** found that #20 had already fixed the loop a few minutes earlier, in the same way, so there was nothing to change. Playwright wasn't installed, so on request it checked `main` in the built-in browser at phone size instead, with chess.com requests forced to fail. The list rendered once and stayed: no new requests and no redraws in 5 seconds, and "＋ Add" opened on the first tap. With the old lines put back, the same setup made about 16,000 failed lookups and 4,000 redraws in 5 seconds. The first try missed the loop because the browser had cached the fixed file. `app.js` can't run in Node, so to test the fix Claude moved the lookup-and-save step into `savePlayers()` in `chesscom.js`, which resolves to how many players it saved; the Prep list redraws only when that is more than 0. Tests cover all found, all failing (nothing saved, each lookup tried once), some failing, and none to look up. The test helpers gained a fake `localStorage`. → [#23](https://github.com/Checkmate-Prep/chess-coach/pull/23)
+
+### 48. Hand-written notes only on the ai-prep branch
+> keep the handwritten notes for [Friend B], [Friend A] and [me] only on the ai-prep branch, remove from main
+
+**What Claude did:** checked that `ai-prep` already had the same `notes.py` and `prep.json` as `main`, then removed `notes.py` from `main`. `main` now ships an empty `app/prep.json`, so the site no longer serves the notes or the friends' opening trees. `build_app.py` writes that empty file when `notes.py` is missing and `build_report.py` skips the report, so the pipeline still runs on `main`. The docs and the `prep-opponent` skill say the notes live on `ai-prep`. In the preview, setup as the player the notes were written for no longer adds opponents automatically. The notes remain in git history, and merging `main` into `ai-prep` later would delete them there too unless restored. → [#25](https://github.com/Checkmate-Prep/chess-coach/pull/25)
