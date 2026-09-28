@@ -93,7 +93,6 @@ form.row{margin:0}
 .lo{color:var(--bad)}
 .trap{display:grid;gap:10px;padding-top:14px;border-top:1px solid var(--line)}
 .trap:first-child{border-top:0;padding-top:0}
-.curated{border-color:color-mix(in srgb,var(--gold) 45%,var(--line))}
 details{border-top:1px solid var(--line);padding-top:10px}
 .card > details:first-child{border-top:0;padding-top:0}
 summary{cursor:pointer;list-style:none;padding:4px 0}
@@ -150,6 +149,21 @@ h2 .info-btn{font-size:1.05rem}
 .steps li{display:grid;grid-template-columns:28px 1fr;gap:12px;align-items:start;counter-increment:step;font-size:.95rem}
 .steps li::before{content:counter(step);width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--bg);border:1px solid var(--line);font:600 .85rem/1 var(--sans);color:var(--muted)}
 .steps li.now::before{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+/* opponent file: the three steps (games, Stockfish, Claude), each a button that scrolls to its card */
+.tracker{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px;padding:14px 10px;background:var(--surface);border:1px solid var(--line);border-radius:14px}
+.step{position:relative;display:grid;justify-items:center;align-content:start;gap:4px;text-align:center;background:none;border:0;padding:0 2px;color:var(--ink);font:inherit;min-height:44px}
+.step+.step::before{content:"";position:absolute;top:14px;right:calc(50% + 18px);width:calc(100% - 32px);height:2px;background:var(--line)}
+.step.done+.step::before{background:var(--accent)}
+.step .dot{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--bg);border:2px solid var(--line);font:600 .85rem/1 var(--sans);color:var(--muted)}
+.step.done .dot{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.step.run .dot{border-color:var(--accent);color:var(--accent);animation:step-pulse 1.4s ease-in-out infinite}
+.step.next .dot{border-color:var(--accent);color:var(--accent)}
+.step b{font-size:.85rem;line-height:1.2}
+.step .small{color:var(--muted);line-height:1.25}
+.step.next .small{color:var(--accent);font-weight:600}
+@keyframes step-pulse{50%{box-shadow:0 0 0 5px color-mix(in srgb,var(--accent) 25%,transparent)}}
+@media (prefers-reduced-motion:reduce){.step.run .dot{animation:none}}
+#step-games,#step-stockfish,#ai{scroll-margin-top:calc(env(safe-area-inset-top,0px) + 64px)}
 .view,.card,.add-form,.opp-edit,.opp-edit li{grid-template-columns:minmax(0,1fr)}
 .add-link{justify-self:start;color:var(--accent);font-weight:500;text-decoration:none;padding:4px 0}
 .head-row{display:flex;align-items:center;justify-content:space-between;gap:12px}

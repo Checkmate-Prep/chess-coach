@@ -20,7 +20,6 @@ const dateOf = (t) => new Date(t * 1000).toLocaleDateString(undefined, { day: 'n
 const TC = { bullet: 'Bullet', blitz: 'Blitz', rapid: 'Rapid', daily: 'Daily' };
 const plyOf = (fen) => 2 * (+fen.split(' ')[5] - 1) + (fen.split(' ')[1] === 'b' ? 1 : 0);
 
-let PREP = { friends: [], me: null };     // hand-written prep shipped with the app (optional)
 let AI = false;                          // AI prep available (the app is served by the Worker with a key set)
 let P = ls.get('profile', null);         // {me:{user,username}, opps:[{user,username}]}
 const view = $('#view');
@@ -37,16 +36,14 @@ async function treeOf(user, color) {
   if (trees[k]) return trees[k];
   const gs = await gamesOf(user);
   if (gs?.length) return (trees[k] = buildTree(gs, color));
-  const cur = curated(user) || (PREP.me?.user === user ? PREP.me : null);
-  return cur?.trees?.[color] || { n: 0, p: 0, c: {} };
+  return { n: 0, p: 0, c: {} };
 }
-const curated = (user) => PREP.friends.find((f) => f.user === user);
 const oppName = (user) => P?.opps.find((o) => o.user === user)?.username || user;
-/** Name shown for an opponent: the one set in Settings (may be cleared), else the hand-written prep's, else the username. */
+/** Name shown for an opponent: the one set in Settings (may be cleared), else the username. */
 const displayName = (user) => {
   const o = P?.opps.find((x) => x.user === user);
   if (o && 'name' in o) return o.name || o.username;
-  return curated(user)?.name || o?.username || user;
+  return o?.username || user;
 };
 const hasAlias = (user) => displayName(user).toLowerCase() !== oppName(user).toLowerCase();
 function invalidate(user) { delete games[user]; delete trees[`${user}:white`]; delete trees[`${user}:black`]; }
@@ -68,6 +65,7 @@ function download(user) {
       await syncGames(user, (i, n) => {
         monthOf[user] = [i, n];
         document.querySelectorAll(`[data-dl="${user}"]`).forEach((el) => { el.textContent = dlText(user); });
+        refreshSteps(user);
       });
       invalidate(user);
       queueReview(user);
@@ -148,6 +146,7 @@ async function rvStatus(user) {
 }
 function showReview(user, text) {
   document.querySelectorAll(`[data-rv="${user}"]`).forEach((el) => { el.textContent = text; el.hidden = !text; });
+  refreshSteps(user);
 }
 /** A review finished: redraw the list, or update the line on their file. */
 async function reviewDone(user) {
@@ -295,12 +294,10 @@ async function renderSetup(first = false) {
     if (!(await sync(user, e.submitter, st))) return;
     const info = ls.get(`player:${user}`);
     const opps = P?.opps || [];
-    // first run for the player this app's hand-written prep was made for: add those opponents
-    if (!P && PREP.me?.user === user) for (const f of PREP.friends) opps.push({ user: f.user, username: f.user, name: f.name });
     const name = $('#me-name').value.trim();
     P = { me: { user, username: info.username, ...(name ? { name } : {}) }, opps };
     ls.set('profile', P);
-    dailyDownloads(); // opponents that came with it (hand-written prep) download in the background
+    dailyDownloads();
     if (first) location.hash = opps.length ? 'me' : 'add'; else renderSetup();
   };
   if (!me) return;
@@ -524,12 +521,12 @@ function aiSection(user, saved, canWrite, hasGames, writing, error) {
   if (!saved && !canWrite) return '';
   const plan = saved?.plan;
   const plans = plan ? plan.plans.map(aiPlan) : [];
-  return `<section class="card ai" id="ai"><p class="eyebrow">AI-written prep</p><h2>${plan ? 'AI plan' : 'Write a plan with AI'}</h2>
+  return `<section class="card ai" id="ai"><p class="eyebrow">${canWrite ? `${stepOf(3)} · Claude` : 'AI-written prep'}</p><h2>${plan ? "Claude's plan" : 'Write a plan with Claude'}</h2>
     ${plan ? `<p>${rich(plan.summary)}</p>${plansHtml(plans, 'ai', user)}
       <details><summary><b>Where they go wrong</b></summary><div class="details-body"><ul>${plan.weak.map((x) => `<li>${rich(x)}</li>`).join('')}</ul></div></details>
       <details><summary><b>Game-day checklist</b></summary><div class="details-body"><ol>${plan.checklist.map((x) => `<li>${rich(x)}</li>`).join('')}</ol></div></details>
       <p class="small muted">Written ${ago(saved.at)} by Claude from ${saved.games.toLocaleString()} of their games. Check the lines on the board before relying on them.</p>`
-    : `<p class="small muted">Claude reads the statistics on this page, and any traps Stockfish found, and writes a plan like the hand-written ones.${hasGames ? ' Find traps first for a better plan.' : ''}</p>`}
+    : `<p class="small muted">Claude reads the statistics on this page, and any traps Stockfish found, and writes a plan for your next game against them.${hasGames ? ' Find traps first for a better plan.' : ''}</p>`}
     ${canWrite ? `<button class="btn${plan ? '' : ' primary'}" id="ai-write" ${hasGames && !writing ? '' : 'disabled'}>${plan ? 'Rewrite with the latest games' : 'Write the plan'}</button>
       ${writing ? `${progress('ai-progress')}<p class="ai-thought" id="ai-thought" hidden></p>` : ''}
       <p class="small muted" id="ai-status" aria-live="polite">${writing ? 'Takes about a minute. You can leave or close the app: the plan will be here when you come back.'
@@ -582,7 +579,7 @@ function waitAi(user) {
       try { out = await (await fetch(`api/prep?job=${encodeURIComponent(j.job)}`)).json(); } catch { out = { pending: true }; } // offline for a moment: keep waiting
       if (out.pending) {
         if (out.progress) aiProgress[user] = out.progress;
-        paintAi(user);
+        paintAi(user); refreshSteps(user);
         await new Promise((r) => setTimeout(r, AI_POLL));
         continue;
       }
@@ -618,6 +615,44 @@ function paintAi(user) {
 /** At start: pick up plans that were still being written when the app closed. */
 function resumeAi() { Object.keys(aiJobs()).forEach(waitAi); }
 
+// ---------- the three steps that build an opponent's file: games (chess.com), Stockfish, Claude ----------
+const trapRunning = {};                  // user -> true while a trap scan runs on their file
+const stepOf = (n) => `Step ${n} of ${AI ? 3 : 2}`;
+/** Where each step stands, from what's saved and what's running now. Only the first unfinished step is "next". */
+async function stepsState(user) {
+  const gs = await gamesOf(user);
+  const [tw, tb] = await Promise.all([treeOf(user, 'white'), treeOf(user, 'black')]);
+  const [scW, scB, ai] = await Promise.all([trapScan(user, 'white', tw), trapScan(user, 'black', tb), aiCached(user)]);
+  const traps = (scW?.traps?.length || 0) + (scB?.traps?.length || 0);
+  const current = !!(scW?.current && scB?.current);
+  const tooFew = !!(tw.n + tb.n) && !(current ? scW.checked + scB.checked : trapCandidates(tw, 'white').length + trapCandidates(tb, 'black').length);
+  const steps = [
+    { title: 'Download games', target: 'step-games', next: 'Next: download them',
+      ...(pending(user) ? { state: 'run', text: dlText(user) } : gs ? { state: 'done', text: `${gs.length.toLocaleString()} game${gs.length === 1 ? '' : 's'}` } : { state: 'todo', text: 'Not downloaded yet' }) },
+    { title: 'Stockfish', target: 'step-stockfish', next: (scW || scB) ? 'Next: check again' : 'Next: find traps',
+      ...(trapRunning[user] ? { state: 'run', text: 'Finding traps…' } : reviewPending(user) ? { state: 'run', text: rvText(user) }
+        : tooFew ? { state: 'done', text: 'Too few games for traps' } : current ? { state: 'done', text: traps ? `${traps} trap${traps === 1 ? '' : 's'} found` : 'No traps found' }
+          : { state: 'todo', text: (scW || scB) ? 'Games changed: check again' : 'Not checked yet' }) },
+  ];
+  if (AI) steps.push({ title: "Claude's plan", target: 'ai', next: 'Next: write the plan',
+    ...(aiWriting(user) ? { state: 'run', text: aiStage(user)[1] } : ai ? { state: 'done', text: `Written ${ago(ai.at)}` } : { state: 'todo', text: 'Not written yet' }) });
+  const first = steps.find((x) => x.state !== 'done');
+  if (first?.state === 'todo') { first.isNext = true; first.text = first.next; }
+  return steps;
+}
+function stepsHtml(steps) {
+  const word = { done: 'done', run: 'in progress', todo: 'not done yet' };
+  return steps.map((x, i) => `<button type="button" class="step ${x.state}${x.isNext ? ' next' : ''}" data-step="${x.target}" aria-label="Step ${i + 1}, ${esc(x.title)}: ${word[x.state]}. ${esc(x.text)}">
+    <span class="dot" aria-hidden="true">${x.state === 'done' ? '✓' : i + 1}</span><b>${esc(x.title)}</b><span class="small">${esc(x.text)}</span></button>`).join('');
+}
+/** Redraw only the tracker (not the boards) when a step moves on while their file is open. */
+async function refreshSteps(user) {
+  if (location.hash !== `#prep/${user}`) return;
+  const html = stepsHtml(await stepsState(user));
+  const el = $('#steps');
+  if (el && location.hash === `#prep/${user}`) el.innerHTML = html;
+}
+
 // ---------- opponent file ----------
 async function renderOpp(user) {
   if (!P.opps.length) {
@@ -626,7 +661,6 @@ async function renderOpp(user) {
   }
   if (!P.opps.some((o) => o.user === user)) return renderOppList();
   ls.set('opp', user);
-  const cur = curated(user);
   const gs = await gamesOf(user);
   const synced = (await cachedGames(user))?.fetched;
   const pr = gs?.length ? profile(gs) : null;
@@ -646,30 +680,23 @@ async function renderOpp(user) {
   const rvLine = await rvStatus(user);
   view.innerHTML = `
     <a class="back" href="#prep">◀ Opponents</a>
-    <header class="head"><h1>${esc(displayName(user))}</h1><a class="eyebrow profile-link" href="https://www.chess.com/member/${encodeURIComponent(name)}" target="_blank" rel="noopener">chess.com/${esc(name)}</a>
-      ${cur ? `<p class="lede">${fig(cur.summary)}</p>` : ''}</header>
+    <header class="head"><h1>${esc(displayName(user))}</h1><a class="eyebrow profile-link" href="https://www.chess.com/member/${encodeURIComponent(name)}" target="_blank" rel="noopener">chess.com/${esc(name)}</a></header>
     ${stats([...ratingStats(user), ...(h2h.n ? [[`${r[0]}–${r[1]}–${r[2]}`, 'Your record vs them (W–D–L)']] : [])])}
-    <section class="card"><div class="row"><h2>Games</h2><button class="btn" id="sync">${gs ? 'Refresh' : 'Download games'}</button></div>
-      <p class="small muted" id="sync-status" aria-live="polite" data-dl="${esc(user)}"${gs ? '' : ' data-empty'}>${pending(user) ? dlText(user) : gs ? gamesLine(gs, pr, synced) : 'Download their recent games to build their file (up to 12 months).'}</p>
-      <p class="small muted" data-rv="${esc(user)}"${rvLine ? '' : ' hidden'}>${rvLine}</p></section>
-    ${cur ? `<section class="card curated"><p class="eyebrow">Hand-written prep</p><h2>Coach's plan</h2>
-      ${cur.plans.map((p, i) => `<details${i === 0 ? ' open' : ''}><summary><span class="eyebrow">${esc(p.eyebrow)}</span><br><b>${fig(p.title)}</b></summary>
-        <div class="details-body"><div data-line="${i}">${viewerHtml(p.caption)}</div>${p.body.map((b) => `<p>${fig(b)}</p>`).join('')}
-        <button class="btn primary" data-drill="line:${esc(user)}:${i}">Drill this line</button></div></details>`).join('')}
-      <details><summary><b>Game-day checklist</b></summary><div class="details-body">${list(cur.checklist, 'ol')}</div></details></section>` : ''}
-    ${aiSection(user, ai, AI, !!gs?.length, aiWriting(user), aiErrors[user])}
-    ${planHtml(gs?.length ? gamePlan({ pr, tw, tb, trW, trB, myW, myB }) : null, user, cur, trW, trB)}
-    ${pr ? `<section class="card"><h2>How they play</h2>${list(describe(pr, false))}</section>` : ''}
-    <section class="card"><h2>Traps: moves they repeat that lose</h2>
+    <nav class="tracker" id="steps" aria-label="How their file is built">${stepsHtml(await stepsState(user))}</nav>
+    <section class="card" id="step-games"><p class="eyebrow">${stepOf(1)} · chess.com</p><div class="row"><h2>Games</h2><button class="btn" id="sync">${gs ? 'Refresh' : 'Download games'}</button></div>
+      <p class="small muted" id="sync-status" aria-live="polite" data-dl="${esc(user)}"${gs ? '' : ' data-empty'}>${pending(user) ? dlText(user) : gs ? gamesLine(gs, pr, synced) : 'Download their recent games to build their file (up to 12 months).'}</p></section>
+    <section class="card" id="step-stockfish"><p class="eyebrow">${stepOf(2)} · Stockfish</p><h2>Traps: moves they repeat that lose</h2>
+      <p class="small muted" data-rv="${esc(user)}"${rvLine ? '' : ' hidden'}>${rvLine}</p>
       <p class="small muted">Stockfish checks the positions they reach most often and flags moves they keep playing that the engine refutes.</p>
       ${current || tooFew ? '' : `<button class="btn primary" id="traps" ${tw.n + tb.n ? '' : 'disabled'}>${scanned ? 'Check again with Stockfish' : 'Find traps with Stockfish'}</button><p class="small muted">${scanned ? 'Their games have changed since the last check. ' : ''}Takes 1–3 minutes. It runs on your device. Keep the app open.</p>`}
       ${progress('trap-progress')}
       <div id="trap-list">${trapsSection(user, trW, trB, { current, tooFew, checked, nW: tw.n, nB: tb.n })}</div></section>
+    ${aiSection(user, ai, AI, !!gs?.length, aiWriting(user), aiErrors[user])}
+    ${planHtml(gs?.length ? gamePlan({ pr, tw, tb, trW, trB, myW, myB }) : null, user, trW, trB)}
+    ${pr ? `<section class="card"><h2>How they play</h2>${list(describe(pr, false))}</section>` : ''}
     <section class="card"><h2>Lines that go badly for them ${scoreInfo('si-weak')}</h2>${scoreNote('si-weak')}
       <h3>When they're White</h3>${weakHtml(weakLines(tw), 'white', user)}
-      <h3>When they're Black</h3>${weakHtml(weakLines(tb), 'black', user)}</section>
-    ${cur ? `<section class="card curated"><p class="eyebrow">Hand-written prep</p><h2>Where they go wrong</h2>${list(cur.weak)}</section>` : ''}`;
-  if (cur) cur.plans.forEach((p, i) => lineViewer($(`[data-line="${i}"]`, view), p.line.split(' '), !!p.flip, p.key_from));
+      <h3>When they're Black</h3>${weakHtml(weakLines(tb), 'black', user)}</section>`;
   if (ai) mountPlans(ai.plan.plans.map(aiPlan), 'ai');
   mountTraps(trW, trB);
   view.querySelectorAll('[data-plan]').forEach((host) => { const pl = PLAN_LINES[host.dataset.plan]; if (pl) lineViewer(host, pl.line, pl.flipped, pl.keyFrom); });
@@ -684,6 +711,7 @@ async function renderOpp(user) {
     e.currentTarget.hidden = true;
     const bar = $('#trap-progress');
     const found = {};
+    trapRunning[user] = true; refreshSteps(user);
     try {
       await whileAwake(async () => {
         for (const [color, tree] of [['white', tw], ['black', tb]]) {
@@ -693,13 +721,13 @@ async function renderOpp(user) {
     } catch {
       $('p', bar).innerHTML = '<span class="warn">Stockfish stopped responding.</span> Close other apps or tabs, then reopen this page and try again.';
       return;
-    }
+    } finally { delete trapRunning[user]; refreshSteps(user); }
     bar.hidden = true;
     renderOpp(user); // redraw so the game plan picks up the traps
   });
 }
 const PLAN_LINES = {};
-function planHtml(plan, user, cur, trW, trB) {
+function planHtml(plan, user, trW, trB) {
   if (!plan) return `<section class="card"><h2>Game plan</h2><p class="small muted">Download their games to build a plan.</p></section>`;
   const part = (key, title, sidePlan, flipped, trapColor, trapList) => {
     if (!sidePlan.points.length) return '';
@@ -715,9 +743,9 @@ function planHtml(plan, user, cur, trW, trB) {
     plan.manage.length ? `<h3>How to play the game</h3>${list(plan.manage)}` : '',
   ].join('');
   return `<section class="card plan-card"><h2>Game plan ${scoreInfo('si-plan')}</h2>${scoreNote('si-plan')}
-    <p class="small muted">${cur ? 'Built automatically from their games. The hand-written plan above goes deeper.' : 'Built automatically from their games: every number is counted from their results.'}</p>
+    <p class="small muted">Built automatically from their games: every number is counted from their results.</p>
     ${body || '<p class="muted">Not enough games yet for a plan. Download more of their games.</p>'}
-    ${plan.trapsChecked ? '' : '<p class="small muted">Tap <b>Find traps</b> below to add engine-checked traps to this plan.</p>'}</section>`;
+    ${plan.trapsChecked ? '' : '<p class="small muted">Tap <b>Find traps</b> above to add engine-checked traps to this plan.</p>'}</section>`;
 }
 /** Prep landing: every opponent as a row, with main rating, your record and what's been prepared. */
 async function renderOppList() {
@@ -735,7 +763,7 @@ async function renderOppList() {
     const h2h = headToHead(mine, theirs, o.user, P.me.user);
     const traps = ((await cachedTraps(o.user, 'white')) || []).length + ((await cachedTraps(o.user, 'black')) || []).length;
     const studied = theirs ? reviewedCount(theirs, await reviewCache(o.user)) : 0;
-    return { o, cur: curated(o.user), main, h2h, theirs, traps, info, studied, ai: !!(await aiCached(o.user)) };
+    return { o, main, h2h, theirs, traps, info, studied, ai: !!(await aiCached(o.user)) };
   }));
   // most games against you first, then the most recent; no games together last, by name
   rows.sort((a, b) => b.h2h.n - a.h2h.n || b.h2h.last - a.h2h.last || displayName(a.o.user).localeCompare(displayName(b.o.user)));
@@ -760,9 +788,9 @@ async function renderOppList() {
       <span class="opp-top"><b>${esc(displayName(r.o.user))}</b>${hasAlias(r.o.user) ? ` <span class="muted small">${esc(r.o.username)}</span>` : ''}<span class="chev" aria-hidden="true">›</span></span>
       ${ratingLine(r) ? `<span class="small">${ratingLine(r)}</span>` : ''}
       <span class="small muted">${vsLine(r)}</span>
-      <span class="badges"><span class="badge">${r.theirs ? (r.theirs.length ? `${r.theirs.length.toLocaleString()} of their games downloaded` : 'No games in the last 12 months') : pending(r.o.user) ? 'Downloading…' : 'Not downloaded yet'}</span>${reviewPending(r.o.user) || r.studied ? `<span class="badge" data-rv="${esc(r.o.user)}">${reviewPending(r.o.user) ? rvText(r.o.user) : studiedText(r.studied)}</span>` : ''}${r.traps ? `<span class="badge trap-badge">${r.traps} trap${r.traps > 1 ? 's' : ''} found</span>` : ''}${r.cur ? '<span class="badge">Hand-written prep</span>' : ''}${aiWriting(r.o.user) ? '<span class="badge">Writing AI prep…</span>' : r.ai ? '<span class="badge">AI prep</span>' : ''}</span>
+      <span class="badges"><span class="badge">${r.theirs ? (r.theirs.length ? `${r.theirs.length.toLocaleString()} of their games downloaded` : 'No games in the last 12 months') : pending(r.o.user) ? 'Downloading…' : 'Not downloaded yet'}</span>${reviewPending(r.o.user) || r.studied ? `<span class="badge" data-rv="${esc(r.o.user)}">${reviewPending(r.o.user) ? rvText(r.o.user) : studiedText(r.studied)}</span>` : ''}${r.traps ? `<span class="badge trap-badge">${r.traps} trap${r.traps > 1 ? 's' : ''} found</span>` : ''}${aiWriting(r.o.user) ? '<span class="badge">Writing AI prep…</span>' : r.ai ? '<span class="badge">AI prep</span>' : ''}</span>
     </a></li>`).join('')}</ul>`;
-  // ratings for opponents added without a lookup (e.g. the hand-written ones): fetch once, then redraw.
+  // ratings for opponents added without a lookup (e.g. from another device): fetch once, then redraw.
   // Redraw only if a lookup worked: offline, every lookup fails and redrawing would start them all again.
   const missing = rows.filter((r) => !r.info).map((r) => r.o.user);
   if (missing.length) {
@@ -801,7 +829,7 @@ async function renderExplore() {
   const rows = Object.entries(node?.c || {}).map(([s, x]) => ({ s, n: x.n, sc: pct(x.p, x.n) })).sort((a, b) => b.n - a.n);
   const total = rows.reduce((a, r) => a + r.n, 0);
   const theirTurn = game.turn() === (ex.color === 'white' ? 'w' : 'b');
-  const noGames = !(await gamesOf(ex.user)) && !curated(ex.user) && !(isMe && PREP.me?.user === ex.user);
+  const noGames = !(await gamesOf(ex.user));
   view.innerHTML = `
     <label class="picker" for="ex-who"><span class="eyebrow">Exploring</span>
       <select id="ex-who">${people.map(([u, l]) => `<option value="${esc(u)}"${u === ex.user ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></label>
@@ -836,8 +864,6 @@ async function drills() {
         why: `Stockfish's line: ${numbered(t.punish, plyOf(t.afterFen))}`,
       }));
     }
-    const cur = curated(o.user);
-    if (cur) cur.plans.forEach((p, i) => out.push({ id: `line:${o.user}:${i}`, group: `Prepared lines vs ${displayName(o.user)}`, kind: 'line', title: p.title, sub: p.eyebrow, plan: p }));
     const ai = await aiCached(o.user);
     const plain = (t) => String(t || '').replace(/<\/?b>/g, '');
     ai?.plan.plans.map(aiPlan).forEach((p, i) => p.line && out.push({ id: `ailine:${o.user}:${i}`, group: `Prepared lines vs ${displayName(o.user)}`, kind: 'line',
@@ -849,7 +875,6 @@ async function drills() {
     fen: pz.fen, best: pz.best, prompt: pz.winning ? 'You were winning here. Find the move that keeps it.' : 'Find the best move.',
     why: `In the game you played ${pz.played} (−${pz.loss} win-chance points). Stockfish's line: ${numbered(pz.line || [], plyOf(pz.fen))}`,
   }));
-  if (PREP.me?.user === P.me.user) PREP.me.puzzles.forEach((pz, i) => out.push({ id: `pz:${i}`, group: 'Your mistakes', kind: 'pos', title: pz.prompt, sub: pz.game, fen: pz.fen, best: pz.best, prompt: pz.prompt, why: `In the game you played ${pz.played}. ${pz.why}` }));
   return out;
 }
 const done = () => ls.get('done', {});
@@ -946,12 +971,10 @@ async function renderMe() {
   const synced = (await cachedGames(user))?.fetched;
   const pr = gs?.length ? profile(gs) : null;
   const s = gs ? summarize(gs, await reviewCache(user)) : null;
-  const cur = PREP.me?.user === user ? PREP.me : null;
   const [tw, tb] = await Promise.all([treeOf(user, 'white'), treeOf(user, 'black')]);
   const ph = s?.phases;
   view.innerHTML = `
-    <header class="head"><h1>${esc(P.me.name || 'You')}</h1><a class="eyebrow profile-link" href="https://www.chess.com/member/${encodeURIComponent(P.me.username)}" target="_blank" rel="noopener">chess.com/${esc(P.me.username)}</a>
-      ${cur ? `<p class="lede">${fig(cur.summary)}</p>` : ''}</header>
+    <header class="head"><h1>${esc(P.me.name || 'You')}</h1><a class="eyebrow profile-link" href="https://www.chess.com/member/${encodeURIComponent(P.me.username)}" target="_blank" rel="noopener">chess.com/${esc(P.me.username)}</a></header>
     ${stats(ratingStats(user))}
     <section class="card"><div class="row"><h2>Games</h2><button class="btn" id="sync">${gs ? 'Refresh' : 'Download games'}</button></div>
       <p class="small muted" id="sync-status" aria-live="polite" data-dl="${esc(user)}"${gs ? '' : ' data-empty'}>${pending(user) ? dlText(user) : gs ? gamesLine(gs, pr, synced) : 'Download your recent games to build your profile.'}</p></section>
@@ -969,8 +992,7 @@ async function renderMe() {
       <p class="small muted">${s?.reviewed ? `${s.reviewed} games reviewed. ` : ''}About 10 seconds per game. Keep the app open. Reviewed games are saved if you stop.</p></section>
     <section class="card"><h2>Lines that go badly for you ${scoreInfo('si-mine')}</h2>${scoreNote('si-mine')}
       <h3>As White</h3>${weakHtml(weakLines(tw, { minN: 4 }), 'white', user)}
-      <h3>As Black</h3>${weakHtml(weakLines(tb, { minN: 4 }), 'black', user)}</section>
-    ${cur ? `<section class="card curated"><p class="eyebrow">Hand-written notes</p><h2>Coach's notes</h2><h3>Strengths</h3>${list(cur.strengths)}<h3>Weaknesses</h3>${list(cur.weaknesses)}<h3>Training plan</h3>${list(cur.training, 'ol')}</section>` : ''}`;
+      <h3>As Black</h3>${weakHtml(weakLines(tb, { minN: 4 }), 'black', user)}</section>`;
   $('#sync').onclick = async (e) => { if (await sync(user, e.currentTarget, $('#sync-status'))) renderMe(); };
   const signal = { stop: false };
   $('#review').onclick = async (e) => {
@@ -1026,6 +1048,7 @@ view.addEventListener('click', (e) => {
     b.setAttribute('aria-expanded', String(open)); if (note) note.hidden = !open;
     return;
   }
+  if (b.dataset.step) { document.getElementById(b.dataset.step)?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); return; }
   if (b.dataset.opp) location.hash = `prep/${b.dataset.opp}`;
   if (b.dataset.drill) location.hash = `drill/${encodeURIComponent(b.dataset.drill)}`;
   if (b.dataset.go) location.hash = b.dataset.go;
@@ -1039,11 +1062,8 @@ view.addEventListener('click', (e) => {
 window.addEventListener('hashchange', route);
 
 (async () => {
-  await Promise.all([
-    fetch('prep.json').then((r) => r.json()).then((j) => { PREP = j; }).catch(() => { /* hand-written prep is optional */ }),
-    // only the Worker (wrangler.toml) answers api/health; on GitHub Pages or live-server this 404s and AI stays off
-    fetch('api/health').then((r) => r.json()).then((j) => { AI = !!j.ai; }).catch(() => {}),
-  ]);
+  // only the Worker (wrangler.toml) answers api/health; on GitHub Pages or live-server this 404s and AI stays off
+  await fetch('api/health').then((r) => r.json()).then((j) => { AI = !!j.ai; }).catch(() => {});
   // Back from Auth0's sign-in page: finish signing in and sync before the first screen, so it shows the synced data.
   const accounts = { data: syncedDataArrived, status: renderAccount };
   const stats = () => { startTracking({ api: hasApi, token }); renderStatsToggle(); };
