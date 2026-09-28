@@ -685,7 +685,8 @@ async function renderOpp(user) {
     <nav class="tracker" id="steps" aria-label="How their file is built">${stepsHtml(await stepsState(user))}</nav>
     <section class="card" id="step-games"><p class="eyebrow">${stepOf(1)} · Download games</p><div class="row"><h2>Games</h2><button class="btn" id="sync">${gs ? 'Refresh' : 'Download games'}</button></div>
       <p class="small muted" id="sync-status" aria-live="polite" data-dl="${esc(user)}"${gs ? '' : ' data-empty'}>${pending(user) ? dlText(user) : gs ? gamesLine(gs, pr, synced) : 'Download their recent games to build their file (up to 12 months).'}</p></section>
-    <section class="card" id="step-stockfish"><p class="eyebrow">${stepOf(2)} · Analyze opponent</p><h2>Traps: moves they repeat that lose</h2>
+    <section class="card" id="step-stockfish"><p class="eyebrow">${stepOf(2)} · Analyze opponent</p>
+      ${pr ? `<h2>How they play</h2>${list(describe(pr, false))}<h3>Traps: moves they repeat that lose</h3>` : '<h2>Traps: moves they repeat that lose</h2>'}
       <p class="small muted" data-rv="${esc(user)}"${rvLine ? '' : ' hidden'}>${rvLine}</p>
       <p class="small muted">Stockfish checks the positions they reach most often and flags moves they keep playing that the engine refutes.</p>
       ${current || tooFew ? '' : `<button class="btn primary" id="traps" ${tw.n + tb.n ? '' : 'disabled'}>${scanned ? 'Check again with Stockfish' : 'Find traps with Stockfish'}</button><p class="small muted">${scanned ? 'Their games have changed since the last check. ' : ''}Takes 1–3 minutes. It runs on your device. Keep the app open.</p>`}
@@ -693,7 +694,6 @@ async function renderOpp(user) {
       <div id="trap-list">${trapsSection(user, trW, trB, { current, tooFew, checked, nW: tw.n, nB: tb.n })}</div></section>
     ${aiSection(user, ai, AI, !!gs?.length, aiWriting(user), aiErrors[user])}
     ${planHtml(gs?.length ? gamePlan({ pr, tw, tb, trW, trB, myW, myB }) : null, user, trW, trB)}
-    ${pr ? `<section class="card"><h2>How they play</h2>${list(describe(pr, false))}</section>` : ''}
     <section class="card"><h2>Lines that go badly for them ${scoreInfo('si-weak')}</h2>${scoreNote('si-weak')}
       <h3>When they're White</h3>${weakHtml(weakLines(tw), 'white', user)}
       <h3>When they're Black</h3>${weakHtml(weakLines(tb), 'black', user)}</section>`;
