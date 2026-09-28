@@ -1,7 +1,7 @@
 import { Chess } from './vendor/chess.js';
 import { Board } from './board.js';
 import { PIECES } from './pieces.js';
-import { ls } from './store.js';
+import { idb, ls } from './store.js';
 import { player, savePlayers, syncGames, cachedGames } from './chesscom.js';
 import { buildTree, walk, profile, weakLines, pct, headToHead } from './stats.js';
 import { reviewGames, reviewCache, reviewedCount, summarize, findTraps, cachedTraps, trapScan, trapCandidates, TRAP_MIN_N, isGoodMove } from './analysis.js';
