@@ -126,43 +126,9 @@ class TestProfileBuild(TempRoot):
 class TestAppTrees(TempRoot):
     modules = (build_app,)
 
-    def test_tree_counts_and_last_game(self):
-        t, last = build_app.tree("testplayer", "white")
-        self.assertEqual(last, 1780000400)
-        self.assertEqual((t["n"], t["p"]), (2, 3))  # a win (2) and a draw (1)
-        e4 = t["c"]["e4"]
-        self.assertEqual((e4["n"], e4["p"]), (2, 3))
-        self.assertEqual({k: (v["n"], v["p"]) for k, v in e4["c"].items()}, {"e5": (1, 2), "c5": (1, 1)})
-        b, _ = build_app.tree("testplayer", "black")
-        self.assertEqual((b["n"], b["p"]), (2, 2))
-
-    def test_prune_keeps_early_plies_and_repeated_branches(self):
-        t, _ = build_app.tree("testplayer", "white")
-        d6 = t["c"]["e4"]["c"]["c5"]["c"]["Nf3"]["c"]["d6"]  # ply 4 survives with one game
-        self.assertNotIn("c", d6)                            # ply 5+ single-game branches are dropped
-        leaf = {"n": 2, "p": 2, "c": {}}
-        deep = {"n": 3, "p": 3, "c": {"a": {"n": 3, "p": 3, "c": {"b": leaf, "c": {"n": 1, "p": 0, "c": {}}}}}}
-        self.assertEqual(build_app.prune(deep, depth=4), {"n": 3, "p": 3, "c": {"a": {"n": 3, "p": 3, "c": {"b": {"n": 2, "p": 2}}}}})
-
-    def test_write_prep_has_what_the_app_reads(self):
-        shutil.copy(self.root / "data/testplayer.json", self.root / "data/slnyc.json")
-        friend = {"name": "Test", "summary": "s", "stats": [], "style": [], "weak": [], "checklist": [],
-                  "plans": [{"title": "t", "body": "b", "extra": "dropped"}]}
-        me = {"date": "1 Jan 2026", "summary": "s", "stats": [], "strengths": [], "weaknesses": [], "puzzles": [], "training": []}
-        with mock.patch.object(build_app, "APP", self.root / "app"), mock.patch.object(build_app, "FRIENDS", {"testplayer": friend}), \
-                mock.patch.object(build_app, "ME", me):
-            build_app.write_prep()
-            prep = json.loads((self.root / "app/prep.json").read_text())
-        self.assertEqual(set(prep), {"built", "me", "friends"})
-        self.assertEqual(set(prep["me"]["trees"]), {"white", "black"})
-        f = prep["friends"][0]
-        self.assertEqual(f["user"], "testplayer")
-        self.assertEqual(f["last_game"], 1780000400)
-        self.assertEqual(set(f["plans"][0]), {"eyebrow", "title", "body", "table", "line", "flip", "key_from", "caption", "watch"})
-
-    def test_without_notes_prep_is_empty(self):
-        with mock.patch.object(build_app, "APP", self.root / "app"), mock.patch.object(build_app, "ME", None), \
-                mock.patch.object(build_app, "stamp"):
+    def test_prep_is_always_empty(self):
+        # hand-written notes never reach app/, which is public, even when a local notes.py exists
+        with mock.patch.object(build_app, "APP", self.root / "app"), mock.patch.object(build_app, "stamp"):
             build_app.main()
             prep = json.loads((self.root / "app/prep.json").read_text())
         self.assertEqual(prep, {"built": None, "me": None, "friends": []})
@@ -183,14 +149,6 @@ class TestAppTrees(TempRoot):
         self.assertRegex(first, r"const CACHE = 'chess-prep-[0-9a-f]{10}';\nself.x = 1;")
         self.assertNotEqual((app / "sw.js").read_text(), first)
         self.assertIn("export const PIECES", (app / "pieces.js").read_text())
-
-    def test_main_keeps_published_prep_without_local_data(self):
-        with mock.patch.object(build_app, "write_prep") as wp, mock.patch.object(build_app, "stamp") as st, \
-                mock.patch.object(build_app, "ME", {}), contextlib.redirect_stdout(io.StringIO()) as out:
-            build_app.main()
-        wp.assert_not_called()
-        st.assert_called_once()
-        self.assertIn("keeping app/prep.json", out.getvalue())
 
 
 class TestExplore(TempRoot):

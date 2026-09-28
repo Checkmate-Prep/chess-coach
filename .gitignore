@@ -5,6 +5,8 @@ data/*
 !data/.gitkeep
 # Generated prep book (rebuilt by build_report.py)
 report.html
+# Hand-written prep: kept on your own machine only (this repo is public). Feeds report.html.
+notes.py
 __pycache__/
 .DS_Store
 # Claude Code: share project config (launch.json), keep personal settings out

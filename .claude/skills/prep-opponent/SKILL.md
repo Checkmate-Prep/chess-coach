@@ -2,16 +2,16 @@
 name: prep-opponent
 description: Write hand-written prep for a chess.com opponent (like the plans for the two friends in notes.py). Use when asked to "prepare", "prep" or "write a plan for" a specific opponent or chess.com username.
 argument-hint: <chess.com username> [display name]
-allowed-tools: Bash(python3 fetch.py *) Bash(python3 analyze.py *) Bash(python3 profile.py *) Bash(python3 explore.py *) Bash(python3 build_app.py) Bash(python3 build_report.py)
+allowed-tools: Bash(python3 fetch.py *) Bash(python3 analyze.py *) Bash(python3 profile.py *) Bash(python3 explore.py *) Bash(python3 build_report.py)
 ---
 
 # Prepare an opponent
 
-Hand-written prep is Claude's own analysis, written into `notes.py`. The pipeline supplies the evidence; you draw the conclusions and check every recommended line with Stockfish. The app shows the result as "Hand-written prep" on that opponent's file.
+Hand-written prep is Claude's own analysis, written into `notes.py`. The pipeline supplies the evidence; you draw the conclusions and check every recommended line with Stockfish. The result appears in the prep book (`report.html`); the app doesn't show hand-written prep.
 
-**Branch:** `notes.py` is kept off `main`; it lives on the `ai-prep` branch. Work there, and never merge it into `main`.
+**Local only:** `notes.py` is gitignored and must never be committed: this repo is public. If it's missing, ask the user for their copy (or restore an old version with `git show 72f215e:notes.py > notes.py`).
 
-**Privacy first.** Everything in `notes.py` ships in `app/prep.json`, which is public on GitHub Pages. Before starting, confirm with the user that publishing prep on this opponent is fine.
+**Privacy first.** `notes.py` is about real people. Keep it out of commits, `app/` and anything published.
 
 ## 1. Get the data
 
@@ -55,10 +55,10 @@ Add the opponent to `FRIENDS` in `notes.py`, following the existing entries:
 
 Copy rules: short plain sentences, "they" for opponents, numbers counted from real games, and say how many games a number rests on.
 
-## 4. Build and ship
+## 4. Build the prep book
 
 ```bash
-python3 build_report.py && python3 build_app.py
+python3 build_report.py
 ```
 
-Then follow the `ship-change` skill: branch, check the opponent's file in the app, PR, and a build-log entry (anonymize the opponent there).
+Open `report.html` to check the opponent's section. Nothing to commit: `notes.py` and `report.html` are both gitignored and stay on this machine.
