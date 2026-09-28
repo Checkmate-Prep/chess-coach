@@ -449,10 +449,14 @@ function describe(pr, you) {
   return out;
 }
 
-function weakHtml(lines, color, user) {
+/** Lines that score badly, worst first; with `top`, the rest fold away under "N more lines". */
+function weakHtml(lines, color, user, top = Infinity) {
   if (!lines.length) return '<p class="muted small">No line with enough games scores badly.</p>';
-  return `<ul class="lines">${lines.map((l) => `<li><button data-explore="${esc(user)}|${color}|${esc(l.moves.join(' '))}">
+  const ul = (ls) => `<ul class="lines">${ls.map((l) => `<li><button data-explore="${esc(user)}|${color}|${esc(l.moves.join(' '))}">
     <span class="mono">${fig(numbered(l.moves))}</span><span class="small muted">${l.n} games · scores <b class="lo">${l.score}%</b></span></button></li>`).join('')}</ul>`;
+  const rest = lines.slice(top);
+  return ul(lines.slice(0, top)) + (rest.length
+    ? `<details><summary class="small">${rest.length} more line${rest.length === 1 ? '' : 's'}</summary><div class="details-body">${ul(rest)}</div></details>` : '');
 }
 
 function trapHtml(t, key, user, color) {
@@ -685,7 +689,10 @@ async function renderOpp(user) {
     <nav class="tracker" id="steps" aria-label="How their file is built">${stepsHtml(await stepsState(user))}</nav>
     <section class="card" id="step-games"><p class="eyebrow">${stepOf(1)} · Download games</p><div class="row"><h2>Games</h2><button class="btn" id="sync">${gs ? 'Refresh' : 'Download games'}</button></div>
       <p class="small muted" id="sync-status" aria-live="polite" data-dl="${esc(user)}"${gs ? '' : ' data-empty'}>${pending(user) ? dlText(user) : gs ? gamesLine(gs, pr, synced) : 'Download their recent games to build their file (up to 12 months).'}</p>
-      ${pr ? `<h3>How they play</h3>${list(describe(pr, false))}` : ''}</section>
+      ${pr ? `<h3>How they play</h3>${list(describe(pr, false))}
+      <h3>Lines that go badly for them ${scoreInfo('si-weak')}</h3>${scoreNote('si-weak')}
+      <h4>When they're White</h4>${weakHtml(weakLines(tw), 'white', user, 3)}
+      <h4>When they're Black</h4>${weakHtml(weakLines(tb), 'black', user, 3)}` : ''}</section>
     <section class="card" id="step-stockfish"><p class="eyebrow">${stepOf(2)} · Analyze opponent</p>
 <h2>Traps: moves they repeat that lose</h2>
       <p class="small muted" data-rv="${esc(user)}"${rvLine ? '' : ' hidden'}>${rvLine}</p>
@@ -694,10 +701,7 @@ async function renderOpp(user) {
       ${progress('trap-progress')}
       <div id="trap-list">${trapsSection(user, trW, trB, { current, tooFew, checked, nW: tw.n, nB: tb.n })}</div></section>
     ${aiSection(user, ai, AI, !!gs?.length, aiWriting(user), aiErrors[user])}
-    ${planHtml(gs?.length ? gamePlan({ pr, tw, tb, trW, trB, myW, myB }) : null, user, trW, trB)}
-    <section class="card"><h2>Lines that go badly for them ${scoreInfo('si-weak')}</h2>${scoreNote('si-weak')}
-      <h3>When they're White</h3>${weakHtml(weakLines(tw), 'white', user)}
-      <h3>When they're Black</h3>${weakHtml(weakLines(tb), 'black', user)}</section>`;
+    ${planHtml(gs?.length ? gamePlan({ pr, tw, tb, trW, trB, myW, myB }) : null, user, trW, trB)}`;
   if (ai) mountPlans(ai.plan.plans.map(aiPlan), 'ai');
   mountTraps(trW, trB);
   view.querySelectorAll('[data-plan]').forEach((host) => { const pl = PLAN_LINES[host.dataset.plan]; if (pl) lineViewer(host, pl.line, pl.flipped, pl.keyFrom); });

@@ -75,6 +75,7 @@ th:not(:first-child),td:not(:first-child){text-align:right}
 .tabbar a[aria-current="true"]{color:var(--accent);font-weight:600}
 .tabbar a[aria-current="true"] span{background:color-mix(in srgb,var(--accent) 16%,transparent)}
 h3{font:600 .95rem var(--sans);margin:6px 0 0}
+h4{font:500 .85rem var(--sans);color:var(--muted);margin:4px 0 0}
 input{font:16px var(--sans);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:10px 12px;min-height:44px;flex:1;min-width:0}
 input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 label{display:block}
