@@ -87,6 +87,7 @@ form.row{margin:0}
 .progress{display:grid;gap:6px}
 .pbar{height:8px;background:var(--line);border-radius:4px;overflow:hidden}
 .pbar span{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
+.ai-thought{margin:10px 0 0;padding:6px 10px;border-left:3px solid var(--line);color:var(--muted);font-style:italic;font-size:.9em}
 .lines{list-style:none;padding:0;gap:6px}
 .lines button{width:100%;display:grid;gap:2px;text-align:left;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--ink);font:inherit}
 .lo{color:var(--bad)}

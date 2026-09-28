@@ -523,14 +523,15 @@ function aiSection(user, saved, canWrite, hasGames, writing, error) {
       <p class="small muted">Written ${ago(saved.at)} by Claude from ${saved.games.toLocaleString()} of their games. Check the lines on the board before relying on them.</p>`
     : `<p class="small muted">Claude reads the statistics on this page, and any traps Stockfish found, and writes a plan like the hand-written ones.${hasGames ? ' Find traps first for a better plan.' : ''}</p>`}
     ${canWrite ? `<button class="btn${plan ? '' : ' primary'}" id="ai-write" ${hasGames && !writing ? '' : 'disabled'}>${plan ? 'Rewrite with the latest games' : 'Write the plan'}</button>
-      <p class="small muted" id="ai-status" aria-live="polite">${writing ? 'Claude is writing the plan (about a minute). You can leave or close the app: it will be here when you come back.'
+      ${writing ? `${progress('ai-progress')}<p class="ai-thought" id="ai-thought" hidden></p>` : ''}
+      <p class="small muted" id="ai-status" aria-live="polite">${writing ? 'Takes about a minute. You can leave or close the app: the plan will be here when you come back.'
         : error ? `<span class="warn">${esc(error)}</span>` : hasGames ? (plan ? '' : 'Takes about a minute.') : 'Download their games first.'}</p>` : ''}</section>`;
 }
 // The Worker writes a plan in the background and the app asks for it every few seconds, so leaving the
 // page, or closing the app, loses nothing: jobs are kept in localStorage and picked up again on the next start.
 const AI_POLL = 4000, AI_GIVE_UP = 20 * 60 * 1000;
 const aiJobs = () => ls.get('aijobs', {});
-const aiWaits = {}, aiErrors = {}, aiStarting = {};
+const aiWaits = {}, aiErrors = {}, aiStarting = {}, aiProgress = {};
 const aiWriting = (user) => !!(aiStarting[user] || aiJobs()[user]);
 function setAiJob(user, job) {
   const jobs = aiJobs();
@@ -562,20 +563,49 @@ async function saveAi(user, plan) {
 }
 /** Wait for a user's job to finish (one loop per job, however often it's asked), then save the plan or the error. */
 function waitAi(user) {
-  aiWaits[user] ||= (async () => {
+  if (aiWaits[user]) return;
+  const tick = setInterval(() => paintAi(user), 1000);
+  aiWaits[user] = (async () => {
     for (;;) {
       const j = aiJobs()[user];
       if (!j) return;
       if (Date.now() - j.at > AI_GIVE_UP) { aiErrors[user] = 'The plan took too long. Try again.'; break; }
-      await new Promise((r) => setTimeout(r, AI_POLL));
       let out;
-      try { out = await (await fetch(`api/prep?job=${encodeURIComponent(j.job)}`)).json(); } catch { continue; } // offline for a moment: keep waiting
-      if (out.pending) continue;
+      try { out = await (await fetch(`api/prep?job=${encodeURIComponent(j.job)}`)).json(); } catch { out = { pending: true }; } // offline for a moment: keep waiting
+      if (out.pending) {
+        if (out.progress) aiProgress[user] = out.progress;
+        paintAi(user);
+        await new Promise((r) => setTimeout(r, AI_POLL));
+        continue;
+      }
       if (out.plan) await saveAi(user, out.plan); else aiErrors[user] = out.error || 'The AI service failed. Try again later.';
       break;
     }
     setAiJob(user, null);
-  })().finally(() => { delete aiWaits[user]; aiChanged(user); });
+  })().finally(() => { clearInterval(tick); delete aiWaits[user]; delete aiProgress[user]; aiChanged(user); });
+}
+/** Where the writing is, from the Worker's progress: bar position (0-100) and what to say. */
+function aiStage(user) {
+  const p = aiProgress[user];
+  if (aiStarting[user] || !p) return [5, aiStarting[user] ? 'Sending their statistics' : 'Starting'];
+  if (p.stage === 'thinking') return [35, 'Thinking'];
+  if (p.stage === 'writing') {
+    if (p.section === 'checklist') return [96, 'Writing the game-day checklist'];
+    if (p.section === 'weak') return [92, 'Listing where they go wrong'];
+    return [Math.min(90, 60 + 8 * (p.plans || 0)), `Writing the plan: line ${Math.max(1, p.plans || 0)}`];
+  }
+  return [10, 'Reading their statistics'];
+}
+const clock = (ms) => { const s = Math.max(0, Math.floor(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+/** Update the opponent's AI card in place while a plan is written (a full redraw would rebuild the boards). */
+function paintAi(user) {
+  if (location.hash !== `#prep/${user}`) return;
+  const bar = $('#ai-progress'), thought = $('#ai-thought');
+  if (!bar) return;
+  const [pct, text] = aiStage(user);
+  setProgress(bar, pct, 100, `${text} · ${clock(Date.now() - (aiJobs()[user]?.at || Date.now()))}`);
+  const t = aiProgress[user]?.thought;
+  if (thought) { thought.hidden = !t; thought.textContent = t || ''; } // textContent: Claude's words are shown as text, never as HTML
 }
 /** At start: pick up plans that were still being written when the app closed. */
 function resumeAi() { Object.keys(aiJobs()).forEach(waitAi); }
@@ -637,6 +667,7 @@ async function renderOpp(user) {
   view.querySelectorAll('[data-plan]').forEach((host) => { const pl = PLAN_LINES[host.dataset.plan]; if (pl) lineViewer(host, pl.line, pl.flipped, pl.keyFrom); });
   $('#ai-write')?.addEventListener('click', () => { writeAi(user); renderOpp(user); });
   if (aiJobs()[user]) waitAi(user);
+  if (aiWriting(user)) paintAi(user);
   if (!ls.get(`player:${user}`, null)) {
     player(user).then((info) => { ls.set(`player:${user}`, info); if (location.hash === `#prep/${user}`) renderOpp(user); }).catch(() => {});
   }
