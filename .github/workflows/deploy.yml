@@ -8,9 +8,14 @@ name: Deploy to Cloudflare
 # Production also deploys the Auth0 Action that notifies new sign-ups (ops/auth0/), once the environment has
 # the secrets AUTH0_MGMT_CLIENT_SECRET and NTFY_TOPIC, and AUTH0_MGMT_CLIENT_ID (a variable, since it isn't
 # secret; a secret of that name works too). See README.
+# Where each run goes: a push to main deploys production; each push to an open pull request from this repository
+# deploys that PR to dev (dev.checkmateprep.com shows whichever PR pushed last); test, or any branch, by hand.
 on:
   push:
-    branches: [main, dev]
+    branches: [main]
+    paths: ["app/**", "worker/**", "ops/**", "wrangler.toml", "package.json", "package-lock.json", ".github/workflows/deploy.yml"]
+  pull_request:
+    types: [opened, synchronize, reopened]
     paths: ["app/**", "worker/**", "ops/**", "wrangler.toml", "package.json", "package-lock.json", ".github/workflows/deploy.yml"]
   workflow_dispatch:
     inputs:
@@ -24,20 +29,22 @@ permissions:
   contents: read
 
 concurrency:
-  group: deploy-${{ github.event.inputs.environment || (github.ref_name == 'main' && 'production' || 'dev') }}
+  group: deploy-${{ github.event.inputs.environment || (github.event_name == 'push' && 'production' || 'dev') }}
   cancel-in-progress: false
 
 jobs:
   deploy:
+    # pull requests from forks get no secrets: nothing to deploy
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     environment:
-      name: ${{ github.event.inputs.environment || (github.ref_name == 'main' && 'production' || 'dev') }}
+      name: ${{ github.event.inputs.environment || (github.event_name == 'push' && 'production' || 'dev') }}
       url: ${{ steps.url.outputs.url }}
     env:
       HAS_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
       HAS_AUTH0_MGMT: ${{ secrets.AUTH0_MGMT_CLIENT_SECRET != '' }}
       HAS_AI_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
-      TARGET: ${{ github.event.inputs.environment || (github.ref_name == 'main' && 'production' || 'dev') }}
+      TARGET: ${{ github.event.inputs.environment || (github.event_name == 'push' && 'production' || 'dev') }}
     steps:
       - if: env.HAS_TOKEN != 'true'
         run: echo "::notice::No CLOUDFLARE_API_TOKEN in this GitHub Environment yet, so nothing was deployed to Cloudflare. See README (Accounts and sync)."
@@ -58,7 +65,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID || secrets.CLOUDFLARE_ACCOUNT_ID }}
-          environment: ${{ github.event.inputs.environment || (github.ref_name == 'main' && 'production' || 'dev') }}
+          environment: ${{ github.event.inputs.environment || (github.event_name == 'push' && 'production' || 'dev') }}
           # upload the key only when this environment has one (the action fails on a secret it can't find)
           secrets: ${{ env.HAS_AI_KEY == 'true' && 'ANTHROPIC_API_KEY' || '' }}
       # The shared game store (worker/games.js) keeps each file 180 days at most (ops/r2/games-lifecycle.json).

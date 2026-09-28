@@ -70,7 +70,7 @@ Signing in is optional. It keeps your chess.com username, your opponents, the na
 | `worker/index.js`, `worker/sync.js`, `worker/auth.js` | `/api/config` (is sign-in set up?), `/api/sync` (merge and store, delete), checking Auth0 tokens |
 | `worker/events.js`, `app/track.js` | `/api/event`: which screens are opened (see Monitoring) |
 | `wrangler.toml` | The Worker and its environments (`dev`, `test`, `production`): Auth0 settings, D1 database, usage stats dataset, rate limit |
-| `.github/workflows/deploy.yml` | Deploys `main` to production and `dev` to dev. Run it by hand to deploy any environment |
+| `.github/workflows/deploy.yml` | Deploys `main` to production, and each push to an open pull request to dev (dev shows whichever PR pushed last). Run it by hand to deploy test, or any branch to any environment |
 | `tests/syncdoc.test.mjs`, `tests/resultsdoc.test.mjs`, `tests/results.test.mjs`, `tests/games.test.mjs` | Merge rules, results and the game store (the Worker's SQL runs on an in-memory SQLite), run with the other app tests (`npm test`) |
 
 ### Game store
@@ -152,7 +152,7 @@ One-time setup:
    Users are shared by both applications, so test sign-ins show up in the production user list; delete them afterwards. Synced data stays separate (each environment has its own D1 database). The password database is switched off for both applications. Under Authentication, turn on Google and/or Passwordless Email. Auth0's built-in email sender is for testing only: for sign-in codes in production, set up your own email provider in Auth0 (Resend, Amazon SES, …), sending from an address on `checkmateprep.com` and adding the provider's SPF and DKIM records in Cloudflare DNS. For a branded sign-in page, add the Auth0 custom domain `login.checkmateprep.com` (free plan, needs a card on file): create the CNAME Auth0 gives you in Cloudflare DNS with the proxy **off** (grey cloud), then use `login.checkmateprep.com` as `AUTH0_DOMAIN` (done for production). Google's OAuth client needs both `https://login.checkmateprep.com/login/callback` and `https://checkmateprep.us.auth0.com/login/callback` as redirect URIs, since the dev application signs in on the tenant's own address.
 2. **wrangler.toml:** `AUTH0_DOMAIN`, `AUTH0_CLIENT_ID` and `AUTH0_AUDIENCE` per environment. They're public values, not secrets. Production uses the Checkmate Prep application; dev and test share Checkmate Prep - non prod. Left empty, an environment runs without accounts.
 3. **Cloudflare:** create an API token from the **Edit Cloudflare Workers** template (with D1 and R2 edit access), and note your account ID.
-4. **GitHub:** in **Settings → Environments**, create `dev`, `test` and `production`, each with the secret `CLOUDFLARE_API_TOKEN` and the variable `CLOUDFLARE_ACCOUNT_ID` (not secret; a secret of that name also works). All three use the Cloudflare account that holds checkmateprep.com, so the same token and ID work for each. Until then, the deploy workflow skips Cloudflare and says so.
+4. **GitHub:** in **Settings → Environments**, create `dev`, `test` and `production`, each with the secret `CLOUDFLARE_API_TOKEN` and the variable `CLOUDFLARE_ACCOUNT_ID` (not secret; a secret of that name also works). All three use the Cloudflare account that holds checkmateprep.com, so the same token and ID work for each. Until then, the deploy workflow skips Cloudflare and says so. Pull requests deploy to `dev` from their own branch, so the `dev` environment's **Deployment branches and tags** must allow all branches (the default, "No restriction").
 
 The first deploy of each environment creates its D1 database and its R2 bucket for the game store, and the Worker creates its tables on first use. Production is then at `https://checkmateprep.com`, and dev and test at `https://dev.checkmateprep.com` and `https://test.checkmateprep.com`. All three must deploy to the Cloudflare account that holds the checkmateprep.com zone, since deploying creates their DNS records.
 
@@ -179,7 +179,7 @@ Everything except secrets is in the repo:
 | --- | --- |
 | `wrangler.toml` | The Worker and its environments (`dev`, `test`, `production`): model, daily limits, rate limits, KV cache |
 | `worker/prep.js`, `worker/prompt.js` | The `/api/prep` endpoint, the instructions for Claude and the output schema |
-| `.github/workflows/deploy.yml` | Deploys `main` to production and `dev` to dev. Run it by hand to deploy any environment |
+| `.github/workflows/deploy.yml` | Deploys `main` to production, and each push to an open pull request to dev (dev shows whichever PR pushed last). Run it by hand to deploy test, or any branch to any environment |
 
 One-time setup:
 

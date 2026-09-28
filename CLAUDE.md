@@ -72,7 +72,7 @@ python3 -m unittest discover -s tests  # pipeline tests
 
 ## Workflow
 
-- One branch and one PR per change, from an up-to-date `main`. Pushing `app/**` to `main` deploys to GitHub Pages (`.github/workflows/pages.yml`).
+- One branch and one PR per change, from an up-to-date `main`. Each push to a PR deploys it to dev.checkmateprep.com (`.github/workflows/deploy.yml`; dev shows whichever PR pushed last). Merging to `main` deploys production, and `app/**` also to GitHub Pages (`.github/workflows/pages.yml`).
 - When a PR grows, update its title and description to match. PR descriptions list what was tested and what wasn't.
 - Commit messages say what changed and why.
 - After each PR, add an entry to docs/build-log.md, lightly clean the prompt where there is need for privacy.

@@ -601,3 +601,12 @@ It also flags that Stockfish's GPL licence is the one real legal grey area. Save
 - **Results on the account:** a new D1 table `results` holds one row per result: each reviewed game, each trap scan per colour, each AI plan. The shapes are the ones the app already keeps in IndexedDB (`app/resultsdoc.js` validates them). A review is written once, and the trap scan of more games and the newest plan win. After each sync the device pulls what changed and uploads what it computed. On a new device the automatic analysis waits for that pull, so Stockfish only runs on what's missing. "Delete my data" removes these rows too.
 
 Along the way: `compact` in `chesscom.js` split into `neutral` (stored) and `side` (the app's record, unchanged); a review running while a pull lands no longer overwrites the pulled games; the service worker now precaches the two new modules. The tests add a D1 stand-in on `node:sqlite` (the Worker's SQL runs for real), the game store with a fake R2, and two devices syncing through the real handler. All 179 JS and 17 Python tests pass, and dry-run deploys pass for all three environments. In a headless browser against `wrangler dev`, the app got its games from a seeded local store, and fell back to chess.com when the store answered 503. Not tested: real sign-in across two devices, real chess.com traffic through the Worker (not reachable from the session), and the R2 lifecycle rule on a real deploy.
+
+### 63. Pull requests deploy to dev
+> deploy to dev
+
+> should we have a dev branch on the repo, that triggers deploy onto dev env when a pr is merged? currently we don't have a dev branch.
+
+*Choice: PR branches deploy to dev*
+
+**What Claude did:** the deploy workflow deployed `main` to production and a `dev` branch to dev, but there was no `dev` branch, so dev only updated when someone ran the workflow by hand. Claude laid out three options: PRs deploy to dev, a long-lived `dev` branch that PRs merge into before `main`, or manual only. The long-lived branch would mean two merges per change and branches that drift apart. The user chose PR deploys. Now every push to an open pull request from this repository deploys it to dev.checkmateprep.com (whichever PR pushed last is what dev shows). Merging to `main` still deploys production, and the workflow can still be run by hand for test or any branch. PRs from forks are skipped, since they get no secrets. The `dev` GitHub Environment has to allow all branches. This rides in the same PR as #62, whose first deploy to dev it provides.
