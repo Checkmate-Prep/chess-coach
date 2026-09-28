@@ -521,7 +521,7 @@ function aiSection(user, saved, canWrite, hasGames, writing, error) {
   if (!saved && !canWrite) return '';
   const plan = saved?.plan;
   const plans = plan ? plan.plans.map(aiPlan) : [];
-  return `<section class="card ai" id="ai"><p class="eyebrow">${canWrite ? `${stepOf(3)} · Claude` : 'AI-written prep'}</p><h2>${plan ? "Claude's plan" : 'Write a plan with Claude'}</h2>
+  return `<section class="card ai" id="ai"><p class="eyebrow">${canWrite ? `${stepOf(3)} · Write game plan` : 'AI-written prep'}</p><h2>${plan ? "Claude's plan" : 'Write a plan with Claude'}</h2>
     ${plan ? `<p>${rich(plan.summary)}</p>${plansHtml(plans, 'ai', user)}
       <details><summary><b>Where they go wrong</b></summary><div class="details-body"><ul>${plan.weak.map((x) => `<li>${rich(x)}</li>`).join('')}</ul></div></details>
       <details><summary><b>Game-day checklist</b></summary><div class="details-body"><ol>${plan.checklist.map((x) => `<li>${rich(x)}</li>`).join('')}</ol></div></details>
@@ -629,12 +629,12 @@ async function stepsState(user) {
   const steps = [
     { title: 'Download games', target: 'step-games', next: 'Next: download them',
       ...(pending(user) ? { state: 'run', text: dlText(user) } : gs ? { state: 'done', text: `${gs.length.toLocaleString()} game${gs.length === 1 ? '' : 's'}` } : { state: 'todo', text: 'Not downloaded yet' }) },
-    { title: 'Stockfish', target: 'step-stockfish', next: (scW || scB) ? 'Next: check again' : 'Next: find traps',
+    { title: 'Analyze opponent', target: 'step-stockfish', next: (scW || scB) ? 'Next: check again' : 'Next: find traps',
       ...(trapRunning[user] ? { state: 'run', text: 'Finding traps…' } : reviewPending(user) ? { state: 'run', text: rvText(user) }
         : tooFew ? { state: 'done', text: 'Too few games for traps' } : current ? { state: 'done', text: traps ? `${traps} trap${traps === 1 ? '' : 's'} found` : 'No traps found' }
           : { state: 'todo', text: (scW || scB) ? 'Games changed: check again' : 'Not checked yet' }) },
   ];
-  if (AI) steps.push({ title: "Claude's plan", target: 'ai', next: 'Next: write the plan',
+  if (AI) steps.push({ title: 'Write game plan', target: 'ai', next: 'Next: write the plan',
     ...(aiWriting(user) ? { state: 'run', text: aiStage(user)[1] } : ai ? { state: 'done', text: `Written ${ago(ai.at)}` } : { state: 'todo', text: 'Not written yet' }) });
   const first = steps.find((x) => x.state !== 'done');
   if (first?.state === 'todo') { first.isNext = true; first.text = first.next; }
@@ -683,9 +683,9 @@ async function renderOpp(user) {
     <header class="head"><h1>${esc(displayName(user))}</h1><a class="eyebrow profile-link" href="https://www.chess.com/member/${encodeURIComponent(name)}" target="_blank" rel="noopener">chess.com/${esc(name)}</a></header>
     ${stats([...ratingStats(user), ...(h2h.n ? [[`${r[0]}–${r[1]}–${r[2]}`, 'Your record vs them (W–D–L)']] : [])])}
     <nav class="tracker" id="steps" aria-label="How their file is built">${stepsHtml(await stepsState(user))}</nav>
-    <section class="card" id="step-games"><p class="eyebrow">${stepOf(1)} · chess.com</p><div class="row"><h2>Games</h2><button class="btn" id="sync">${gs ? 'Refresh' : 'Download games'}</button></div>
+    <section class="card" id="step-games"><p class="eyebrow">${stepOf(1)} · Download games</p><div class="row"><h2>Games</h2><button class="btn" id="sync">${gs ? 'Refresh' : 'Download games'}</button></div>
       <p class="small muted" id="sync-status" aria-live="polite" data-dl="${esc(user)}"${gs ? '' : ' data-empty'}>${pending(user) ? dlText(user) : gs ? gamesLine(gs, pr, synced) : 'Download their recent games to build their file (up to 12 months).'}</p></section>
-    <section class="card" id="step-stockfish"><p class="eyebrow">${stepOf(2)} · Stockfish</p><h2>Traps: moves they repeat that lose</h2>
+    <section class="card" id="step-stockfish"><p class="eyebrow">${stepOf(2)} · Analyze opponent</p><h2>Traps: moves they repeat that lose</h2>
       <p class="small muted" data-rv="${esc(user)}"${rvLine ? '' : ' hidden'}>${rvLine}</p>
       <p class="small muted">Stockfish checks the positions they reach most often and flags moves they keep playing that the engine refutes.</p>
       ${current || tooFew ? '' : `<button class="btn primary" id="traps" ${tw.n + tb.n ? '' : 'disabled'}>${scanned ? 'Check again with Stockfish' : 'Find traps with Stockfish'}</button><p class="small muted">${scanned ? 'Their games have changed since the last check. ' : ''}Takes 1–3 minutes. It runs on your device. Keep the app open.</p>`}
