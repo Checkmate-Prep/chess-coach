@@ -1,17 +1,19 @@
 // Optional account: sign in with Auth0 to keep the same opponents, names and drill progress on every device.
 // Only works when the app is served by the Worker (worker/index.js), which says whether accounts are set up
 // at /api/config. On GitHub Pages or a plain static server there is no /api, and accounts stay hidden.
-// What syncs and how conflicts merge: syncdoc.js.
+// What syncs and how conflicts merge: syncdoc.js. Analysis results (reviews, traps, AI plans) sync alongside: results.js.
 import { idb, ls } from './store.js';
 import { fromLocal, merge, toLocal } from './syncdoc.js';
+import { syncResults, expectPull, endPull } from './results.js';
 
 const SYNCED = ['profile', 'done'];
 /** What the UI shows. `at`: last successful sync. */
 export const account = { enabled: false, signedIn: false, email: '', at: ls.get('sync-at', 0), busy: false, error: '' };
 /** True once this server answered /api/config (the Worker). False on GitHub Pages, a static server, or offline. */
 export let hasApi = false;
-let client = null, applying = false, timer = null, running = null, again = false;
-let onData = () => {}, onStatus = () => {};
+let client = null, applying = false, timer = null, resTimer = null, running = null, again = false;
+let onData = () => {}, onStatus = () => {}, onResults = () => {};
+const RESULTS_DELAY = 20000;            // new results upload this long after the last one (reviews come every few seconds)
 
 const isCallback = () => { const q = new URLSearchParams(location.search); return q.has('state') && (q.has('code') || q.has('error')); };
 /** True when the page was opened by Auth0 returning from sign-in: finish that before showing anything. */
@@ -19,10 +21,11 @@ export const returningFromSignIn = isCallback;
 
 /**
  * Set up accounts if this server offers them. `data()` runs after synced data arrived from another device,
- * `status()` after anything shown in the account card changed.
+ * `results(players)` after analysis results for those players arrived, `status()` after anything shown in the
+ * account card changed.
  */
-export async function startSync({ data, status }) {
-  onData = data; onStatus = status;
+export async function startSync({ data, status, results = () => {} }) {
+  onData = data; onStatus = status; onResults = results;
   // Offline, the last answer is reused so a signed-in device keeps its account; a server without /api clears it.
   let cfg = ls.get('auth-config', null);
   try {
@@ -49,7 +52,10 @@ export async function startSync({ data, status }) {
   }
   account.signedIn = await client.isAuthenticated().catch(() => false);
   if (account.signedIn) account.email = (await client.getUser())?.email || '';
-  ls.watch((k) => { if (!applying && account.signedIn && SYNCED.includes(k)) schedule(1500); });
+  ls.watch((k) => {
+    if (!applying && account.signedIn && SYNCED.includes(k)) schedule(1500);
+    if (k === 'results-dirty' && account.signedIn) { clearTimeout(resTimer); resTimer = setTimeout(syncNow, RESULTS_DELAY); }
+  });
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') schedule(0); });
   window.addEventListener('online', () => schedule(0));
   onStatus();
@@ -66,6 +72,7 @@ function schedule(ms) {
 export async function syncNow() {
   if (!client || !account.signedIn) return;
   if (running) { again = true; return running; }
+  expectPull(); clearTimeout(resTimer); // this sync uploads everything marked so far
   running = (async () => {
     account.busy = true; onStatus();
     try {
@@ -80,12 +87,18 @@ export async function syncNow() {
         apply(out.doc, prev);
         break;
       }
+      const p = ls.get('profile', null);
+      const players = p?.me ? [p.me.user, ...p.opps.map((o) => o.user)] : [];
+      const changed = await syncResults(await client.getTokenSilently(), players);
+      if (changed.length) onResults(changed);
+      if (!Object.keys(ls.get('results-dirty', {})).length) clearTimeout(resTimer); // (the upload itself rewrote the list)
       account.at = Date.now(); ls.set('sync-at', account.at); account.error = '';
     } catch (e) {
       if (['login_required', 'missing_refresh_token', 'invalid_grant'].includes(e.error) || e.status === 401) {
         account.signedIn = false; account.error = 'You were signed out. Sign in again to keep syncing.';
       } else account.error = e instanceof TypeError || navigator.onLine === false ? "Offline. Changes sync when you're back online." : e.message;
     } finally {
+      endPull();
       account.busy = false; running = null; onStatus();
       if (again) { again = false; schedule(0); }
     }

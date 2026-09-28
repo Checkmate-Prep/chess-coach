@@ -39,7 +39,7 @@ Players are set in `coach.py` (`ME`, `FRIENDS`). The engine analysis is cached p
 
 ## Web app
 
-`app/` is an installable web app (PWA). Its home is **https://checkmateprep.com**, served by the Cloudflare Worker (with accounts). The GitHub Pages copy at https://checkmate-prep.github.io/chess-coach/ stays up without accounts. Open it on a device and choose **Add to Home Screen**. Anyone can use it: enter your chess.com username, then add the people you play. No account is needed, because everything used is public on chess.com. An optional account keeps your opponents, names and drill progress the same on your phone and laptop.
+`app/` is an installable web app (PWA). Its home is **https://checkmateprep.com**, served by the Cloudflare Worker (with accounts). The GitHub Pages copy at https://checkmate-prep.github.io/chess-coach/ stays up without accounts. Open it on a device and choose **Add to Home Screen**. Anyone can use it: enter your chess.com username, then add the people you play. No account is needed, because everything used is public on chess.com. An optional account keeps your opponents, names, drill progress, Stockfish's analysis and AI plans the same on your phone and laptop.
 
 - **Prep:** an automatic file on each opponent, built locally from up to 1,500 of their recent games. It covers ratings, your head-to-head record, how they play, and the lines where they score badly. **Find traps** runs Stockfish on the device over the positions they reach most often and flags moves they keep repeating that the engine refutes, with the punishing line.
 - **Game plan:** every opponent file gets an automatic plan for both colours: which opening to play (preferring ones you already play, and ranked on a sample-adjusted score so a few lucky games can't decide it), what they usually answer, the engine-checked trap to aim for, lines where they score badly, and advice on time control, clock and game length. Every number is counted from their games; no AI writes it.
@@ -53,22 +53,35 @@ Hand-written prep (`notes.py`) is a local file, kept out of git because this rep
 
 ### Accounts and sync
 
-Signing in is optional. It keeps your chess.com username, your opponents, the names you gave them and your drill progress the same on every device. Games and engine results aren't synced: each device downloads and analyses them itself.
+Signing in is optional. It keeps your chess.com username, your opponents, the names you gave them and your drill progress the same on every device. It also keeps what a device worked out, so another device doesn't redo it: Stockfish's review of each game, the trap scans and Claude's game plans. Games themselves come from the shared game store (below), or from chess.com.
 
 - **Sign-in** is handled by [Auth0](https://auth0.com) (free plan): Google, or a one-time code by email. The app never sees a password.
 - **Sync** runs on a Cloudflare Worker (`worker/`) with a D1 database. Each account has one small document (`app/syncdoc.js`). On every change, and whenever the app comes back into view, a device sends its copy and gets back the merge with the other devices'. For each opponent the latest change wins; drill progress from all devices adds up. Removals reach the other devices too.
+- **Analysis results** (`app/results.js`, rules in `app/resultsdoc.js`, served by `worker/results.js`) are kept in D1 too, one row per result: each reviewed game, each trap scan (per colour) and each AI plan, for each player. After each sync a device pulls the rows that changed since its last pull, then uploads what it computed since (20 seconds after the last new result). A game's review never changes; the trap scan of more games and the newest plan win. On a new device the automatic analysis waits for that first pull, so it only runs Stockfish on what's still missing, and the AI plan shows without being written (and paid for) again.
 - **Where it runs:** accounts only appear when the app is served by the Worker. On GitHub Pages (no `/api`) the app works as before, without the Sign in button.
-- **Privacy:** for sync, the server stores the Auth0 user id and that document, nothing else. **Delete account** in Settings removes it, and the copy on that device too. Signing out also clears the device, so the next visit starts from the welcome screen. Usage stats are separate (below).
+- **Privacy:** for sync, the server stores the Auth0 user id, that document and the analysis results, nothing else. **Delete account** in Settings removes them all, and the copy on that device too. The shared game store holds nothing about accounts, so it isn't touched. Signing out also clears the device, so the next visit starts from the welcome screen. Usage stats are separate (below).
 
 | File | What it does |
 | --- | --- |
 | `app/sync.js` | Sign-in (Auth0 SPA SDK, vendored in `app/vendor/auth0/`), when to sync, applying changes from other devices |
 | `app/syncdoc.js` | What syncs and how two copies merge; shared by the app and the Worker |
+| `app/results.js`, `app/resultsdoc.js`, `worker/results.js` | Analysis results on the account: when they upload and pull, what's accepted and which copy wins; `/api/results` |
+| `worker/games.js`, `scripts/forget-player.mjs` | The shared game store (`/api/games`) and removing a player from it |
 | `worker/index.js`, `worker/sync.js`, `worker/auth.js` | `/api/config` (is sign-in set up?), `/api/sync` (merge and store, delete), checking Auth0 tokens |
 | `worker/events.js`, `app/track.js` | `/api/event`: which screens are opened (see Monitoring) |
 | `wrangler.toml` | The Worker and its environments (`dev`, `test`, `production`): Auth0 settings, D1 database, usage stats dataset, rate limit |
 | `.github/workflows/deploy.yml` | Deploys `main` to production and `dev` to dev. Run it by hand to deploy any environment |
-| `tests/syncdoc.test.mjs` | Merge rules, run with the other app tests (`npm test`) |
+| `tests/syncdoc.test.mjs`, `tests/resultsdoc.test.mjs`, `tests/results.test.mjs`, `tests/games.test.mjs` | Merge rules, results and the game store (the Worker's SQL runs on an in-memory SQLite), run with the other app tests (`npm test`) |
+
+### Game store
+
+When the app is served by the Worker, it downloads games through `/api/games` (`worker/games.js`) instead of calling chess.com itself. The Worker keeps one copy of each player's games in an R2 bucket (`GAMES`), shared by every user: `games/<player>/archives.json` (their list of months, reused for an hour) and `games/<player>/<YYYY-MM>.json` (one month's games). A month fetched after it ended never changes and is never fetched again; the current month is fetched again once its copy is an hour old. Games are stored from neither player's side and without the PGN: moves, clocks, ratings, results, time control and opening (`neutral` in `app/chesscom.js`), about 1 KB each.
+
+- **Nothing about who asked:** no account, no address, no log of which player was looked up. Deleting an account doesn't touch the store, because nothing in it belongs to an account.
+- **If it fails** (chess.com busy, no bucket, rate limit), the app calls chess.com directly, as it does on GitHub Pages.
+- **Expiry:** the deploy workflow sets a lifecycle rule (`ops/r2/games-lifecycle.json`) that deletes files 180 days after they were written. The Cloudflare API token needs R2 edit access (the Edit Cloudflare Workers template includes it); without it the deploy warns and carries on.
+- **A player who asks to be removed:** `npm run forget-player -- <username> --env production` puts them on a deny-list (`deny:<username>` in the `PREP` KV namespace), so the Worker never stores them again, and deletes their files. A player chess.com no longer knows (404) is deleted automatically.
+- **Cost:** about 1.5 MB per player, so 1,000 players is about 1.5 GB, inside R2's free 10 GB. Deploying creates the bucket (`chess-coach-games-dev`, `-test`, `-prod`).
 
 ### Monitoring
 
@@ -138,10 +151,10 @@ One-time setup:
 
    Users are shared by both applications, so test sign-ins show up in the production user list; delete them afterwards. Synced data stays separate (each environment has its own D1 database). The password database is switched off for both applications. Under Authentication, turn on Google and/or Passwordless Email. Auth0's built-in email sender is for testing only: for sign-in codes in production, set up your own email provider in Auth0 (Resend, Amazon SES, …), sending from an address on `checkmateprep.com` and adding the provider's SPF and DKIM records in Cloudflare DNS. For a branded sign-in page, add the Auth0 custom domain `login.checkmateprep.com` (free plan, needs a card on file): create the CNAME Auth0 gives you in Cloudflare DNS with the proxy **off** (grey cloud), then use `login.checkmateprep.com` as `AUTH0_DOMAIN` (done for production). Google's OAuth client needs both `https://login.checkmateprep.com/login/callback` and `https://checkmateprep.us.auth0.com/login/callback` as redirect URIs, since the dev application signs in on the tenant's own address.
 2. **wrangler.toml:** `AUTH0_DOMAIN`, `AUTH0_CLIENT_ID` and `AUTH0_AUDIENCE` per environment. They're public values, not secrets. Production uses the Checkmate Prep application; dev and test share Checkmate Prep - non prod. Left empty, an environment runs without accounts.
-3. **Cloudflare:** create an API token from the **Edit Cloudflare Workers** template (with D1 edit access), and note your account ID.
+3. **Cloudflare:** create an API token from the **Edit Cloudflare Workers** template (with D1 and R2 edit access), and note your account ID.
 4. **GitHub:** in **Settings → Environments**, create `dev`, `test` and `production`, each with the secret `CLOUDFLARE_API_TOKEN` and the variable `CLOUDFLARE_ACCOUNT_ID` (not secret; a secret of that name also works). All three use the Cloudflare account that holds checkmateprep.com, so the same token and ID work for each. Until then, the deploy workflow skips Cloudflare and says so.
 
-The first deploy of each environment creates its D1 database, and the Worker creates its table on first use. Production is then at `https://checkmateprep.com`, and dev and test at `https://dev.checkmateprep.com` and `https://test.checkmateprep.com`. All three must deploy to the Cloudflare account that holds the checkmateprep.com zone, since deploying creates their DNS records.
+The first deploy of each environment creates its D1 database and its R2 bucket for the game store, and the Worker creates its tables on first use. Production is then at `https://checkmateprep.com`, and dev and test at `https://dev.checkmateprep.com` and `https://test.checkmateprep.com`. All three must deploy to the Cloudflare account that holds the checkmateprep.com zone, since deploying creates their DNS records.
 
 To run the Worker locally (Node 22+):
 

@@ -22,17 +22,31 @@ function clocksOf(pgn) {
   return [...pgn.matchAll(/\[%clk (\d+):(\d+):(\d+(?:\.\d+)?)\]/g)].map((m) => +m[1] * 3600 + +m[2] * 60 + +m[3]);
 }
 
-function compact(g, user) {
-  const color = g.white.username.toLowerCase() === user ? 'white' : 'black';
-  const me = g[color], opp = g[color === 'white' ? 'black' : 'white'];
+/**
+ * A chess.com game as stored (here and in the Worker's shared game store): from neither player's side, no PGN.
+ * null for games the app doesn't use (variants, no moves).
+ */
+export function neutral(g) {
+  if (g.rules !== 'chess' || !g.pgn) return null;
   const eco = (g.eco || '').split('/').pop().replace(/-\d.*$/, '').replace(/-/g, ' ');
+  const side = (s) => ({ u: s.username, r: s.rating, res: s.result });
   return {
-    url: g.url, t: g.end_time, tc: g.time_class, base: +(g.time_control.split('+')[0]) || null, color,
-    rating: me.rating, opp: opp.username, oppR: opp.rating,
-    pts: me.result === 'win' ? 2 : DRAWS.has(me.result) ? 1 : 0,
-    how: me.result === 'win' ? opp.result : me.result,
-    eco: eco.split(' ').slice(0, 3).join(' '),
+    url: g.url, t: g.end_time, tc: g.time_class, base: +(String(g.time_control).split('+')[0]) || null,
+    eco: eco.split(' ').slice(0, 3).join(' '), white: side(g.white), black: side(g.black),
     sans: sansOf(g.pgn), clk: clocksOf(g.pgn),
+  };
+}
+
+/** A stored game from `user`'s side: the compact record the app keeps in `games:<user>`. */
+export function side(n, user) {
+  const color = n.white.u.toLowerCase() === user ? 'white' : 'black';
+  const me = n[color], opp = n[color === 'white' ? 'black' : 'white'];
+  return {
+    url: n.url, t: n.t, tc: n.tc, base: n.base, color,
+    rating: me.r, opp: opp.u, oppR: opp.r,
+    pts: me.res === 'win' ? 2 : DRAWS.has(me.res) ? 1 : 0,
+    how: me.res === 'win' ? opp.res : me.res,
+    eco: n.eco, sans: n.sans, clk: n.clk,
   };
 }
 
@@ -58,7 +72,31 @@ export async function savePlayers(users) {
 }
 
 /** Start of the month after 'YYYY/MM', in UTC milliseconds. */
-const monthEnd = (month) => { const [y, m] = month.split('/'); return Date.UTC(+y, +m, 1); };
+export const monthEnd = (month) => { const [y, m] = month.split('/'); return Date.UTC(+y, +m, 1); };
+
+// The Worker's shared game store (worker/games.js), used when the app is served by the Worker: it answers
+// like chess.com, from a copy shared by every user. Any failure falls back to chess.com itself.
+let viaApi = false;
+/** Turn the game store on or off (on once /api answered, see sync.js `hasApi`). */
+export const useGameStore = (on) => { viaApi = !!on; };
+const STORE_API = 'api/games?player=';
+
+/** The player's archive months ('YYYY/MM', oldest first), and whether they came from the game store. */
+async function archivesOf(user) {
+  if (viaApi) {
+    try { return { months: (await getJSON(STORE_API + encodeURIComponent(user))).archives, store: true }; } catch { /* chess.com below */ }
+  }
+  const { archives } = await getJSON(`${API}${user}/games/archives`);
+  return { months: archives.map((u) => u.split('/').slice(-2).join('/')), store: false };
+}
+/** One month of games, as stored games (neutral). */
+async function monthOf(user, month, store) {
+  if (store) {
+    try { return (await getJSON(`${STORE_API}${encodeURIComponent(user)}&month=${month}`)).games; } catch { /* chess.com below */ }
+  }
+  const { games } = await getJSON(`${API}${user}/games/${month}`);
+  return games.map(neutral).filter(Boolean);
+}
 
 /**
  * Download games newest-first (up to MAX_MONTHS / MAX_GAMES), merging with what is cached.
@@ -67,18 +105,16 @@ const monthEnd = (month) => { const [y, m] = month.split('/'); return Date.UTC(+
 export async function syncGames(user, onProgress = () => {}) {
   user = user.toLowerCase();
   const cached = (await idb.get(`games:${user}`)) || { months: {}, games: [] };
-  const { archives } = await getJSON(`${API}${user}/games/archives`);
-  const recent = archives.slice(-MAX_MONTHS).reverse();
+  const { months, store } = await archivesOf(user);
+  const recent = months.slice(-MAX_MONTHS).reverse();
   let byUrl = new Map(cached.games.map((g) => [g.url, g]));
   let i = 0;
-  for (const url of recent) {
-    const month = url.split('/').slice(-2).join('/');
+  for (const month of recent) {
     onProgress(++i, recent.length);
     // A month is complete once it was fetched after it ended (UTC, like chess.com's archives).
     // Old caches store `true`, which compares as 1, so those months are fetched once more.
     if (cached.months[month] >= monthEnd(month)) continue;
-    const { games } = await getJSON(url);
-    for (const g of games) if (g.rules === 'chess' && g.pgn) byUrl.set(g.url, compact(g, user));
+    for (const n of await monthOf(user, month, store)) byUrl.set(n.url, side(n, user));
     cached.months[month] = Date.now();
     if (byUrl.size >= MAX_GAMES) break;
   }
