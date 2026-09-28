@@ -1,7 +1,8 @@
 name: Deploy to Cloudflare
 
 # One Worker per environment (see wrangler.toml). Each job reads its secrets from the GitHub
-# Environment with the same name: the secrets CLOUDFLARE_API_TOKEN and ANTHROPIC_API_KEY (AI prep; optional),
+# Environment with the same name: the secrets CLOUDFLARE_API_TOKEN and ANTHROPIC_API_KEY (AI prep; optional: without it
+# the Worker deploys and the app hides AI prep),
 # and CLOUDFLARE_ACCOUNT_ID (a variable, since it isn't secret; a secret of that name works too).
 # Until those are set, the job skips the deploy instead of failing (the app still deploys to GitHub Pages).
 # Production also deploys the Auth0 Action that notifies new sign-ups (ops/auth0/), once the environment has
@@ -35,6 +36,7 @@ jobs:
     env:
       HAS_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
       HAS_AUTH0_MGMT: ${{ secrets.AUTH0_MGMT_CLIENT_SECRET != '' }}
+      HAS_AI_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
       TARGET: ${{ github.event.inputs.environment || (github.ref_name == 'main' && 'production' || 'dev') }}
     steps:
       - if: env.HAS_TOKEN != 'true'
@@ -57,8 +59,10 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID || secrets.CLOUDFLARE_ACCOUNT_ID }}
           environment: ${{ github.event.inputs.environment || (github.ref_name == 'main' && 'production' || 'dev') }}
-          secrets: |
-            ANTHROPIC_API_KEY
+          # upload the key only when this environment has one (the action fails on a secret it can't find)
+          secrets: ${{ env.HAS_AI_KEY == 'true' && 'ANTHROPIC_API_KEY' || '' }}
+      - if: env.HAS_TOKEN == 'true' && env.HAS_AI_KEY != 'true'
+        run: echo "::notice::No ANTHROPIC_API_KEY in this GitHub Environment, so AI prep stays off here (the app shows the quick plan). See README (AI-written prep)."
       # The environment's link on GitHub. Wrangler reports a custom domain as "checkmateprep.com (custom domain)",
       # which GitHub rejects as a URL: keep the address and add https:// (a workers.dev address already has it).
       - if: env.HAS_TOKEN == 'true'
