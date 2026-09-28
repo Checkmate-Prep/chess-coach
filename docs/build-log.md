@@ -610,3 +610,11 @@ Along the way: `compact` in `chesscom.js` split into `neutral` (stored) and `sid
 *Choice: PR branches deploy to dev*
 
 **What Claude did:** the deploy workflow deployed `main` to production and a `dev` branch to dev, but there was no `dev` branch, so dev only updated when someone ran the workflow by hand. Claude laid out three options: PRs deploy to dev, a long-lived `dev` branch that PRs merge into before `main`, or manual only. The long-lived branch would mean two merges per change and branches that drift apart. The user chose PR deploys. Now every push to an open pull request from this repository deploys it to dev.checkmateprep.com (whichever PR pushed last is what dev shows). Merging to `main` still deploys production, and the workflow can still be run by hand for test or any branch. PRs from forks are skipped, since they get no secrets. The `dev` GitHub Environment has to allow all branches. This rides in the same PR as #62, whose first deploy to dev it provides. → [#39](https://github.com/Checkmate-Prep/chess-coach/pull/39)
+
+### 64. The app-store plan, brought up to date
+> Update listing plan with latest codebase changes.
+> Should we go for a native iOS app?
+
+**What Claude did:** went through what landed since the plan (#31–#39) and checked each change against the code. AI plans send both usernames and statistics to Anthropic, so Apple's rule on third-party AI calls for a one-time consent note. Google sign-in makes Sign in with Apple required on iOS. `/api/prep` only accepts the site's own origin and the Worker sends no CORS headers, so the iOS app needs both widened, plus an API base in the five modules that call `/api`. On the plus side, account deletion now covers synced data and results (only the Auth0 user is left). And since #39 moved analysis and AI plans to the account, the iOS app's separate storage matters much less.
+
+On native iOS, Claude recommended against a Swift rewrite: the logic would exist twice, and the Worker shares code with the app. The plan stays on Capacitor, with a native Stockfish plugin behind the same UCI interface if trap scans are slow on iPhones. → [#40](https://github.com/Checkmate-Prep/chess-coach/pull/40)
