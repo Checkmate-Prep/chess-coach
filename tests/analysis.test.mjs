@@ -3,11 +3,13 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { Chess } from '../app/vendor/chess.js';
 import { winProb, pvToSan, summarize, findTraps, cachedTraps, trapScan, trapCandidates, reviewGames, reviewCache, reviewedCount, isGoodMove, BLUNDER } from '../app/analysis.js';
-import { installFakeIndexedDB, installBrowserGlobals, FakeWorker, game, node } from './helpers.mjs';
+import { installFakeIndexedDB, installFakeLocalStorage, installBrowserGlobals, FakeWorker, game, node } from './helpers.mjs';
 
 const db = installFakeIndexedDB();
+const store = installFakeLocalStorage();
 installBrowserGlobals();
-beforeEach(() => { db.clear(); FakeWorker.reset(); });
+beforeEach(() => { db.clear(); store.clear(); FakeWorker.reset(); });
+const dirty = () => JSON.parse(store.get('results-dirty') || '{}');
 
 const fenAfter = (...sans) => { const g = new Chess(); for (const m of sans) g.move(m); return g.fen(); };
 const START = new Chess().fen();
@@ -112,6 +114,7 @@ describe('findTraps', () => {
     assert.equal(await trapScan('p6', 'white', tree()), null);
     assert.deepEqual(await findTraps('p6', tree(), 'white'), []);
     assert.deepEqual(await trapScan('p6', 'white', tree()), { traps: [], current: true, checked: 2 });
+    assert.deepEqual(dirty().p6, { 'traps:white': dirty().p6['traps:white'] }, 'an empty scan is kept on the account too');
   });
 
   test('a scan is out of date once their games change, and a new scan replaces it', async () => {
@@ -208,6 +211,25 @@ describe('reviewGames', () => {
     assert.equal(FakeWorker.posted.filter((l) => l.startsWith('go')).length, 0);
     const out = await reviewGames('v', [g], 5, () => {}, { stop: true });
     assert.deepEqual(out, {});
+  });
+
+  test('marks each new review for the account', async () => {
+    await reviewGames('u', [g], 5);
+    assert.deepEqual(Object.keys(dirty().u), ['review:r1']);
+  });
+
+  test('keeps reviews that arrive from another device during a run, and skips games they cover', async () => {
+    const g2 = game({ url: 'r2', sans }), g3 = game({ url: 'r3', sans });
+    let arrived = false;
+    // while the first game is being reviewed, a pull brings r3 (and a game this run doesn't know)
+    FakeWorker.script = () => {
+      if (!arrived) { arrived = true; db.set('review:u', { r3: { loss: [9] }, other: { loss: [8] } }); }
+      return { cp: 0 };
+    };
+    const out = await reviewGames('u', [g, g2, g3], 5);
+    assert.deepEqual(Object.keys(out).sort(), ['other', 'r1', 'r2', 'r3']);
+    assert.deepEqual(out.r3, { loss: [9] }, 'the arrived review is kept, not redone');
+    assert.deepEqual(Object.keys(dirty().u).sort(), ['review:r1', 'review:r2']);
   });
 
   test('a game the engine cannot analyse is skipped, not fatal', async () => {

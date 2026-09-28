@@ -22,7 +22,8 @@ run_worker_first = ["/api/*"]
 # AUTH0_DOMAIN = where sign-in happens (tokens must come from this exact domain), AUTH0_CLIENT_ID = the
 # application, AUTH0_AUDIENCE = the API identifier. Locally, set them in .dev.vars.
 # AI prep: MODEL writes the plans, DAILY_LIMIT caps plans per day for everyone, PER_IP_DAILY per address.
-# BURST limits sync and event calls per minute; AI_BURST limits AI prep calls per address per minute.
+# BURST limits sync and event calls per minute; AI_BURST limits AI prep calls per address per minute;
+# GAMES_BURST limits game store calls per address per minute (a new device asks ~13 per player).
 [vars]
 AUTH0_DOMAIN = ""
 AUTH0_CLIENT_ID = ""
@@ -39,6 +40,11 @@ binding = "PREP_JOBS"
 class_name = "PrepWorkflow"
 [[d1_databases]]
 binding = "DB"
+# The shared game store (worker/games.js): chess.com's public games, one copy per player, for every user.
+# deploy.yml creates the bucket when it's missing (Wrangler doesn't) and sets the rule that deletes files after 180 days.
+[[r2_buckets]]
+binding = "GAMES"
+bucket_name = "chess-coach-games-local"
 # Usage stats (worker/events.js). The dataset is created by the first event written; data is kept 3 months.
 [[analytics_engine_datasets]]
 binding = "EVENTS"
@@ -51,6 +57,10 @@ simple = { limit = 30, period = 60 }
 name = "AI_BURST"
 namespace_id = "1010"
 simple = { limit = 10, period = 60 }
+[[ratelimits]]
+name = "GAMES_BURST"
+namespace_id = "1020"
+simple = { limit = 300, period = 60 }
 
 # Each environment has one address on checkmateprep.com and no workers.dev address: the browser keeps
 # each user's data per address. Deploying creates the DNS records, so the checkmateprep.com zone must be
@@ -63,8 +73,9 @@ vars = { AUTH0_DOMAIN = "checkmateprep.us.auth0.com", AUTH0_CLIENT_ID = "fnp3sz7
 kv_namespaces = [{ binding = "PREP" }]
 workflows = [{ name = "chess-coach-dev-prep", binding = "PREP_JOBS", class_name = "PrepWorkflow" }]
 d1_databases = [{ binding = "DB" }]
+r2_buckets = [{ binding = "GAMES", bucket_name = "chess-coach-games-dev" }]
 analytics_engine_datasets = [{ binding = "EVENTS", dataset = "checkmate_events_dev" }]
-ratelimits = [{ name = "BURST", namespace_id = "1001", simple = { limit = 30, period = 60 } }, { name = "AI_BURST", namespace_id = "1011", simple = { limit = 3, period = 60 } }]
+ratelimits = [{ name = "BURST", namespace_id = "1001", simple = { limit = 30, period = 60 } }, { name = "AI_BURST", namespace_id = "1011", simple = { limit = 3, period = 60 } }, { name = "GAMES_BURST", namespace_id = "1021", simple = { limit = 300, period = 60 } }]
 
 [env.test]
 name = "chess-coach-test"
@@ -74,8 +85,9 @@ vars = { AUTH0_DOMAIN = "checkmateprep.us.auth0.com", AUTH0_CLIENT_ID = "fnp3sz7
 kv_namespaces = [{ binding = "PREP" }]
 workflows = [{ name = "chess-coach-test-prep", binding = "PREP_JOBS", class_name = "PrepWorkflow" }]
 d1_databases = [{ binding = "DB" }]
+r2_buckets = [{ binding = "GAMES", bucket_name = "chess-coach-games-test" }]
 analytics_engine_datasets = [{ binding = "EVENTS", dataset = "checkmate_events_test" }]
-ratelimits = [{ name = "BURST", namespace_id = "1002", simple = { limit = 30, period = 60 } }, { name = "AI_BURST", namespace_id = "1012", simple = { limit = 3, period = 60 } }]
+ratelimits = [{ name = "BURST", namespace_id = "1002", simple = { limit = 30, period = 60 } }, { name = "AI_BURST", namespace_id = "1012", simple = { limit = 3, period = 60 } }, { name = "GAMES_BURST", namespace_id = "1022", simple = { limit = 300, period = 60 } }]
 
 # Production answers only on checkmateprep.com (www redirects to it in worker/index.js).
 [env.production]
@@ -86,5 +98,6 @@ vars = { AUTH0_DOMAIN = "login.checkmateprep.com", AUTH0_CLIENT_ID = "2tQ9JSSnfN
 kv_namespaces = [{ binding = "PREP" }]
 workflows = [{ name = "chess-coach-prep", binding = "PREP_JOBS", class_name = "PrepWorkflow" }]
 d1_databases = [{ binding = "DB" }]
+r2_buckets = [{ binding = "GAMES", bucket_name = "chess-coach-games-prod" }]
 analytics_engine_datasets = [{ binding = "EVENTS", dataset = "checkmate_events_production" }]
-ratelimits = [{ name = "BURST", namespace_id = "1003", simple = { limit = 30, period = 60 } }, { name = "AI_BURST", namespace_id = "1013", simple = { limit = 2, period = 60 } }]
+ratelimits = [{ name = "BURST", namespace_id = "1003", simple = { limit = 30, period = 60 } }, { name = "AI_BURST", namespace_id = "1013", simple = { limit = 2, period = 60 } }, { name = "GAMES_BURST", namespace_id = "1023", simple = { limit = 300, period = 60 } }]

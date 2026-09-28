@@ -1,0 +1,10 @@
+{
+  "rules": [
+    {
+      "id": "expire-games",
+      "enabled": true,
+      "conditions": { "prefix": "games/" },
+      "deleteObjectsTransition": { "condition": { "type": "Age", "maxAge": 15552000 } }
+    }
+  ]
+}
