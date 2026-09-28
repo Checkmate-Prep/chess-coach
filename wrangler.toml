@@ -47,8 +47,13 @@ name = "AI_BURST"
 namespace_id = "1010"
 simple = { limit = 10, period = 60 }
 
+# Each environment has one address on checkmateprep.com and no workers.dev address: the browser keeps
+# each user's data per address. Deploying creates the DNS records, so the checkmateprep.com zone must be
+# in the same Cloudflare account as every environment.
 [env.dev]
 name = "chess-coach-dev"
+workers_dev = false
+routes = [{ pattern = "dev.checkmateprep.com", custom_domain = true }]
 vars = { AUTH0_DOMAIN = "", AUTH0_CLIENT_ID = "", AUTH0_AUDIENCE = "", MODEL = "claude-sonnet-5", DAILY_LIMIT = "50", PER_IP_DAILY = "20" }
 kv_namespaces = [{ binding = "PREP" }]
 d1_databases = [{ binding = "DB" }]
@@ -57,15 +62,15 @@ ratelimits = [{ name = "BURST", namespace_id = "1001", simple = { limit = 30, pe
 
 [env.test]
 name = "chess-coach-test"
+workers_dev = false
+routes = [{ pattern = "test.checkmateprep.com", custom_domain = true }]
 vars = { AUTH0_DOMAIN = "", AUTH0_CLIENT_ID = "", AUTH0_AUDIENCE = "", MODEL = "claude-sonnet-5", DAILY_LIMIT = "50", PER_IP_DAILY = "20" }
 kv_namespaces = [{ binding = "PREP" }]
 d1_databases = [{ binding = "DB" }]
 analytics_engine_datasets = [{ binding = "EVENTS", dataset = "checkmate_events_test" }]
 ratelimits = [{ name = "BURST", namespace_id = "1002", simple = { limit = 30, period = 60 } }, { name = "AI_BURST", namespace_id = "1012", simple = { limit = 3, period = 60 } }]
 
-# Production answers only on checkmateprep.com (www redirects to it in worker/index.js). No workers.dev
-# address: the browser keeps each user's data per address, so there must be exactly one.
-# Deploying creates the DNS records; the domain's zone must be in the same Cloudflare account.
+# Production answers only on checkmateprep.com (www redirects to it in worker/index.js).
 [env.production]
 name = "chess-coach"
 workers_dev = false
