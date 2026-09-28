@@ -68,7 +68,7 @@ function download(user) {
         refreshSteps(user);
       });
       invalidate(user);
-      queueReview(user);
+      queueAnalysis(user);
     } finally { delete downloading[user]; delete monthOf[user]; }
   })();
 }
@@ -92,7 +92,7 @@ async function dailyDownloads() {
   if (!P?.me || navigator.onLine === false) return;
   for (const user of [P.me.user, ...P.opps.map((o) => o.user)]) {
     if (Date.now() - ((await cachedGames(user))?.fetched || 0) > DAY) queueDownload(user);
-    else if (user !== P.me.user && (await reviewTodo(user)).length) queueReview(user); // new opponent data, or a review cut short last time
+    else if (user !== P.me.user && ((await reviewTodo(user)).length || (await trapTodo(user)).length)) queueAnalysis(user); // new opponent data, or analysis cut short last time
   }
 }
 /** A background download finished or failed: redraw the screen if it was waiting for it (never a board or a job in progress). */
@@ -103,11 +103,12 @@ function downloaded(user) {
   else if ($(`[data-dl="${user}"][data-empty]`)) route();
 }
 
-// ---------- automatic engine review of an opponent's newest games, after each download ----------
+// ---------- automatic analysis after each download: Stockfish reviews an opponent's newest games, then looks for traps ----------
 const AUTO_REVIEW = 20;                  // newest games reviewed per opponent (about 10 s each)
 const reviewing = {};                    // user -> [game, of] while their review runs
 const reviewQueue = [];                  // opponents waiting for the engine
 const reviewFailed = new Set();          // games Stockfish couldn't review: not tried again until the next launch
+const trapFailed = new Set();            // trap scans that failed: not tried again automatically until the next launch
 let reviewDraining = false;
 const reviewPending = (user) => !!reviewing[user] || reviewQueue.includes(user);
 const rvText = (user) => reviewing[user] ? `Analyzing game ${reviewing[user][0] + 1} of ${reviewing[user][1]}…` : 'Waiting to analyze…';
@@ -117,26 +118,63 @@ async function reviewTodo(user) {
   const gs = (await gamesOf(user)) || [], cache = await reviewCache(user);
   return gs.slice(0, AUTO_REVIEW).filter((g) => !cache[g.url] && g.sans.length >= 10);
 }
-/** Review an opponent's newest games in the background, one opponent after another (the engine runs one job at a time). */
-function queueReview(user) {
-  if (!P?.opps.some((o) => o.user === user) || reviewPending(user) || reviewFailed.has(user)) return;
-  reviewQueue.push(user);
-  if (!reviewDraining) runReviews();
+/**
+ * Colours whose trap scan is missing or older than their games, when at least one colour has positions worth
+ * checking. A colour with none still gets its (instant, empty) scan saved, so the scan counts as up to date.
+ */
+async function trapTodo(user) {
+  const out = [];
+  let any = false;
+  for (const color of ['white', 'black']) {
+    const tree = await treeOf(user, color);
+    any ||= trapCandidates(tree, color).length > 0;
+    if (!(await trapScan(user, color, tree))?.current) out.push([color, tree]);
+  }
+  return any ? out : [];
 }
-async function runReviews() {
+/** Analyze an opponent in the background, one opponent after another (the engine runs one job at a time). */
+function queueAnalysis(user) {
+  if (!P?.opps.some((o) => o.user === user) || reviewPending(user) || trapRunning[user]) return;
+  reviewQueue.push(user);
+  if (!reviewDraining) runAnalysis();
+}
+async function runAnalysis() {
   reviewDraining = true;
   while (reviewQueue.length) {
     const user = reviewQueue[0];
     try {
-      if (P?.opps.some((o) => o.user === user) && (await reviewTodo(user)).length) {
+      if (P?.opps.some((o) => o.user === user) && !reviewFailed.has(user) && (await reviewTodo(user)).length) {
         const gs = (await gamesOf(user)).slice(0, AUTO_REVIEW);
         await whileAwake(() => reviewGames(user, gs, AUTO_REVIEW, (i, n) => { reviewing[user] = [i, n]; if (i < n) showReview(user, rvText(user)); }));
         if ((await reviewTodo(user)).length) reviewFailed.add(user); // some games failed twice
       }
     } catch { reviewFailed.add(user); }
-    delete reviewing[user]; reviewQueue.shift(); reviewDone(user);
+    delete reviewing[user];
+    // then the traps, once the review is done (a scan of games that haven't changed is kept)
+    const todo = P?.opps.some((o) => o.user === user) && !trapFailed.has(user) ? await trapTodo(user) : [];
+    if (todo.length) {
+      trapRunning[user] = { text: 'Finding traps…' };
+      showTraps(user);
+      try {
+        await whileAwake(async () => {
+          for (const [color, tree] of todo) {
+            await findTraps(user, tree, color, (i, n) => { trapRunning[user] = { i, n, text: `Checking their positions as ${color === 'white' ? 'White' : 'Black'}: ${i} of ${n}` }; showTraps(user); });
+          }
+        });
+      } catch { trapFailed.add(user); }
+      delete trapRunning[user];
+    }
+    reviewQueue.shift(); reviewDone(user);
   }
   reviewDraining = false;
+}
+/** Trap scan progress on their file, if it's open. */
+function showTraps(user) {
+  refreshSteps(user);
+  const bar = location.hash === `#prep/${user}` && $('#trap-progress'), run = trapRunning[user];
+  if (!bar || !run) return;
+  $('#traps')?.setAttribute('hidden', '');
+  setProgress(bar, run.i || 0, run.n || 0, run.text);
 }
 /** Status of an opponent's review, for the elements showing it. */
 async function rvStatus(user) {
@@ -650,7 +688,7 @@ async function stepsState(user) {
     { title: 'Download games', target: 'step-games', next: 'Next: download them',
       ...(pending(user) ? { state: 'run', text: dlText(user) } : gs ? { state: 'done', text: `${gs.length.toLocaleString()} game${gs.length === 1 ? '' : 's'}` } : { state: 'todo', text: 'Not downloaded yet' }) },
     { title: 'Analyze opponent', target: 'step-stockfish', next: (scW || scB) ? 'Next: check again' : 'Next: find traps',
-      ...(trapRunning[user] ? { state: 'run', text: 'Finding traps…' } : reviewPending(user) ? { state: 'run', text: rvText(user) }
+      ...(trapRunning[user] ? { state: 'run', text: trapRunning[user].n ? `Traps: ${trapRunning[user].i} of ${trapRunning[user].n}` : 'Finding traps…' } : reviewPending(user) ? { state: 'run', text: rvText(user) }
         : tooFew ? { state: 'done', text: 'Too few games for traps' } : current ? { state: 'done', text: traps ? `${traps} trap${traps === 1 ? '' : 's'} found` : 'No traps found' }
           : { state: 'todo', text: (scW || scB) ? 'Games changed: check again' : 'Not checked yet' }) },
   ];
@@ -715,7 +753,9 @@ async function renderOpp(user) {
       ${reviewHtml(rv)}
       <h3>Traps: moves they repeat that lose</h3>
       <p class="small muted">Stockfish checks the positions they reach most often and flags moves they keep playing that the engine refutes.</p>
-      ${current || tooFew ? '' : `<button class="btn primary" id="traps" ${tw.n + tb.n ? '' : 'disabled'}>${scanned ? 'Check again with Stockfish' : 'Find traps with Stockfish'}</button><p class="small muted">${scanned ? 'Their games have changed since the last check. ' : ''}Takes 1–3 minutes. It runs on your device. Keep the app open.</p>`}
+      ${current || tooFew || trapRunning[user] ? '' : reviewPending(user)
+        ? '<p class="small muted">Stockfish looks for traps automatically once the game review is done. It runs on your device: keep the app open.</p>'
+        : `${trapFailed.has(user) ? '<p class="small warn">Stockfish stopped responding. Close other apps or tabs, then try again.</p>' : ''}<button class="btn primary" id="traps" ${tw.n + tb.n ? '' : 'disabled'}>${scanned ? 'Check again with Stockfish' : 'Find traps with Stockfish'}</button><p class="small muted">${scanned ? 'Their games have changed since the last check. ' : ''}Takes 1–3 minutes. It runs on your device. Keep the app open.</p>`}
       ${progress('trap-progress')}
       <div id="trap-list">${trapsSection(user, trW, trB, { current, tooFew, checked, nW: tw.n, nB: tb.n })}</div></section>
     ${planStep(user, { saved: ai, canWrite: AI, hasGames: !!gs?.length, writing: aiWriting(user), error: aiErrors[user],
@@ -730,24 +770,8 @@ async function renderOpp(user) {
     player(user).then((info) => { ls.set(`player:${user}`, info); if (location.hash === `#prep/${user}`) renderOpp(user); }).catch(() => {});
   }
   $('#sync').onclick = async (e) => { if (await sync(user, e.currentTarget, $('#sync-status'))) renderOpp(user); };
-  $('#traps')?.addEventListener('click', async (e) => {
-    e.currentTarget.hidden = true;
-    const bar = $('#trap-progress');
-    const found = {};
-    trapRunning[user] = true; refreshSteps(user);
-    try {
-      await whileAwake(async () => {
-        for (const [color, tree] of [['white', tw], ['black', tb]]) {
-          found[color] = await findTraps(user, tree, color, (i, n) => setProgress(bar, i, n, `Checking their positions as ${color === 'white' ? 'White' : 'Black'}: ${i} of ${n}`));
-        }
-      });
-    } catch {
-      $('p', bar).innerHTML = '<span class="warn">Stockfish stopped responding.</span> Close other apps or tabs, then reopen this page and try again.';
-      return;
-    } finally { delete trapRunning[user]; refreshSteps(user); }
-    bar.hidden = true;
-    renderOpp(user); // redraw so the game plan picks up the traps
-  });
+  $('#traps')?.addEventListener('click', () => { trapFailed.delete(user); queueAnalysis(user); renderOpp(user); });
+  if (trapRunning[user]) showTraps(user);
 }
 const PLAN_LINES = {};
 /** The quick plan: built on this device from their statistics, counted from real results. */
