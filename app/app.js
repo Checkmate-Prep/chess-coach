@@ -283,7 +283,7 @@ async function renderSetup(first = false) {
   view.innerHTML = `
     ${head}
     ${youCard + oppCard}
-    ${me ? '<div id="account-slot"></div>' : ''}
+    <div id="account-slot"${me ? '' : ' data-mode="setup"'}></div>
     ${me ? '<div id="stats-slot"></div>' : ''}`;
 
   renderAccount();
@@ -383,11 +383,14 @@ function renderAccount() {
   if (!slot) return;
   const mode = slot.dataset.mode;
   const err = account.error ? `<p class="small warn" role="alert">${esc(account.error)}</p>` : '';
-  if (mode === 'welcome') { slot.innerHTML = account.enabled && !account.signedIn ? '<a class="btn" href="#signin">I already have an account</a>' : ''; return; }
-  if (mode === 'signin') {
+  // Signed in, but not set up on this device yet: say whose account it is, and offer a way out.
+  const who = `<p class="small">Signed in${account.email ? ` as <b>${esc(account.email)}</b>` : ''}. <button class="link-btn" data-acct="signout">Sign out</button></p>`;
+  if (mode === 'welcome') slot.innerHTML = !account.enabled ? '' : account.signedIn ? who : '<a class="btn" href="#signin">I already have an account</a>';
+  else if (mode === 'setup') slot.innerHTML = account.enabled && account.signedIn ? `<section class="card">${who}<p class="small muted">Once you're set up, your opponents, names and drill progress sync to this account.</p>${err}</section>` : '';
+  else if (mode === 'signin') {
     if (!account.enabled) slot.innerHTML = '<p class="muted">Sign-in isn\'t available here. <a href="#">Set up without an account</a>.</p>';
     else if (!account.signedIn) slot.innerHTML = `<button class="btn primary" data-acct="signin">Sign in</button>${err}`;
-    else slot.innerHTML = `<section class="card"><p class="small">Signed in${account.email ? ` as <b>${esc(account.email)}</b>` : ''}.</p>
+    else slot.innerHTML = `<section class="card">${who}
       ${account.busy || (!account.at && !account.error) ? '<p class="small muted" aria-live="polite">Getting your data…</p>' : '<p>Nothing is saved on this account yet.</p><a class="btn primary" href="#start">Set up as a new user</a>'}${err}</section>`;
   } else if (!account.enabled) { slot.innerHTML = ''; return; } else if (!account.signedIn) {
     slot.innerHTML = `<section class="card"><h2>Your devices</h2>

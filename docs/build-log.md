@@ -508,3 +508,33 @@ The app shows an account card in Settings and a sign-in offer on the welcome scr
 > do option 2, open the PR
 
 **What Claude did:** the first production deploy after #27 failed because Analytics Engine wasn't turned on in the Cloudflare account. Claude found this in the logs and pointed to the personal account, where production runs for now, and the user turned it on. The next run deployed the Worker, so usage stats are live. The Auth0 step then stopped at "Missing AUTH0_MGMT_CLIENT_ID": the Client ID wasn't a secret in the `production` environment. The workflow now reads it from a variable or a secret, like `CLOUDFLARE_ACCOUNT_ID`. The README says so, and says Analytics Engine has to be turned on in each Cloudflare account. → [#28](https://github.com/Checkmate-Prep/chess-coach/pull/28)
+
+### 52. The header goes to You
+> Currently Nothing happens when user clicks on the header "horse icon + checkmate prep". Id like the user to be brought to the home page, I.e "you" when they click at the top
+
+**What Claude did:** the icon and name in the header are now a link to `#me` (the You tab). It looks the same as before: no underline or link colour, and only the icon and name are clickable, not the whole bar. Before setup, `#me` shows the welcome screen, as it already did. Checked in headless Chromium at phone size: from Explore, tapping the header opened You. Not checked on a real device. → [#29](https://github.com/Checkmate-Prep/chess-coach/pull/29)
+
+
+### 53. A plan for the app stores
+> plan what should be the steps to get the app listed on the apple store and google store
+
+> Save as .md in docs folder in a dedicated branch and then merge it into main
+
+**What Claude did:** read the manifest, the sign-in code and the Worker, then proposed a different wrapper for each store. Google Play gets a Trusted Web Activity on checkmateprep.com, so Android users keep their data and updates stay instant. The App Store gets a Capacitor shell with the app files packed in, since Apple rejects apps that only wrap a website. The plan lists the paperwork, including Play's 12-tester, 14-day closed test for new accounts. It also covers what has to change in the code:
+- "Delete account" must also delete the Auth0 user.
+- On iOS, the app needs an absolute API address with CORS, and a native Auth0 sign-in.
+- The privacy forms have to cover the usage stats.
+
+It also flags that Stockfish's GPL licence is the one real legal grey area. Saved as `docs/app-stores.md`. → [#30](https://github.com/Checkmate-Prep/chess-coach/pull/30)
+
+### 54. A lower tab bar on iPhone
+> See screenshots. When I scroll on chrome on iOS the upper and lower part of chrome are removed but the bottom menu bar could go down more to give more screen space.
+
+**What Claude did:** when Chrome on iOS hides its toolbars, the page reaches the bottom of the screen and the tab bar kept the whole home-indicator area (about 34px) empty under its labels. It now keeps only what the home indicator needs: 20px instead of 40px under the labels on Face ID iPhones. The space kept free at the bottom of each screen shrinks to match. Where there is no home indicator, or while Chrome shows its toolbar, nothing changes. Checked in headless Chromium that the CSS applies and is unchanged without an inset; the iPhone layout itself still has to be checked on a device. → [#31](https://github.com/Checkmate-Prep/chess-coach/pull/31)
+
+### 55. Sign out before setup
+> once I'm signed in, I should see on setup the button sign out. but on dev currently that button sign out is not there despite being signed in
+
+> yes, make a separate PR from main
+
+**What Claude did:** traced it to one state. Signing out clears the device, so signing back in to an account with nothing saved leaves you signed in on a device that isn't set up. There, no screen offered Sign out. The "Welcome back" card only said "Signed in as …", and Settings only shows the account card once a username is set. The welcome screen, the "Welcome back" card and first-time setup now show "Signed in as … · Sign out". Checked in headless Chromium at phone size, with the Auth0 SDK and `/api` faked: on `main` those three screens had no Sign out, and now each does and calls Auth0's logout. The other account screens are unchanged. A real Auth0 sign-out still needs a check on dev. → [#32](https://github.com/Checkmate-Prep/chess-coach/pull/32)
