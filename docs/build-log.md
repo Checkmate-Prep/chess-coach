@@ -512,4 +512,4 @@ The app shows an account card in Settings and a sign-in offer on the welcome scr
 ### 52. The header goes to You
 > Currently Nothing happens when user clicks on the header "horse icon + checkmate prep". Id like the user to be brought to the home page, I.e "you" when they click at the top
 
-**What Claude did:** the icon and name in the header are now a link to `#me` (the You tab). It looks the same as before: no underline or link colour, and only the icon and name are clickable, not the whole bar. Before setup, `#me` shows the welcome screen, as it already did. Checked in headless Chromium at phone size: from Explore, tapping the header opened You. Not checked on a real device.
+**What Claude did:** the icon and name in the header are now a link to `#me` (the You tab). It looks the same as before: no underline or link colour, and only the icon and name are clickable, not the whole bar. Before setup, `#me` shows the welcome screen, as it already did. Checked in headless Chromium at phone size: from Explore, tapping the header opened You. Not checked on a real device. → [#29](https://github.com/Checkmate-Prep/chess-coach/pull/29)
