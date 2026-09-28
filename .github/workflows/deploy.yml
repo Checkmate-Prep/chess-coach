@@ -1,8 +1,8 @@
 name: Deploy to Cloudflare
 
 # One Worker per environment (see wrangler.toml). Each job reads its secrets from the GitHub
-# Environment with the same name: the secret CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID (a variable,
-# since it isn't secret; a secret of that name works too).
+# Environment with the same name: the secrets CLOUDFLARE_API_TOKEN and ANTHROPIC_API_KEY (AI prep; optional),
+# and CLOUDFLARE_ACCOUNT_ID (a variable, since it isn't secret; a secret of that name works too).
 # Until those are set, the job skips the deploy instead of failing (the app still deploys to GitHub Pages).
 # Production also deploys the Auth0 Action that notifies new sign-ups (ops/auth0/), once the environment has
 # the secrets AUTH0_MGMT_CLIENT_SECRET and NTFY_TOPIC, and AUTH0_MGMT_CLIENT_ID (a variable, since it isn't
@@ -51,10 +51,14 @@ jobs:
       - if: env.HAS_TOKEN == 'true'
         id: deploy
         uses: cloudflare/wrangler-action@v3
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID || secrets.CLOUDFLARE_ACCOUNT_ID }}
           environment: ${{ github.event.inputs.environment || (github.ref_name == 'main' && 'production' || 'dev') }}
+          secrets: |
+            ANTHROPIC_API_KEY
       # The environment's link on GitHub. Wrangler reports a custom domain as "checkmateprep.com (custom domain)",
       # which GitHub rejects as a URL: keep the address and add https:// (a workers.dev address already has it).
       - if: env.HAS_TOKEN == 'true'

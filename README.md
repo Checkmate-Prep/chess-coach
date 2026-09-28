@@ -125,7 +125,7 @@ Before you start (in the personal account):
    npx wrangler d1 execute DB --remote --env production --file prod-import.sql
    ```
 7. **Check:** https://checkmateprep.com loads, `www` redirects, and signing in shows your opponents.
-8. **Clean up:** delete the old Workers (`chess-coach`, `chess-coach-dev`, `chess-coach-test`) and their D1 databases in the personal account, delete the personal account's API token, and delete `prod.sql` and `prod-import.sql`.
+8. **Clean up:** delete the old Workers (`chess-coach`, `chess-coach-dev`, `chess-coach-test`) and their D1 databases and KV namespaces in the personal account, delete the personal account's API token, and delete `prod.sql` and `prod-import.sql`.
 
 One-time setup:
 
@@ -149,6 +149,37 @@ To run the Worker locally (Node 22+):
 npm install
 npm test                         # app tests, including the merge rules
 cp .dev.vars.example .dev.vars   # optional: a dev Auth0 tenant's values turn on accounts
+npm run dev                      # app + API at http://localhost:8787
+```
+
+### AI-written prep
+
+On an opponent's Prep page, **Write the plan** sends their statistics, lines, head-to-head record and any traps Stockfish found to Claude, which writes a plan in the same format as the hand-written prep. The plan is saved on the device, and its lines show up in Drill. The writing runs on the server as a [Cloudflare Workflow](https://developers.cloudflare.com/workflows/) (`PrepWorkflow` in `worker/prep.js`), and the app checks on it every few seconds. So you can leave the page or close the app meanwhile: the plan is finished and cached anyway, and the app picks it up when it opens again. Tapping again while it's being written joins the same job at no extra cost. While it writes, the card shows the stage (reading, thinking, writing each line), the time so far and short summaries of what Claude is considering. The Workflow saves that progress to D1 every few seconds (table `prep_progress`, deleted when the plan is done).
+
+The Anthropic API key can't live in a public website, so the app is also served by a Cloudflare Worker (`worker/prep.js`) that holds the key and calls Claude. The button only appears when the app is served by that Worker. On GitHub Pages and on a plain static server it stays hidden.
+
+The Worker limits cost in four ways. It only accepts requests from the app's own origin. It has a per-minute rate limit per IP address. It has daily caps per IP address and overall. It caches each plan for 30 days, so identical statistics never pay twice. The real backstop is a spend limit on the Anthropic workspace that holds the key.
+
+Everything except secrets is in the repo:
+
+| File | What it does |
+| --- | --- |
+| `wrangler.toml` | The Worker and its environments (`dev`, `test`, `production`): model, daily limits, rate limits, KV cache |
+| `worker/prep.js`, `worker/prompt.js` | The `/api/prep` endpoint, the instructions for Claude and the output schema |
+| `.github/workflows/deploy.yml` | Deploys `main` to production and `dev` to dev. Run it by hand to deploy any environment |
+
+One-time setup:
+
+1. In the [Anthropic Console](https://console.anthropic.com), create a workspace per environment, each with a spend limit and an API key.
+2. In GitHub, **Settings → Environments → `dev`, `test`, `production`** (set up as in Accounts and sync), add that environment's key as the secret `ANTHROPIC_API_KEY`. Without it the Worker deploys, but the app hides AI prep.
+
+The first deploy of each environment creates its KV namespace. `/api/health` answers `{"ai":true}` once the key is in place.
+
+To run it locally (Wrangler needs Node 22+):
+
+```bash
+npm install
+cp .dev.vars.example .dev.vars   # add a dev-workspace key
 npm run dev                      # app + API at http://localhost:8787
 ```
 

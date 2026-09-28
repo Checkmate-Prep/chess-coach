@@ -1,8 +1,9 @@
 # Cloudflare Worker that serves app/ and the /api endpoints (worker/index.js).
 # Top level = local development (`npm run dev`). Deploys always name an environment:
 #   npx wrangler deploy --env dev|test|production   (normally done by .github/workflows/deploy.yml)
-# No secrets are needed: the Auth0 values below are public (the app shows them to every browser).
-# Leave them empty and the app runs without accounts.
+# Secrets are not in this file: ANTHROPIC_API_KEY (AI prep) comes from .dev.vars locally and from the
+# matching GitHub Environment on deploy. The Auth0 values below are public (the app shows them to every
+# browser). Leave them empty and the app runs without accounts; without the key it runs without AI prep.
 name = "chess-coach-local"
 main = "worker/index.js"
 compatibility_date = "2026-09-01"
@@ -15,15 +16,27 @@ binding = "ASSETS"
 run_worker_first = ["/api/*"]
 
 # Bindings and vars don't inherit, so each environment lists its own.
-# D1 databases without an id are created on the first deploy; the Worker creates its table.
+# KV namespaces and D1 databases without an id are created on the first deploy; the Worker creates its table.
 # Auth0: one tenant (checkmateprep.us.auth0.com) with one API and two Single Page Applications:
 # "Checkmate Prep" for production, "Checkmate Prep - non prod" for dev, test and local runs.
 # AUTH0_DOMAIN = where sign-in happens (tokens must come from this exact domain), AUTH0_CLIENT_ID = the
 # application, AUTH0_AUDIENCE = the API identifier. Locally, set them in .dev.vars.
+# AI prep: MODEL writes the plans, DAILY_LIMIT caps plans per day for everyone, PER_IP_DAILY per address.
+# BURST limits sync and event calls per minute; AI_BURST limits AI prep calls per address per minute.
 [vars]
 AUTH0_DOMAIN = ""
 AUTH0_CLIENT_ID = ""
 AUTH0_AUDIENCE = ""
+MODEL = "claude-sonnet-5"
+DAILY_LIMIT = "100"
+PER_IP_DAILY = "100"
+[[kv_namespaces]]
+binding = "PREP"
+# AI prep runs as a Workflow (worker/prep.js), so a plan is finished and cached even if the app closes.
+[[workflows]]
+name = "chess-coach-local-prep"
+binding = "PREP_JOBS"
+class_name = "PrepWorkflow"
 [[d1_databases]]
 binding = "DB"
 # Usage stats (worker/events.js). The dataset is created by the first event written; data is kept 3 months.
@@ -34,6 +47,10 @@ dataset = "checkmate_events_local"
 name = "BURST"
 namespace_id = "1000"
 simple = { limit = 30, period = 60 }
+[[ratelimits]]
+name = "AI_BURST"
+namespace_id = "1010"
+simple = { limit = 10, period = 60 }
 
 # Each environment has one address on checkmateprep.com and no workers.dev address: the browser keeps
 # each user's data per address. Deploying creates the DNS records, so the checkmateprep.com zone must be
@@ -42,26 +59,32 @@ simple = { limit = 30, period = 60 }
 name = "chess-coach-dev"
 workers_dev = false
 routes = [{ pattern = "dev.checkmateprep.com", custom_domain = true }]
-vars = { AUTH0_DOMAIN = "checkmateprep.us.auth0.com", AUTH0_CLIENT_ID = "fnp3sz7Jj2Qg1b9mGilVCi68jLr4dimu", AUTH0_AUDIENCE = "https://api.checkmateprep.com" }
+vars = { AUTH0_DOMAIN = "checkmateprep.us.auth0.com", AUTH0_CLIENT_ID = "fnp3sz7Jj2Qg1b9mGilVCi68jLr4dimu", AUTH0_AUDIENCE = "https://api.checkmateprep.com", MODEL = "claude-sonnet-5", DAILY_LIMIT = "50", PER_IP_DAILY = "20" }
+kv_namespaces = [{ binding = "PREP" }]
+workflows = [{ name = "chess-coach-dev-prep", binding = "PREP_JOBS", class_name = "PrepWorkflow" }]
 d1_databases = [{ binding = "DB" }]
 analytics_engine_datasets = [{ binding = "EVENTS", dataset = "checkmate_events_dev" }]
-ratelimits = [{ name = "BURST", namespace_id = "1001", simple = { limit = 30, period = 60 } }]
+ratelimits = [{ name = "BURST", namespace_id = "1001", simple = { limit = 30, period = 60 } }, { name = "AI_BURST", namespace_id = "1011", simple = { limit = 3, period = 60 } }]
 
 [env.test]
 name = "chess-coach-test"
 workers_dev = false
 routes = [{ pattern = "test.checkmateprep.com", custom_domain = true }]
-vars = { AUTH0_DOMAIN = "checkmateprep.us.auth0.com", AUTH0_CLIENT_ID = "fnp3sz7Jj2Qg1b9mGilVCi68jLr4dimu", AUTH0_AUDIENCE = "https://api.checkmateprep.com" }
+vars = { AUTH0_DOMAIN = "checkmateprep.us.auth0.com", AUTH0_CLIENT_ID = "fnp3sz7Jj2Qg1b9mGilVCi68jLr4dimu", AUTH0_AUDIENCE = "https://api.checkmateprep.com", MODEL = "claude-sonnet-5", DAILY_LIMIT = "50", PER_IP_DAILY = "20" }
+kv_namespaces = [{ binding = "PREP" }]
+workflows = [{ name = "chess-coach-test-prep", binding = "PREP_JOBS", class_name = "PrepWorkflow" }]
 d1_databases = [{ binding = "DB" }]
 analytics_engine_datasets = [{ binding = "EVENTS", dataset = "checkmate_events_test" }]
-ratelimits = [{ name = "BURST", namespace_id = "1002", simple = { limit = 30, period = 60 } }]
+ratelimits = [{ name = "BURST", namespace_id = "1002", simple = { limit = 30, period = 60 } }, { name = "AI_BURST", namespace_id = "1012", simple = { limit = 3, period = 60 } }]
 
 # Production answers only on checkmateprep.com (www redirects to it in worker/index.js).
 [env.production]
 name = "chess-coach"
 workers_dev = false
 routes = [{ pattern = "checkmateprep.com", custom_domain = true }, { pattern = "www.checkmateprep.com", custom_domain = true }]
-vars = { AUTH0_DOMAIN = "login.checkmateprep.com", AUTH0_CLIENT_ID = "2tQ9JSSnfNd6GraU8bmoe9bQ5P64yMnm", AUTH0_AUDIENCE = "https://api.checkmateprep.com" }
+vars = { AUTH0_DOMAIN = "login.checkmateprep.com", AUTH0_CLIENT_ID = "2tQ9JSSnfNd6GraU8bmoe9bQ5P64yMnm", AUTH0_AUDIENCE = "https://api.checkmateprep.com", MODEL = "claude-opus-5", FALLBACKS = "default", DAILY_LIMIT = "40", PER_IP_DAILY = "5" }
+kv_namespaces = [{ binding = "PREP" }]
+workflows = [{ name = "chess-coach-prep", binding = "PREP_JOBS", class_name = "PrepWorkflow" }]
 d1_databases = [{ binding = "DB" }]
 analytics_engine_datasets = [{ binding = "EVENTS", dataset = "checkmate_events_production" }]
-ratelimits = [{ name = "BURST", namespace_id = "1003", simple = { limit = 30, period = 60 } }]
+ratelimits = [{ name = "BURST", namespace_id = "1003", simple = { limit = 30, period = 60 } }, { name = "AI_BURST", namespace_id = "1013", simple = { limit = 2, period = 60 } }]

@@ -13,9 +13,14 @@
     "auth0:deploy": "node ops/auth0/deploy-actions.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
     "jose": "^6.2.12"
   },
   "devDependencies": {
     "wrangler": "^4.141.0"
+  },
+  "allowScripts": {
+    "workerd@1.20260925.1": true,
+    "esbuild@0.28.1": true
   }
 }
