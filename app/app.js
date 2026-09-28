@@ -7,7 +7,7 @@ import { buildTree, walk, profile, weakLines, pct, headToHead } from './stats.js
 import { reviewGames, reviewCache, reviewedCount, summarize, findTraps, cachedTraps, trapScan, trapCandidates, TRAP_MIN_N, isGoodMove } from './analysis.js';
 import { gamePlan } from './plan.js';
 import { whileAwake } from './engine.js';
-import { account, startSync, returningFromSignIn, signIn, signOut, syncNow, deleteSynced, hasApi, token } from './sync.js';
+import { account, startSync, returningFromSignIn, signIn, signOut, syncNow, deleteSynced, forgetDevice, hasApi, token } from './sync.js';
 import { track, startTracking, screenOf, sharing, setSharing } from './track.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -391,10 +391,14 @@ function renderAccount() {
     else if (!account.signedIn) slot.innerHTML = `<button class="btn primary" data-acct="signin">Sign in</button>${err}`;
     else slot.innerHTML = `<section class="card">${who}
       ${account.busy || (!account.at && !account.error) ? '<p class="small muted" aria-live="polite">Getting your data…</p>' : '<p>Nothing is saved on this account yet.</p><a class="btn primary" href="#start">Set up as a new user</a>'}${err}</section>`;
-  } else if (!account.enabled) { slot.innerHTML = ''; return; } else if (!account.signedIn) {
-    slot.innerHTML = `<section class="card"><h2>Your devices</h2>
+  } else if (!account.signedIn) {
+    // Without an account, everything lives on this device: offer to delete it and start again.
+    slot.innerHTML = `${account.enabled ? `<section class="card"><h2>Your devices</h2>
         <p class="small muted">Sign in to use the app on your phone and laptop with the same opponents, names and drill progress. Games and engine results stay on each device; they're downloaded again on the others.</p>
-        <button class="btn primary" data-acct="signin">Sign in</button>${err}</section>`;
+        <button class="btn primary" data-acct="signin">Sign in</button>${err}</section>` : ''}
+      <section class="card"><details><summary><b>Delete account</b></summary><div class="details-body">
+        <p class="small muted">You're not signed in, so everything is on this device only: your username, opponents, names, downloaded games and drill progress. Deleting removes it all and starts again from the welcome screen. It can't be undone.</p>
+        <button class="btn" data-acct="forget">Delete everything on this device</button></div></details></section>`;
   } else {
     const when = account.busy ? 'Syncing…' : account.at ? `Synced ${ago(account.at)}.` : 'Not synced yet.';
     slot.innerHTML = `<section class="card"><h2>Your account</h2>
@@ -413,6 +417,7 @@ function renderAccount() {
       if (act === 'sync') await syncNow();
       if (act === 'signout') await signOut();
       if (act === 'delete') await deleteSynced();
+      if (act === 'forget') await forgetDevice();
       renderAccount();
     };
   });

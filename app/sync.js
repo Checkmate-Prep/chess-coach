@@ -133,6 +133,12 @@ export async function signOut({ send = true } = {}) {
 }
 
 /** Delete this account's synced data on the server, then sign out (which also clears this device). */
+/** Not signed in: delete everything this app saved on this device, and start again from the welcome screen. */
+export async function forgetDevice() {
+  clearTimeout(timer);
+  await idb.clear(); ls.clear();
+  location.replace(location.pathname);
+}
 export async function deleteSynced() {
   clearTimeout(timer); await running; // a sync landing after the delete would store the data again
   try {
