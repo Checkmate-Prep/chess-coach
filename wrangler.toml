@@ -59,7 +59,7 @@ simple = { limit = 10, period = 60 }
 name = "chess-coach-dev"
 workers_dev = false
 routes = [{ pattern = "dev.checkmateprep.com", custom_domain = true }]
-vars = { AUTH0_DOMAIN = "", AUTH0_CLIENT_ID = "", AUTH0_AUDIENCE = "", MODEL = "claude-sonnet-5", DAILY_LIMIT = "50", PER_IP_DAILY = "20" }
+vars = { AUTH0_DOMAIN = "checkmateprep.us.auth0.com", AUTH0_CLIENT_ID = "fnp3sz7Jj2Qg1b9mGilVCi68jLr4dimu", AUTH0_AUDIENCE = "https://api.checkmateprep.com", MODEL = "claude-sonnet-5", DAILY_LIMIT = "50", PER_IP_DAILY = "20" }
 kv_namespaces = [{ binding = "PREP" }]
 workflows = [{ name = "chess-coach-dev-prep", binding = "PREP_JOBS", class_name = "PrepWorkflow" }]
 d1_databases = [{ binding = "DB" }]
@@ -70,7 +70,7 @@ ratelimits = [{ name = "BURST", namespace_id = "1001", simple = { limit = 30, pe
 name = "chess-coach-test"
 workers_dev = false
 routes = [{ pattern = "test.checkmateprep.com", custom_domain = true }]
-vars = { AUTH0_DOMAIN = "", AUTH0_CLIENT_ID = "", AUTH0_AUDIENCE = "", MODEL = "claude-sonnet-5", DAILY_LIMIT = "50", PER_IP_DAILY = "20" }
+vars = { AUTH0_DOMAIN = "checkmateprep.us.auth0.com", AUTH0_CLIENT_ID = "fnp3sz7Jj2Qg1b9mGilVCi68jLr4dimu", AUTH0_AUDIENCE = "https://api.checkmateprep.com", MODEL = "claude-sonnet-5", DAILY_LIMIT = "50", PER_IP_DAILY = "20" }
 kv_namespaces = [{ binding = "PREP" }]
 workflows = [{ name = "chess-coach-test-prep", binding = "PREP_JOBS", class_name = "PrepWorkflow" }]
 d1_databases = [{ binding = "DB" }]
