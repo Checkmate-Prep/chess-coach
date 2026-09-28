@@ -57,6 +57,17 @@ jobs:
           cache: npm
       - if: env.HAS_TOKEN == 'true'
         run: npm ci && npm test
+      # The shared game store's R2 bucket (worker/games.js). Wrangler doesn't create a named bucket on deploy.
+      - if: env.HAS_TOKEN == 'true'
+        name: Create the game store bucket if it's missing
+        id: bucket
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID || secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          case "$TARGET" in production) bucket=chess-coach-games-prod ;; *) bucket="chess-coach-games-$TARGET" ;; esac
+          echo "name=$bucket" >> "$GITHUB_OUTPUT"
+          npx wrangler r2 bucket info "$bucket" > /dev/null 2>&1 || npx wrangler r2 bucket create "$bucket"
       - if: env.HAS_TOKEN == 'true'
         id: deploy
         uses: cloudflare/wrangler-action@v3
@@ -69,17 +80,17 @@ jobs:
           # upload the key only when this environment has one (the action fails on a secret it can't find)
           secrets: ${{ env.HAS_AI_KEY == 'true' && 'ANTHROPIC_API_KEY' || '' }}
       # The shared game store (worker/games.js) keeps each file 180 days at most (ops/r2/games-lifecycle.json).
-      # `set` replaces the bucket's rules, so running it on every deploy is harmless. Deploying created the bucket.
+      # `set` replaces the bucket's rules, so running it on every deploy is harmless.
       - if: env.HAS_TOKEN == 'true'
         name: Expire the game store after 180 days
         continue-on-error: true
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID || secrets.CLOUDFLARE_ACCOUNT_ID }}
+          BUCKET: ${{ steps.bucket.outputs.name }}
         run: |
-          case "$TARGET" in production) bucket=chess-coach-games-prod ;; *) bucket="chess-coach-games-$TARGET" ;; esac
-          npx wrangler r2 bucket lifecycle set "$bucket" --file ops/r2/games-lifecycle.json --force \
-            || echo "::warning::Couldn't set the game store's 180-day rule on $bucket. The API token needs R2 edit access. See README (Game store)."
+          npx wrangler r2 bucket lifecycle set "$BUCKET" --file ops/r2/games-lifecycle.json --force \
+            || echo "::warning::Couldn't set the game store's 180-day rule on $BUCKET. The API token needs R2 edit access. See README (Game store)."
       - if: env.HAS_TOKEN == 'true' && env.HAS_AI_KEY != 'true'
         run: echo "::notice::No ANTHROPIC_API_KEY in this GitHub Environment, so AI prep stays off here (the app shows the quick plan). See README (AI-written prep)."
       # The environment's link on GitHub. Wrangler reports a custom domain as "checkmateprep.com (custom domain)",

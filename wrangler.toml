@@ -41,7 +41,7 @@ class_name = "PrepWorkflow"
 [[d1_databases]]
 binding = "DB"
 # The shared game store (worker/games.js): chess.com's public games, one copy per player, for every user.
-# Deploying creates the bucket if it's missing; deploy.yml adds the rule that deletes files after 180 days.
+# deploy.yml creates the bucket when it's missing (Wrangler doesn't) and sets the rule that deletes files after 180 days.
 [[r2_buckets]]
 binding = "GAMES"
 bucket_name = "chess-coach-games-local"

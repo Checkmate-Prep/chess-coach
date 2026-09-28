@@ -81,7 +81,7 @@ When the app is served by the Worker, it downloads games through `/api/games` (`
 - **If it fails** (chess.com busy, no bucket, rate limit), the app calls chess.com directly, as it does on GitHub Pages.
 - **Expiry:** the deploy workflow sets a lifecycle rule (`ops/r2/games-lifecycle.json`) that deletes files 180 days after they were written. The Cloudflare API token needs R2 edit access (the Edit Cloudflare Workers template includes it); without it the deploy warns and carries on.
 - **A player who asks to be removed:** `npm run forget-player -- <username> --env production` puts them on a deny-list (`deny:<username>` in the `PREP` KV namespace), so the Worker never stores them again, and deletes their files. A player chess.com no longer knows (404) is deleted automatically.
-- **Cost:** about 1.5 MB per player, so 1,000 players is about 1.5 GB, inside R2's free 10 GB. Deploying creates the bucket (`chess-coach-games-dev`, `-test`, `-prod`).
+- **Cost:** about 1.5 MB per player, so 1,000 players is about 1.5 GB, inside R2's free 10 GB. The deploy workflow creates the bucket when it's missing (`chess-coach-games-dev`, `-test`, `-prod`).
 
 ### Monitoring
 
