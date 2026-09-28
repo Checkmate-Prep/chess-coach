@@ -33,9 +33,9 @@ Players are set in `coach.py` (`ME`, `FRIENDS`). The engine analysis is cached p
 | `analyze.py` | Stockfish evaluation of every move (cached in `data/<user>.analysis.json`) |
 | `profile.py` | Style, opening and weakness statistics (`data/<user>.profile.json`) |
 | `explore.py` | What a player chose next from any position, and their score |
-| `notes.py` | The coach's written conclusions and prepared lines (only on the `ai-prep` branch) |
+| `notes.py` | The coach's written conclusions and prepared lines. Kept on your own machine only (gitignored, since this repo is public); it feeds `report.html` |
 | `build_report.py` | Renders the prep book (`report.html`) |
-| `build_app.py` | Packages the hand-written prep for the web app (`app/prep.json`) and versions its offline cache |
+| `build_app.py` | Versions the web app's offline cache, and writes an empty `app/prep.json` (hand-written prep never goes into the app) |
 
 ## Web app
 
@@ -49,7 +49,7 @@ Players are set in `coach.py` (`ME`, `FRIENDS`). The engine analysis is cached p
 
 Everything is stored in the device's browser (IndexedDB). The engine is Stockfish 19 lite (single-threaded WASM, about 1.8 MB) in a Web Worker. It runs at roughly 10 seconds per game review and 1–3 minutes per trap scan.
 
-Hand-written prep (`notes.py`) is kept on the `ai-prep` branch only, so `main` and the published site ship an empty `app/prep.json`. On a branch that has `notes.py`, it shows up as "Hand-written prep" for the opponents it covers. `python3 coach.py refresh` rebuilds it; pushing `app/` to `main` redeploys the site.
+Hand-written prep (`notes.py`) is a local file, kept out of git because this repo is public. It only feeds the prep book (`report.html`); the app never shows it and ships an empty `app/prep.json`. Pushing `app/` to `main` redeploys the site.
 
 ### Accounts and sync
 

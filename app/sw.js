@@ -1,5 +1,5 @@
 // Offline support: app shell cache-first; chess.com, /api/ and sign-in always live.
-const CACHE = 'chess-prep-4c2bf9b6d7';
+const CACHE = 'chess-prep-33f773a468';
 const SHELL = ['./', 'index.html', 'app.css', 'app.js', 'board.js', 'pieces.js', 'store.js', 'chesscom.js', 'stats.js', 'engine.js', 'analysis.js', 'plan.js', 'sync.js', 'syncdoc.js', 'track.js',
   'vendor/chess.js', 'vendor/auth0/auth0-spa-js.production.esm.js', 'vendor/stockfish/stockfish-19-lite-single.js', 'vendor/stockfish/stockfish-19-lite-single.wasm',
   'manifest.webmanifest', 'icon.svg', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
