@@ -521,20 +521,29 @@ function plansHtml(plans, prefix, user) {
 function mountPlans(plans, prefix) {
   plans.forEach((p, i) => { const host = $(`[data-line="${prefix}${i}"]`, view); if (host) lineViewer(host, p.line.split(' '), !!p.flip, p.key_from); });
 }
-function aiSection(user, saved, canWrite, hasGames, writing, error) {
-  if (!saved && !canWrite) return '';
+/**
+ * Step 3, the game plan: Claude's plan once written; until then the quick plan built on this device from their
+ * statistics, with the button that asks Claude for a fuller one (only where the Worker offers AI prep).
+ */
+function planStep(user, { saved, canWrite, hasGames, writing, error, quick }) {
   const plan = saved?.plan;
-  const plans = plan ? plan.plans.map(aiPlan) : [];
-  return `<section class="card ai" id="ai"><p class="eyebrow">${canWrite ? `${stepOf(3)} · Write game plan` : 'AI-written prep'}</p><h2>${plan ? "Claude's plan" : 'Write a plan with Claude'}</h2>
-    ${plan ? `<p>${rich(plan.summary)}</p>${plansHtml(plans, 'ai', user)}
-      <details><summary><b>Where they go wrong</b></summary><div class="details-body"><ul>${plan.weak.map((x) => `<li>${rich(x)}</li>`).join('')}</ul></div></details>
-      <details><summary><b>Game-day checklist</b></summary><div class="details-body"><ol>${plan.checklist.map((x) => `<li>${rich(x)}</li>`).join('')}</ol></div></details>
-      <p class="small muted">Written ${ago(saved.at)} by Claude from ${saved.games.toLocaleString()} of their games. Check the lines on the board before relying on them.</p>`
-    : `<p class="small muted">Claude reads the statistics on this page, and any traps Stockfish found, and writes a plan for your next game against them.${hasGames ? ' Find traps first for a better plan.' : ''}</p>`}
-    ${canWrite ? `<button class="btn${plan ? '' : ' primary'}" id="ai-write" ${hasGames && !writing ? '' : 'disabled'}>${plan ? 'Rewrite with the latest games' : 'Write the plan'}</button>
+  const button = canWrite ? `<button class="btn${plan ? '' : ' primary'}" id="ai-write" ${hasGames && !writing ? '' : 'disabled'}>${plan ? 'Rewrite with the latest games' : 'Use AI to enhance game plan'}</button>
       ${writing ? `${progress('ai-progress')}<p class="ai-thought" id="ai-thought" hidden></p>` : ''}
       <p class="small muted" id="ai-status" aria-live="polite">${writing ? 'Takes about a minute. You can leave or close the app: the plan will be here when you come back.'
-        : error ? `<span class="warn">${esc(error)}</span>` : hasGames ? (plan ? '' : 'Takes about a minute.') : 'Download their games first.'}</p>` : ''}</section>`;
+        : error ? `<span class="warn">${esc(error)}</span>` : hasGames ? (plan ? '' : 'Takes about a minute.') : 'Download their games first.'}</p>` : '';
+  const eyebrow = AI ? `<p class="eyebrow">${stepOf(3)} · Write game plan</p>` : plan ? '<p class="eyebrow">AI-written prep</p>' : '';
+  if (plan) {
+    return `<section class="card ai" id="ai">${eyebrow}<h2>Claude's plan</h2>
+      <p>${rich(plan.summary)}</p>${plansHtml(plan.plans.map(aiPlan), 'ai', user)}
+      <details><summary><b>Where they go wrong</b></summary><div class="details-body"><ul>${plan.weak.map((x) => `<li>${rich(x)}</li>`).join('')}</ul></div></details>
+      <details><summary><b>Game-day checklist</b></summary><div class="details-body"><ol>${plan.checklist.map((x) => `<li>${rich(x)}</li>`).join('')}</ol></div></details>
+      <p class="small muted">Written ${ago(saved.at)} by Claude from ${saved.games.toLocaleString()} of their games. Check the lines on the board before relying on them.</p>
+      ${button}</section>`;
+  }
+  return `<section class="card ai plan-card" id="ai">${eyebrow}<h2>Game plan ${scoreInfo('si-plan')}</h2>${scoreNote('si-plan')}
+    ${canWrite ? `<div class="ai-offer"><p class="small">A quick plan, built instantly from their games. Claude can go deeper: it reads everything on this page, including any traps Stockfish found, and writes lines to drill and a game-day checklist.${hasGames ? ' Find traps first for a better plan.' : ''}</p>
+      ${button}</div>` : ''}
+    ${quick}</section>`;
 }
 // The Worker writes a plan in the background and the app asks for it every few seconds, so leaving the
 // page, or closing the app, loses nothing: jobs are kept in localStorage and picked up again on the next start.
@@ -638,8 +647,8 @@ async function stepsState(user) {
         : tooFew ? { state: 'done', text: 'Too few games for traps' } : current ? { state: 'done', text: traps ? `${traps} trap${traps === 1 ? '' : 's'} found` : 'No traps found' }
           : { state: 'todo', text: (scW || scB) ? 'Games changed: check again' : 'Not checked yet' }) },
   ];
-  if (AI) steps.push({ title: 'Write game plan', target: 'ai', next: 'Next: write the plan',
-    ...(aiWriting(user) ? { state: 'run', text: aiStage(user)[1] } : ai ? { state: 'done', text: `Written ${ago(ai.at)}` } : { state: 'todo', text: 'Not written yet' }) });
+  if (AI) steps.push({ title: 'Write game plan', target: 'ai', next: 'Next: enhance with AI',
+    ...(aiWriting(user) ? { state: 'run', text: aiStage(user)[1] } : ai ? { state: 'done', text: `Written ${ago(ai.at)}` } : { state: 'todo', text: gs?.length ? 'Quick plan ready' : 'Not written yet' }) });
   const first = steps.find((x) => x.state !== 'done');
   if (first?.state === 'todo') { first.isNext = true; first.text = first.next; }
   return steps;
@@ -700,8 +709,8 @@ async function renderOpp(user) {
       ${current || tooFew ? '' : `<button class="btn primary" id="traps" ${tw.n + tb.n ? '' : 'disabled'}>${scanned ? 'Check again with Stockfish' : 'Find traps with Stockfish'}</button><p class="small muted">${scanned ? 'Their games have changed since the last check. ' : ''}Takes 1–3 minutes. It runs on your device. Keep the app open.</p>`}
       ${progress('trap-progress')}
       <div id="trap-list">${trapsSection(user, trW, trB, { current, tooFew, checked, nW: tw.n, nB: tb.n })}</div></section>
-    ${aiSection(user, ai, AI, !!gs?.length, aiWriting(user), aiErrors[user])}
-    ${planHtml(gs?.length ? gamePlan({ pr, tw, tb, trW, trB, myW, myB }) : null, user, trW, trB)}`;
+    ${planStep(user, { saved: ai, canWrite: AI, hasGames: !!gs?.length, writing: aiWriting(user), error: aiErrors[user],
+      quick: ai ? '' : quickPlan(gs?.length ? gamePlan({ pr, tw, tb, trW, trB, myW, myB }) : null, user, trW, trB) })}`;
   if (ai) mountPlans(ai.plan.plans.map(aiPlan), 'ai');
   mountTraps(trW, trB);
   view.querySelectorAll('[data-plan]').forEach((host) => { const pl = PLAN_LINES[host.dataset.plan]; if (pl) lineViewer(host, pl.line, pl.flipped, pl.keyFrom); });
@@ -732,8 +741,9 @@ async function renderOpp(user) {
   });
 }
 const PLAN_LINES = {};
-function planHtml(plan, user, trW, trB) {
-  if (!plan) return `<section class="card"><h2>Game plan</h2><p class="small muted">Download their games to build a plan.</p></section>`;
+/** The quick plan: built on this device from their statistics, counted from real results. */
+function quickPlan(plan, user, trW, trB) {
+  if (!plan) return '<p class="small muted">Download their games to build a plan.</p>';
   const part = (key, title, sidePlan, flipped, trapColor, trapList) => {
     if (!sidePlan.points.length) return '';
     PLAN_LINES[key] = sidePlan.line ? { line: sidePlan.line, flipped, keyFrom: sidePlan.keyFrom } : null;
@@ -747,10 +757,9 @@ function planHtml(plan, user, trW, trB) {
     part('black', 'When you have Black', plan.black, true, 'white', trW),
     plan.manage.length ? `<h3>How to play the game</h3>${list(plan.manage)}` : '',
   ].join('');
-  return `<section class="card plan-card"><h2>Game plan ${scoreInfo('si-plan')}</h2>${scoreNote('si-plan')}
-    <p class="small muted">Built automatically from their games: every number is counted from their results.</p>
+  return `<p class="small muted">Every number is counted from their results.</p>
     ${body || '<p class="muted">Not enough games yet for a plan. Download more of their games.</p>'}
-    ${plan.trapsChecked ? '' : '<p class="small muted">Tap <b>Find traps</b> above to add engine-checked traps to this plan.</p>'}</section>`;
+    ${plan.trapsChecked ? '' : '<p class="small muted">Tap <b>Find traps</b> above to add engine-checked traps to this plan.</p>'}`;
 }
 /** Prep landing: every opponent as a row, with main rating, your record and what's been prepared. */
 async function renderOppList() {
