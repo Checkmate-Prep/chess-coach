@@ -73,7 +73,7 @@ export class PrepWorkflow extends WorkflowEntrypoint {
   async run(event, step) {
     const { data, key } = event.payload;
     // A busy or failing API is retried; an answer that can't become a plan ends the job with an error.
-    const out = await step.do('write', { retries: { limit: 2, delay: '20 seconds', backoff: 'exponential' }, timeout: '5 minutes' }, async () => {
+    const out = await step.do('write', { retries: { limit: 2, delay: '20 seconds', backoff: 'exponential' }, timeout: '15 minutes' }, async () => {
       let msg;
       try {
         msg = await write(this.env, data);
@@ -83,7 +83,10 @@ export class PrepWorkflow extends WorkflowEntrypoint {
         throw e;
       }
       if (msg.stop_reason === 'refusal') return { error: 'The AI declined to write this plan.' };
-      if (msg.stop_reason === 'max_tokens') return { error: 'The plan came out too long. Try again.' };
+      if (msg.stop_reason === 'max_tokens') {
+        console.error('max_tokens', data.opp.user, this.env.MODEL, msg.usage?.input_tokens, msg.usage?.output_tokens);
+        return { error: 'Claude ran out of room while writing the plan. Try again.' };
+      }
       try {
         const plan = JSON.parse(msg.content.find((b) => b.type === 'text')?.text);
         console.log('plan', data.opp.user, this.env.MODEL, msg.usage?.input_tokens, msg.usage?.output_tokens);
@@ -99,7 +102,9 @@ function write(env, data) {
   const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, baseURL: env.ANTHROPIC_BASE_URL || undefined });
   const params = {
     model: env.MODEL,
-    max_tokens: 16000,
+    // Sonnet 5 and Opus 5 think by default (adaptive, effort high), and the hidden thinking counts toward
+    // max_tokens: 16000 ran out before the plan was written. Streaming allows this much without timeouts.
+    max_tokens: 64000,
     system: SYSTEM,
     output_config: { format: { type: 'json_schema', schema: SCHEMA } },
     messages: [{ role: 'user', content: `Write the prep file for ${data.me.user} against ${data.opp.name || data.opp.user}. Statistics:\n\n${JSON.stringify(data)}` }],
