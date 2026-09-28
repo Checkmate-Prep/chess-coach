@@ -1,4 +1,5 @@
 {
+  "autoMemoryEnabled": true,
   "permissions": {
     "allow": [
       "Bash(python3 build_app.py)",
@@ -8,9 +9,16 @@
       "Bash(python3 analyze.py *)",
       "Bash(python3 profile.py *)",
       "Bash(python3 explore.py *)",
+      "Bash(python3 -m coverage *)",
+      "Bash(python3 -m unittest *)",
       "Bash(node --check *)",
+      "Bash(node --test *)",
       "Bash(npx live-server app *)",
       "Bash(npx --yes live-server app *)",
+      "Bash(npm test)",
+      "Bash(npm run dev)",
+      "Bash(npx wrangler dev *)",
+      "Bash(npx wrangler deploy --dry-run *)",
       "Bash(git status *)",
       "Bash(git diff *)",
       "Bash(git log *)",
@@ -32,7 +40,10 @@
       {
         "matcher": "Edit|Write|MultiEdit",
         "hooks": [
-          { "type": "command", "command": "\"${CLAUDE_PROJECT_DIR}\"/.claude/hooks/rebuild-app.sh" }
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PROJECT_DIR}\"/.claude/hooks/rebuild-app.sh"
+          }
         ]
       }
     ]

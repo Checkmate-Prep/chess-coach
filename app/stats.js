@@ -97,3 +97,17 @@ export function weakLines(tree, { minN = 8, maxScore = 40, maxDepth = 12 } = {})
   }
   return kept.sort((a, b) => a.score - b.score || b.n - a.n).slice(0, 6);
 }
+
+/**
+ * Your games against `opp`, from both downloads: your games against them, plus their games against `me`
+ * with the result turned round to your side. The same game in both counts once.
+ * Returns {n, rec: [won, drew, lost], p (your points x2), last (end time of the latest game, 0 if none)}.
+ */
+export function headToHead(mine, theirs, opp, me) {
+  const byUrl = new Map();
+  for (const g of theirs || []) if (g.opp.toLowerCase() === me) byUrl.set(g.url, { t: g.t, pts: 2 - g.pts });
+  for (const g of mine || []) if (g.opp.toLowerCase() === opp) byUrl.set(g.url, { t: g.t, pts: g.pts });
+  const out = { n: byUrl.size, rec: [0, 0, 0], p: 0, last: 0 };
+  for (const g of byUrl.values()) { out.rec[2 - g.pts]++; out.p += g.pts; out.last = Math.max(out.last, g.t); }
+  return out;
+}

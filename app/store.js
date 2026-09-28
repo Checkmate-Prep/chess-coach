@@ -25,8 +25,12 @@ export const idb = {
   del: (k) => tx('readwrite', (s) => s.delete(k)).catch(() => undefined),
   clear: () => tx('readwrite', (s) => s.clear()).catch(() => undefined),
 };
+const watchers = [];
 export const ls = {
   get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
-  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* storage unavailable */ } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* storage unavailable */ } watchers.forEach((fn) => fn(k)); },
+  /** Call fn(key) after every set (sync.js uses it to notice changes to synced data). */
+  watch(fn) { watchers.push(fn); },
   del(k) { try { localStorage.removeItem(k); } catch { /* storage unavailable */ } },
+  clear() { try { localStorage.clear(); } catch { /* storage unavailable */ } },
 };

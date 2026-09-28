@@ -1,2 +1,8 @@
-# Copy to .dev.vars for `npm run dev`. Use a key from the dev workspace in the Anthropic Console.
+# Copy to .dev.vars for `npm run dev`.
+# AI prep: a key from the dev workspace in the Anthropic Console.
 ANTHROPIC_API_KEY=
+# Accounts: values from a dev Auth0 tenant
+# (add http://localhost:8787 to the application's Allowed Callback URLs, Logout URLs and Web Origins).
+AUTH0_DOMAIN=
+AUTH0_CLIENT_ID=
+AUTH0_AUDIENCE=

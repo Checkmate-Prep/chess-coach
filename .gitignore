@@ -14,3 +14,8 @@ node_modules/
 .wrangler/
 .dev.vars*
 !.dev.vars.example
+# Test coverage output
+.coverage
+htmlcov/
+# D1 exports (README: moving production) hold users' synced data
+*.sql
