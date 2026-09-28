@@ -531,3 +531,10 @@ It also flags that Stockfish's GPL licence is the one real legal grey area. Save
 > See screenshots. When I scroll on chrome on iOS the upper and lower part of chrome are removed but the bottom menu bar could go down more to give more screen space.
 
 **What Claude did:** when Chrome on iOS hides its toolbars, the page reaches the bottom of the screen and the tab bar kept the whole home-indicator area (about 34px) empty under its labels. It now keeps only what the home indicator needs: 20px instead of 40px under the labels on Face ID iPhones. The space kept free at the bottom of each screen shrinks to match. Where there is no home indicator, or while Chrome shows its toolbar, nothing changes. Checked in headless Chromium that the CSS applies and is unchanged without an inset; the iPhone layout itself still has to be checked on a device. → [#31](https://github.com/Checkmate-Prep/chess-coach/pull/31)
+
+### 55. Sign out before setup
+> once I'm signed in, I should see on setup the button sign out. but on dev currently that button sign out is not there despite being signed in
+
+> yes, make a separate PR from main
+
+**What Claude did:** traced it to one state. Signing out clears the device, so signing back in to an account with nothing saved leaves you signed in on a device that isn't set up. There, no screen offered Sign out. The "Welcome back" card only said "Signed in as …", and Settings only shows the account card once a username is set. The welcome screen, the "Welcome back" card and first-time setup now show "Signed in as … · Sign out". Checked in headless Chromium at phone size, with the Auth0 SDK and `/api` faked: on `main` those three screens had no Sign out, and now each does and calls Auth0's logout. The other account screens are unchanged. A real Auth0 sign-out still needs a check on dev. → [#32](https://github.com/Checkmate-Prep/chess-coach/pull/32)

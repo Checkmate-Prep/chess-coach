@@ -112,6 +112,7 @@ body.no-tabs .view{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 32px)}
 .appbar .brand{display:flex;align-items:center;gap:10px;color:inherit;text-decoration:none;-webkit-tap-highlight-color:transparent}
 .profile-link{text-decoration:none;justify-self:start}.profile-link:hover{color:var(--accent)}
 a.back{text-decoration:none}
+.link-btn{font:500 1em var(--sans);color:var(--accent);background:none;border:0;padding:4px 2px;min-height:32px;text-decoration:underline;cursor:pointer}
 .opps{list-style:none;padding:0;gap:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
 .opps li+li{border-top:1px solid var(--line)}
 .opps a{display:grid;gap:4px;padding:14px 16px;color:var(--ink);text-decoration:none;min-height:56px}
