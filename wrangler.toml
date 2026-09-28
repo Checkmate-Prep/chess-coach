@@ -17,7 +17,7 @@ run_worker_first = ["/api/*"]
 # Bindings and vars don't inherit, so each environment lists its own.
 # D1 databases without an id are created on the first deploy; the Worker creates its table.
 # Auth0: one tenant (checkmateprep.us.auth0.com) with one API and two Single Page Applications:
-# "Checkmate Prep" for production, "Checkmate Prep (dev)" for dev, test and local runs.
+# "Checkmate Prep" for production, "Checkmate Prep - non prod" for dev, test and local runs.
 # AUTH0_DOMAIN = where sign-in happens (tokens must come from this exact domain), AUTH0_CLIENT_ID = the
 # application, AUTH0_AUDIENCE = the API identifier. Locally, set them in .dev.vars.
 [vars]
@@ -35,23 +35,28 @@ name = "BURST"
 namespace_id = "1000"
 simple = { limit = 30, period = 60 }
 
+# Each environment has one address on checkmateprep.com and no workers.dev address: the browser keeps
+# each user's data per address. Deploying creates the DNS records, so the checkmateprep.com zone must be
+# in the same Cloudflare account as every environment.
 [env.dev]
 name = "chess-coach-dev"
-vars = { AUTH0_DOMAIN = "", AUTH0_CLIENT_ID = "", AUTH0_AUDIENCE = "" }
+workers_dev = false
+routes = [{ pattern = "dev.checkmateprep.com", custom_domain = true }]
+vars = { AUTH0_DOMAIN = "checkmateprep.us.auth0.com", AUTH0_CLIENT_ID = "fnp3sz7Jj2Qg1b9mGilVCi68jLr4dimu", AUTH0_AUDIENCE = "https://api.checkmateprep.com" }
 d1_databases = [{ binding = "DB" }]
 analytics_engine_datasets = [{ binding = "EVENTS", dataset = "checkmate_events_dev" }]
 ratelimits = [{ name = "BURST", namespace_id = "1001", simple = { limit = 30, period = 60 } }]
 
 [env.test]
 name = "chess-coach-test"
-vars = { AUTH0_DOMAIN = "", AUTH0_CLIENT_ID = "", AUTH0_AUDIENCE = "" }
+workers_dev = false
+routes = [{ pattern = "test.checkmateprep.com", custom_domain = true }]
+vars = { AUTH0_DOMAIN = "checkmateprep.us.auth0.com", AUTH0_CLIENT_ID = "fnp3sz7Jj2Qg1b9mGilVCi68jLr4dimu", AUTH0_AUDIENCE = "https://api.checkmateprep.com" }
 d1_databases = [{ binding = "DB" }]
 analytics_engine_datasets = [{ binding = "EVENTS", dataset = "checkmate_events_test" }]
 ratelimits = [{ name = "BURST", namespace_id = "1002", simple = { limit = 30, period = 60 } }]
 
-# Production answers only on checkmateprep.com (www redirects to it in worker/index.js). No workers.dev
-# address: the browser keeps each user's data per address, so there must be exactly one.
-# Deploying creates the DNS records; the domain's zone must be in the same Cloudflare account.
+# Production answers only on checkmateprep.com (www redirects to it in worker/index.js).
 [env.production]
 name = "chess-coach"
 workers_dev = false

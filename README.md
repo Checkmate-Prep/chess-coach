@@ -92,7 +92,7 @@ The product domain is **checkmateprep.com**, registered at Cloudflare Registrar 
 | `checkmateprep.com` | The app and `/api` (production Worker, set as a custom domain in `wrangler.toml`) |
 | `www.checkmateprep.com` | Redirects to `checkmateprep.com` (`worker/index.js`) |
 | `login.checkmateprep.com` | Auth0 sign-in page (Auth0 custom domain, set up below) |
-| `chess-coach-dev.…workers.dev`, `chess-coach-test.…workers.dev` | The dev and test environments. Production has no workers.dev address, so there is only one place its data can live |
+| `dev.checkmateprep.com`, `test.checkmateprep.com` | The dev and test environments (their own Workers, databases and Auth0 application). No environment has a workers.dev address, so each one keeps its data in one place |
 
 - **DNS** is managed in Cloudflare. Deploying the production Worker creates the records for `checkmateprep.com` and `www`; if a record already exists on either name (a parking page, for example), delete it first or the deploy fails.
 - **Email:** Cloudflare Email Routing (free) can forward an address like `hello@checkmateprep.com` to a personal inbox, for Auth0, payment and user mail. Sending sign-in emails needs a sending provider (below).
@@ -116,8 +116,8 @@ Before you start (in the personal account):
    `prod.sql` holds every account's synced data: keep it private and out of git.
 2. **Move the domain:** in the personal account, open checkmateprep.com in **Domain Registration** and start the move to the project account; approve it from the project account's email within 5 days.
 3. **Recreate the DNS records** you wrote down, in the project account. The `login` CNAME needs the proxy **off**. Then check that Auth0 still shows `login.checkmateprep.com` as Ready.
-4. **Point production at the project account:** in GitHub, **Settings → Environments → `production`**, replace the secret `CLOUDFLARE_API_TOKEN` and the variable `CLOUDFLARE_ACCOUNT_ID` with the project account's (the token needs Workers, D1 edit and the checkmateprep.com zone).
-5. **Deploy:** **Actions → Deploy to Cloudflare → Run workflow → `production`**. This creates the Worker, the custom domains and an empty D1 database in the project account. If it fails because `checkmateprep.com` or `www` already has a record, delete that record and run it again.
+4. **Point every environment at the project account:** in GitHub, **Settings → Environments → `production`** (and `dev`, `test`), replace the secret `CLOUDFLARE_API_TOKEN` and the variable `CLOUDFLARE_ACCOUNT_ID` with the project account's (the token needs Workers, D1 edit and the checkmateprep.com zone).
+5. **Deploy:** **Actions → Deploy to Cloudflare → Run workflow → `production`**, then `dev` and `test` (their data is test data: no export needed). This creates the Worker, the custom domains and an empty D1 database in the project account. If it fails because `checkmateprep.com` or `www` already has a record, delete that record and run it again.
 6. **Import the data** (project account). Sign-ins between steps 5 and 6 are safe: `INSERT OR IGNORE` keeps a row written since, and devices re-send their own data on their next sync.
    ```bash
    export CLOUDFLARE_API_TOKEN=<project token> CLOUDFLARE_ACCOUNT_ID=<project account id>
@@ -125,7 +125,7 @@ Before you start (in the personal account):
    npx wrangler d1 execute DB --remote --env production --file prod-import.sql
    ```
 7. **Check:** https://checkmateprep.com loads, `www` redirects, and signing in shows your opponents.
-8. **Clean up:** delete the old Worker `chess-coach` and its D1 database in the personal account, delete the personal account's API token, and delete `prod.sql` and `prod-import.sql`.
+8. **Clean up:** delete the old Workers (`chess-coach`, `chess-coach-dev`, `chess-coach-test`) and their D1 databases in the personal account, delete the personal account's API token, and delete `prod.sql` and `prod-import.sql`.
 
 One-time setup:
 
@@ -134,14 +134,14 @@ One-time setup:
    | Application | Used by | Callback, logout URLs | Web origins, CORS | `AUTH0_DOMAIN` |
    | --- | --- | --- | --- | --- |
    | Checkmate Prep | production | `https://checkmateprep.com/` | `https://checkmateprep.com` | `login.checkmateprep.com` |
-   | Checkmate Prep (dev) | dev, test, `npm run dev` | `http://localhost:8787/`, the dev and test `workers.dev` addresses with `/` | the same without `/` | `checkmateprep.us.auth0.com` |
+   | Checkmate Prep - non prod | dev, test, `npm run dev` | `http://localhost:8787/`, `https://dev.checkmateprep.com/`, `https://test.checkmateprep.com/` | the same without `/` | `checkmateprep.us.auth0.com` |
 
    Users are shared by both applications, so test sign-ins show up in the production user list; delete them afterwards. Synced data stays separate (each environment has its own D1 database). The password database is switched off for both applications. Under Authentication, turn on Google and/or Passwordless Email. Auth0's built-in email sender is for testing only: for sign-in codes in production, set up your own email provider in Auth0 (Resend, Amazon SES, …), sending from an address on `checkmateprep.com` and adding the provider's SPF and DKIM records in Cloudflare DNS. For a branded sign-in page, add the Auth0 custom domain `login.checkmateprep.com` (free plan, needs a card on file): create the CNAME Auth0 gives you in Cloudflare DNS with the proxy **off** (grey cloud), then use `login.checkmateprep.com` as `AUTH0_DOMAIN` (done for production). Google's OAuth client needs both `https://login.checkmateprep.com/login/callback` and `https://checkmateprep.us.auth0.com/login/callback` as redirect URIs, since the dev application signs in on the tenant's own address.
-2. **wrangler.toml:** `AUTH0_DOMAIN`, `AUTH0_CLIENT_ID` and `AUTH0_AUDIENCE` per environment. They're public values, not secrets. Production is filled in; dev and test get the dev application's Client ID once it exists. Left empty, an environment runs without accounts.
+2. **wrangler.toml:** `AUTH0_DOMAIN`, `AUTH0_CLIENT_ID` and `AUTH0_AUDIENCE` per environment. They're public values, not secrets. Production uses the Checkmate Prep application; dev and test share Checkmate Prep - non prod. Left empty, an environment runs without accounts.
 3. **Cloudflare:** create an API token from the **Edit Cloudflare Workers** template (with D1 edit access), and note your account ID.
-4. **GitHub:** in **Settings → Environments**, create `dev`, `test` and `production`, each with the secret `CLOUDFLARE_API_TOKEN` and the variable `CLOUDFLARE_ACCOUNT_ID` (not secret; a secret of that name also works). `production` uses the Cloudflare account that holds checkmateprep.com. Until then, the deploy workflow skips Cloudflare and says so.
+4. **GitHub:** in **Settings → Environments**, create `dev`, `test` and `production`, each with the secret `CLOUDFLARE_API_TOKEN` and the variable `CLOUDFLARE_ACCOUNT_ID` (not secret; a secret of that name also works). All three use the Cloudflare account that holds checkmateprep.com, so the same token and ID work for each. Until then, the deploy workflow skips Cloudflare and says so.
 
-The first deploy of each environment creates its D1 database, and the Worker creates its table on first use. Production is then at `https://checkmateprep.com`, and dev and test at `chess-coach-dev.<your-subdomain>.workers.dev` and `chess-coach-test.…`.
+The first deploy of each environment creates its D1 database, and the Worker creates its table on first use. Production is then at `https://checkmateprep.com`, and dev and test at `https://dev.checkmateprep.com` and `https://test.checkmateprep.com`. All three must deploy to the Cloudflare account that holds the checkmateprep.com zone, since deploying creates their DNS records.
 
 To run the Worker locally (Node 22+):
 

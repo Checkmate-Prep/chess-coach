@@ -551,3 +551,8 @@ It also flags that Stockfish's GPL licence is the one real legal grey area. Save
 > yes, make a PR from main
 
 **What Claude did:** the deploy workflow used Wrangler's `deployment-url` output as the GitHub Environment's link, and for a custom domain Wrangler adds " (custom domain)" and no `https://`. Production had the same problem. A step after the deploy now keeps the address before the first space and adds `https://` when it's missing, so a workers.dev address stays as is. It builds the link from Wrangler's output rather than the environment name, because on `main` dev and test still deploy to workers.dev. Checked that the YAML parses and that the shell logic gives the right link for both custom domains, a workers.dev address and a skipped deploy; not checked in a real run. → [#34](https://github.com/Checkmate-Prep/chess-coach/pull/34)
+
+### 58. Dev and test settings on main
+> make the PR to main for dev and test settings
+
+**What Claude did:** brought the non-AI part of the dev and test setup from `ai-prep` to `main`. In `wrangler.toml`, dev and test each get a custom domain, `dev.checkmateprep.com` and `test.checkmateprep.com`, and no workers.dev address, like production. They sign in through the shared Auth0 application "Checkmate Prep - non prod". The README gets the new addresses, the non-prod Auth0 app and its URLs, one Cloudflare token and account for all three environments, and dev and test in the move to the project account. AI prep settings stay on `ai-prep`. Checked with dry-run deploys of all three environments and that the sign-up alert still reads production's Client ID; not yet deployed from `main`. → [#35](https://github.com/Checkmate-Prep/chess-coach/pull/35)
