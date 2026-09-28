@@ -4,7 +4,7 @@
 
 - **Python pipeline (runs on a Mac):** downloads games from the chess.com public API, runs native Stockfish 19 over them, builds player profiles, and packages the results. Hand-written coaching lives in `notes.py`, a local file kept out of git (the repo is public); it only feeds `report.html`.
 - **Web app (`app/`):** a static PWA published to GitHub Pages (https://checkmate-prep.github.io/chess-coach/). Anyone enters their chess.com username and opponents; games, stats, traps, game plans and drills are all computed in the browser, including Stockfish (WASM). No account is needed.
-- **Worker (`worker/`):** a Cloudflare Worker that serves `app/` at **https://checkmateprep.com** (production) and adds `/api`: optional sign-in (Auth0) and sync of opponents, names and drill progress across devices. The app hides accounts when there is no `/api` (GitHub Pages, `live-server`).
+- **Worker (`worker/`):** a Cloudflare Worker that serves `app/` at **https://checkmateprep.com** (production) and adds `/api`: optional sign-in (Auth0) and sync of opponents, names and drill progress across devices, and AI-written game plans (Claude). The app hides accounts and AI prep when there is no `/api` (GitHub Pages, `live-server`).
 
 See `README.md` for the user-facing description.
 
@@ -25,7 +25,7 @@ See `README.md` for the user-facing description.
 | `tests/` | Node (`node:test`) tests for the app modules, Python `unittest` for the pipeline; synthetic fixtures |
 | `app/sync.js`, `app/syncdoc.js` | Optional account: Auth0 sign-in and when to sync; what syncs and how copies merge (also used by the Worker) |
 | `app/vendor/` | Vendored `chess.js` 1.4.0, Stockfish 19 lite single-threaded (GPL, see `COPYING.txt`) and the Auth0 SPA SDK 2.27.0 (MIT) |
-| `worker/`, `wrangler.toml` | The Worker: `/api/config`, `/api/sync` (D1), `/api/event` (usage stats, Analytics Engine), Auth0 token checks; environments `dev`, `test`, `production` |
+| `worker/`, `wrangler.toml` | The Worker: `/api/config`, `/api/sync` (D1), `/api/event` (usage stats, Analytics Engine), Auth0 token checks, `/api/health` and `/api/prep` (AI prep: `prep.js` runs Claude in a Workflow, `prompt.js` holds the instructions); environments `dev`, `test`, `production` |
 | `app/track.js`, `scripts/stats.mjs` | Usage stats: which screens are opened (never usernames or opponents); `npm run stats` reads them |
 | `ops/auth0/` | Auth0 Action that notifies new sign-ups (ntfy.sh), and the script that deploys it (runs in `deploy.yml`) |
 
@@ -47,6 +47,7 @@ python3 -m unittest discover -s tests  # pipeline tests
 - **`app/` changes need `python3 build_app.py`.** It hashes the app into the service worker's cache name; without a new name, installed apps keep serving the old files. A project hook runs it automatically after Claude edits a file in `app/`; run it yourself after edits made any other way.
 - **Everything in `app/` is public**, including `prep.json` (the hand-written prep). Never put secrets or private data there.
 - **No build step or framework.** Plain ES modules; libraries are vendored. Keep it that way unless there's a strong reason. (The Worker is bundled by Wrangler; that doesn't touch `app/`.)
+- **The Anthropic key lives only in the Worker** (`ANTHROPIC_API_KEY` secret, per GitHub Environment). Never in `app/`, `wrangler.toml` or a commit. AI prep must stay optional: without `/api/health` answering `ai: true`, step 3 of an opponent's file is the quick plan built on the device.
 - **Accounts are optional.** Everything must keep working signed out and without `/api`. Only data the user typed or earned syncs (`syncdoc.js`); a new synced field needs a merge rule and a test.
 - **checkmateprep.com is permanent.** Browsers keep each user's data per address, so never move production to another domain or add a second production address; `www` only redirects. The host behind the domain can change.
 - **Offline mode is disabled on localhost** (in `app.js` and `sw.js`) so local edits always show. Don't remove that.
