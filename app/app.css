@@ -95,6 +95,7 @@ form.row{margin:0}
 .trap:first-child{border-top:0;padding-top:0}
 .curated{border-color:color-mix(in srgb,var(--gold) 45%,var(--line))}
 details{border-top:1px solid var(--line);padding-top:10px}
+.card > details:first-child{border-top:0;padding-top:0}
 summary{cursor:pointer;list-style:none;padding:4px 0}
 summary::-webkit-details-marker{display:none}
 summary::after{content:"＋";float:right;color:var(--muted)}

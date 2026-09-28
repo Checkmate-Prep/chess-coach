@@ -538,3 +538,9 @@ It also flags that Stockfish's GPL licence is the one real legal grey area. Save
 > yes, make a separate PR from main
 
 **What Claude did:** traced it to one state. Signing out clears the device, so signing back in to an account with nothing saved leaves you signed in on a device that isn't set up. There, no screen offered Sign out. The "Welcome back" card only said "Signed in as …", and Settings only shows the account card once a username is set. The welcome screen, the "Welcome back" card and first-time setup now show "Signed in as … · Sign out". Checked in headless Chromium at phone size, with the Auth0 SDK and `/api` faked: on `main` those three screens had no Sign out, and now each does and calls Auth0's logout. The other account screens are unchanged. A real Auth0 sign-out still needs a check on dev. → [#32](https://github.com/Checkmate-Prep/chess-coach/pull/32)
+
+### 56. Delete account without signing in
+> currently when someone starts from scratch and provide their chess.com login, but don't sign-in; the settings page only displays "sign in" as option.
+> I'd like to add the option to "delete account" even if person has not signed in, so that the landing screen goes back to being "welcome" and ask to input chess.com username.
+
+**What Claude did:** added a Delete account section to Settings for anyone who isn't signed in, including on GitHub Pages where accounts don't exist. It explains that everything is on this device only. "Delete everything on this device" clears the browser's storage for the app, the same clearing sign-out does but without Auth0, and reloads to the welcome screen. Signed in, the existing Delete account is unchanged. Checked in headless Chromium at phone size, with accounts on, with no `/api`, and signed in: the welcome screen came back with the stored games gone. A card that starts with a folding section also lost its stray divider line. → [#33](https://github.com/Checkmate-Prep/chess-coach/pull/33)
