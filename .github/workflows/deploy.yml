@@ -31,7 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: ${{ github.event.inputs.environment || (github.ref_name == 'main' && 'production' || 'dev') }}
-      url: ${{ steps.deploy.outputs.deployment-url }}
+      url: ${{ steps.url.outputs.url }}
     env:
       HAS_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
       HAS_AUTH0_MGMT: ${{ secrets.AUTH0_MGMT_CLIENT_SECRET != '' }}
@@ -55,6 +55,16 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID || secrets.CLOUDFLARE_ACCOUNT_ID }}
           environment: ${{ github.event.inputs.environment || (github.ref_name == 'main' && 'production' || 'dev') }}
+      # The environment's link on GitHub. Wrangler reports a custom domain as "checkmateprep.com (custom domain)",
+      # which GitHub rejects as a URL: keep the address and add https:// (a workers.dev address already has it).
+      - if: env.HAS_TOKEN == 'true'
+        id: url
+        env:
+          DEPLOYED: ${{ steps.deploy.outputs.deployment-url }}
+        run: |
+          u="${DEPLOYED%% *}"
+          case "$u" in http*|'') ;; *) u="https://$u" ;; esac
+          echo "url=$u" >> "$GITHUB_OUTPUT"
       - if: env.HAS_TOKEN == 'true' && env.TARGET == 'production' && env.HAS_AUTH0_MGMT != 'true'
         run: echo "::notice::No AUTH0_MGMT_CLIENT_SECRET in the production GitHub Environment, so the sign-up notification Action wasn't deployed. See README (Monitoring)."
       - if: env.HAS_TOKEN == 'true' && env.TARGET == 'production' && env.HAS_AUTH0_MGMT == 'true'

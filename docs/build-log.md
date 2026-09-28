@@ -544,3 +544,10 @@ It also flags that Stockfish's GPL licence is the one real legal grey area. Save
 > I'd like to add the option to "delete account" even if person has not signed in, so that the landing screen goes back to being "welcome" and ask to input chess.com username.
 
 **What Claude did:** added a Delete account section to Settings for anyone who isn't signed in, including on GitHub Pages where accounts don't exist. It explains that everything is on this device only. "Delete everything on this device" clears the browser's storage for the app, the same clearing sign-out does but without Auth0, and reloads to the welcome screen. Signed in, the existing Delete account is unchanged. Checked in headless Chromium at phone size, with accounts on, with no `/api`, and signed in: the welcome screen came back with the stored games gone. A card that starts with a folding section also lost its stray divider line. → [#33](https://github.com/Checkmate-Prep/chess-coach/pull/33)
+
+### 57. A valid link for custom-domain deploys
+> "Environment URL 'test.checkmateprep.com (custom domain)' is not a valid http(s) URL, so it will not be shown as a link in the workflow graph."
+
+> yes, make a PR from main
+
+**What Claude did:** the deploy workflow used Wrangler's `deployment-url` output as the GitHub Environment's link, and for a custom domain Wrangler adds " (custom domain)" and no `https://`. Production had the same problem. A step after the deploy now keeps the address before the first space and adds `https://` when it's missing, so a workers.dev address stays as is. It builds the link from Wrangler's output rather than the environment name, because on `main` dev and test still deploy to workers.dev. Checked that the YAML parses and that the shell logic gives the right link for both custom domains, a workers.dev address and a skipped deploy; not checked in a real run. → [#34](https://github.com/Checkmate-Prep/chess-coach/pull/34)
