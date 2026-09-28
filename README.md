@@ -154,7 +154,7 @@ npm run dev                      # app + API at http://localhost:8787
 
 ### AI-written prep
 
-On an opponent's Prep page, **Write the plan** sends their statistics, lines, head-to-head record and any traps Stockfish found to Claude, which writes a plan in the same format as the hand-written prep. The plan is saved on the device, and its lines show up in Drill.
+On an opponent's Prep page, **Write the plan** sends their statistics, lines, head-to-head record and any traps Stockfish found to Claude, which writes a plan in the same format as the hand-written prep. The plan is saved on the device, and its lines show up in Drill. The writing runs on the server as a [Cloudflare Workflow](https://developers.cloudflare.com/workflows/) (`PrepWorkflow` in `worker/prep.js`), and the app checks on it every few seconds. So you can leave the page or close the app meanwhile: the plan is finished and cached anyway, and the app picks it up when it opens again. Tapping again while it's being written joins the same job at no extra cost.
 
 The Anthropic API key can't live in a public website, so the app is also served by a Cloudflare Worker (`worker/prep.js`) that holds the key and calls Claude. The button only appears when the app is served by that Worker. On GitHub Pages and on a plain static server it stays hidden.
 

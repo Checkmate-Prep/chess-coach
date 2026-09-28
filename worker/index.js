@@ -6,6 +6,8 @@ import { event } from './events.js';
 import { userOf } from './auth.js';
 import { prep } from './prep.js';
 
+export { PrepWorkflow } from './prep.js';
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);

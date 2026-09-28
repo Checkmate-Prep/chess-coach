@@ -512,7 +512,7 @@ function plansHtml(plans, prefix, user) {
 function mountPlans(plans, prefix) {
   plans.forEach((p, i) => { const host = $(`[data-line="${prefix}${i}"]`, view); if (host) lineViewer(host, p.line.split(' '), !!p.flip, p.key_from); });
 }
-function aiSection(user, saved, canWrite, hasGames) {
+function aiSection(user, saved, canWrite, hasGames, writing, error) {
   if (!saved && !canWrite) return '';
   const plan = saved?.plan;
   const plans = plan ? plan.plans.map(aiPlan) : [];
@@ -522,24 +522,63 @@ function aiSection(user, saved, canWrite, hasGames) {
       <details><summary><b>Game-day checklist</b></summary><div class="details-body"><ol>${plan.checklist.map((x) => `<li>${rich(x)}</li>`).join('')}</ol></div></details>
       <p class="small muted">Written ${ago(saved.at)} by Claude from ${saved.games.toLocaleString()} of their games. Check the lines on the board before relying on them.</p>`
     : `<p class="small muted">Claude reads the statistics on this page, and any traps Stockfish found, and writes a plan like the hand-written ones.${hasGames ? ' Find traps first for a better plan.' : ''}</p>`}
-    ${canWrite ? `<button class="btn${plan ? '' : ' primary'}" id="ai-write" ${hasGames ? '' : 'disabled'}>${plan ? 'Rewrite with the latest games' : 'Write the plan'}</button>
-      <p class="small muted" id="ai-status" aria-live="polite">${hasGames ? (plan ? '' : 'Takes about a minute.') : 'Download their games first.'}</p>` : ''}</section>`;
+    ${canWrite ? `<button class="btn${plan ? '' : ' primary'}" id="ai-write" ${hasGames && !writing ? '' : 'disabled'}>${plan ? 'Rewrite with the latest games' : 'Write the plan'}</button>
+      <p class="small muted" id="ai-status" aria-live="polite">${writing ? 'Claude is writing the plan (about a minute). You can leave or close the app: it will be here when you come back.'
+        : error ? `<span class="warn">${esc(error)}</span>` : hasGames ? (plan ? '' : 'Takes about a minute.') : 'Download their games first.'}</p>` : ''}</section>`;
 }
-async function writeAi(user, btn, status) {
-  btn.disabled = true;
-  status.textContent = 'Claude is writing the plan. This takes about a minute…';
+// The Worker writes a plan in the background and the app asks for it every few seconds, so leaving the
+// page, or closing the app, loses nothing: jobs are kept in localStorage and picked up again on the next start.
+const AI_POLL = 4000, AI_GIVE_UP = 20 * 60 * 1000;
+const aiJobs = () => ls.get('aijobs', {});
+const aiWaits = {}, aiErrors = {}, aiStarting = {};
+const aiWriting = (user) => !!(aiStarting[user] || aiJobs()[user]);
+function setAiJob(user, job) {
+  const jobs = aiJobs();
+  if (job) jobs[user] = { job, at: Date.now() }; else delete jobs[user];
+  ls.set('aijobs', jobs);
+}
+/** Redraw whichever screen shows this opponent's AI prep, once it has changed. */
+function aiChanged(user) {
+  if (location.hash === `#prep/${user}`) renderOpp(user).then(() => { if (!aiErrors[user]) $('#ai')?.scrollIntoView(); });
+  else if (location.hash === '#prep') renderOppList();
+}
+async function writeAi(user) {
+  delete aiErrors[user];
+  aiStarting[user] = true;
   try {
     const r = await fetch('api/prep', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(await aiPayload(user)) });
     const out = await r.json().catch(() => ({}));
-    if (!r.ok || !out.plan) throw new Error(out.error || `The server answered ${r.status}.`);
-    await idb.set(`aiprep:${user}`, { plan: out.plan, at: Date.now(), games: ((await gamesOf(user)) || []).length });
-    return true;
-  } catch (e) {
-    status.innerHTML = `<span class="warn">${esc(e instanceof TypeError ? "Couldn't reach the server. Check your connection." : e.message)}</span>`;
-    btn.disabled = false;
-    return false;
+    if (out.plan) await saveAi(user, out.plan); // written before for the same games: no wait, no cost
+    else if (r.ok && out.job) setAiJob(user, out.job);
+    else aiErrors[user] = out.error || `The server answered ${r.status}.`;
+  } catch {
+    aiErrors[user] = "Couldn't reach the server. Check your connection.";
   }
+  delete aiStarting[user];
+  if (aiJobs()[user]) waitAi(user); else aiChanged(user);
 }
+async function saveAi(user, plan) {
+  await idb.set(`aiprep:${user}`, { plan, at: Date.now(), games: ((await gamesOf(user)) || []).length });
+}
+/** Wait for a user's job to finish (one loop per job, however often it's asked), then save the plan or the error. */
+function waitAi(user) {
+  aiWaits[user] ||= (async () => {
+    for (;;) {
+      const j = aiJobs()[user];
+      if (!j) return;
+      if (Date.now() - j.at > AI_GIVE_UP) { aiErrors[user] = 'The plan took too long. Try again.'; break; }
+      await new Promise((r) => setTimeout(r, AI_POLL));
+      let out;
+      try { out = await (await fetch(`api/prep?job=${encodeURIComponent(j.job)}`)).json(); } catch { continue; } // offline for a moment: keep waiting
+      if (out.pending) continue;
+      if (out.plan) await saveAi(user, out.plan); else aiErrors[user] = out.error || 'The AI service failed. Try again later.';
+      break;
+    }
+    setAiJob(user, null);
+  })().finally(() => { delete aiWaits[user]; aiChanged(user); });
+}
+/** At start: pick up plans that were still being written when the app closed. */
+function resumeAi() { Object.keys(aiJobs()).forEach(waitAi); }
 
 // ---------- opponent file ----------
 async function renderOpp(user) {
@@ -580,7 +619,7 @@ async function renderOpp(user) {
         <div class="details-body"><div data-line="${i}">${viewerHtml(p.caption)}</div>${p.body.map((b) => `<p>${fig(b)}</p>`).join('')}
         <button class="btn primary" data-drill="line:${esc(user)}:${i}">Drill this line</button></div></details>`).join('')}
       <details><summary><b>Game-day checklist</b></summary><div class="details-body">${list(cur.checklist, 'ol')}</div></details></section>` : ''}
-    ${aiSection(user, ai, AI, !!gs?.length)}
+    ${aiSection(user, ai, AI, !!gs?.length, aiWriting(user), aiErrors[user])}
     ${planHtml(gs?.length ? gamePlan({ pr, tw, tb, trW, trB, myW, myB }) : null, user, cur, trW, trB)}
     ${pr ? `<section class="card"><h2>How they play</h2>${list(describe(pr, false))}</section>` : ''}
     <section class="card"><h2>Traps: moves they repeat that lose</h2>
@@ -596,9 +635,8 @@ async function renderOpp(user) {
   if (ai) mountPlans(ai.plan.plans.map(aiPlan), 'ai');
   mountTraps(trW, trB);
   view.querySelectorAll('[data-plan]').forEach((host) => { const pl = PLAN_LINES[host.dataset.plan]; if (pl) lineViewer(host, pl.line, pl.flipped, pl.keyFrom); });
-  $('#ai-write')?.addEventListener('click', async (e) => {
-    if (await writeAi(user, e.currentTarget, $('#ai-status')) && location.hash === `#prep/${user}`) { await renderOpp(user); $('#ai')?.scrollIntoView(); }
-  });
+  $('#ai-write')?.addEventListener('click', () => { writeAi(user); renderOpp(user); });
+  if (aiJobs()[user]) waitAi(user);
   if (!ls.get(`player:${user}`, null)) {
     player(user).then((info) => { ls.set(`player:${user}`, info); if (location.hash === `#prep/${user}`) renderOpp(user); }).catch(() => {});
   }
@@ -683,7 +721,7 @@ async function renderOppList() {
       <span class="opp-top"><b>${esc(displayName(r.o.user))}</b>${hasAlias(r.o.user) ? ` <span class="muted small">${esc(r.o.username)}</span>` : ''}<span class="chev" aria-hidden="true">›</span></span>
       ${ratingLine(r) ? `<span class="small">${ratingLine(r)}</span>` : ''}
       <span class="small muted">${vsLine(r)}</span>
-      <span class="badges"><span class="badge">${r.theirs ? (r.theirs.length ? `${r.theirs.length.toLocaleString()} of their games downloaded` : 'No games in the last 12 months') : pending(r.o.user) ? 'Downloading…' : 'Not downloaded yet'}</span>${reviewPending(r.o.user) || r.studied ? `<span class="badge" data-rv="${esc(r.o.user)}">${reviewPending(r.o.user) ? rvText(r.o.user) : studiedText(r.studied)}</span>` : ''}${r.traps ? `<span class="badge trap-badge">${r.traps} trap${r.traps > 1 ? 's' : ''} found</span>` : ''}${r.cur ? '<span class="badge">Hand-written prep</span>' : ''}${r.ai ? '<span class="badge">AI prep</span>' : ''}</span>
+      <span class="badges"><span class="badge">${r.theirs ? (r.theirs.length ? `${r.theirs.length.toLocaleString()} of their games downloaded` : 'No games in the last 12 months') : pending(r.o.user) ? 'Downloading…' : 'Not downloaded yet'}</span>${reviewPending(r.o.user) || r.studied ? `<span class="badge" data-rv="${esc(r.o.user)}">${reviewPending(r.o.user) ? rvText(r.o.user) : studiedText(r.studied)}</span>` : ''}${r.traps ? `<span class="badge trap-badge">${r.traps} trap${r.traps > 1 ? 's' : ''} found</span>` : ''}${r.cur ? '<span class="badge">Hand-written prep</span>' : ''}${aiWriting(r.o.user) ? '<span class="badge">Writing AI prep…</span>' : r.ai ? '<span class="badge">AI prep</span>' : ''}</span>
     </a></li>`).join('')}</ul>`;
   // ratings for opponents added without a lookup (e.g. the hand-written ones): fetch once, then redraw.
   // Redraw only if a lookup worked: offline, every lookup fails and redrawing would start them all again.
@@ -973,6 +1011,7 @@ window.addEventListener('hashchange', route);
   if (returningFromSignIn()) { await startSync(accounts); route(); stats(); } else { route(); startSync(accounts).finally(stats); }
   // keep everyone's games fresh: missing or more than a day old, downloaded in the background
   dailyDownloads();
+  if (AI) resumeAi();
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') dailyDownloads(); });
   // Offline mode only on the real site: on localhost it would serve stale files during development,
   // so remove any worker and cache an earlier local run installed.

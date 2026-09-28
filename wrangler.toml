@@ -32,6 +32,11 @@ DAILY_LIMIT = "100"
 PER_IP_DAILY = "100"
 [[kv_namespaces]]
 binding = "PREP"
+# AI prep runs as a Workflow (worker/prep.js), so a plan is finished and cached even if the app closes.
+[[workflows]]
+name = "chess-coach-local-prep"
+binding = "PREP_JOBS"
+class_name = "PrepWorkflow"
 [[d1_databases]]
 binding = "DB"
 # Usage stats (worker/events.js). The dataset is created by the first event written; data is kept 3 months.
@@ -56,6 +61,7 @@ workers_dev = false
 routes = [{ pattern = "dev.checkmateprep.com", custom_domain = true }]
 vars = { AUTH0_DOMAIN = "", AUTH0_CLIENT_ID = "", AUTH0_AUDIENCE = "", MODEL = "claude-sonnet-5", DAILY_LIMIT = "50", PER_IP_DAILY = "20" }
 kv_namespaces = [{ binding = "PREP" }]
+workflows = [{ name = "chess-coach-dev-prep", binding = "PREP_JOBS", class_name = "PrepWorkflow" }]
 d1_databases = [{ binding = "DB" }]
 analytics_engine_datasets = [{ binding = "EVENTS", dataset = "checkmate_events_dev" }]
 ratelimits = [{ name = "BURST", namespace_id = "1001", simple = { limit = 30, period = 60 } }, { name = "AI_BURST", namespace_id = "1011", simple = { limit = 3, period = 60 } }]
@@ -66,6 +72,7 @@ workers_dev = false
 routes = [{ pattern = "test.checkmateprep.com", custom_domain = true }]
 vars = { AUTH0_DOMAIN = "", AUTH0_CLIENT_ID = "", AUTH0_AUDIENCE = "", MODEL = "claude-sonnet-5", DAILY_LIMIT = "50", PER_IP_DAILY = "20" }
 kv_namespaces = [{ binding = "PREP" }]
+workflows = [{ name = "chess-coach-test-prep", binding = "PREP_JOBS", class_name = "PrepWorkflow" }]
 d1_databases = [{ binding = "DB" }]
 analytics_engine_datasets = [{ binding = "EVENTS", dataset = "checkmate_events_test" }]
 ratelimits = [{ name = "BURST", namespace_id = "1002", simple = { limit = 30, period = 60 } }, { name = "AI_BURST", namespace_id = "1012", simple = { limit = 3, period = 60 } }]
@@ -77,6 +84,7 @@ workers_dev = false
 routes = [{ pattern = "checkmateprep.com", custom_domain = true }, { pattern = "www.checkmateprep.com", custom_domain = true }]
 vars = { AUTH0_DOMAIN = "login.checkmateprep.com", AUTH0_CLIENT_ID = "2tQ9JSSnfNd6GraU8bmoe9bQ5P64yMnm", AUTH0_AUDIENCE = "https://api.checkmateprep.com", MODEL = "claude-opus-5", FALLBACKS = "default", DAILY_LIMIT = "40", PER_IP_DAILY = "5" }
 kv_namespaces = [{ binding = "PREP" }]
+workflows = [{ name = "chess-coach-prep", binding = "PREP_JOBS", class_name = "PrepWorkflow" }]
 d1_databases = [{ binding = "DB" }]
 analytics_engine_datasets = [{ binding = "EVENTS", dataset = "checkmate_events_production" }]
 ratelimits = [{ name = "BURST", namespace_id = "1003", simple = { limit = 30, period = 60 } }, { name = "AI_BURST", namespace_id = "1013", simple = { limit = 2, period = 60 } }]
