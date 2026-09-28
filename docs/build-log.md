@@ -508,3 +508,8 @@ The app shows an account card in Settings and a sign-in offer on the welcome scr
 > do option 2, open the PR
 
 **What Claude did:** the first production deploy after #27 failed because Analytics Engine wasn't turned on in the Cloudflare account. Claude found this in the logs and pointed to the personal account, where production runs for now, and the user turned it on. The next run deployed the Worker, so usage stats are live. The Auth0 step then stopped at "Missing AUTH0_MGMT_CLIENT_ID": the Client ID wasn't a secret in the `production` environment. The workflow now reads it from a variable or a secret, like `CLOUDFLARE_ACCOUNT_ID`. The README says so, and says Analytics Engine has to be turned on in each Cloudflare account. → [#28](https://github.com/Checkmate-Prep/chess-coach/pull/28)
+
+### 52. The header goes to You
+> Currently Nothing happens when user clicks on the header "horse icon + checkmate prep". Id like the user to be brought to the home page, I.e "you" when they click at the top
+
+**What Claude did:** the icon and name in the header are now a link to `#me` (the You tab). It looks the same as before: no underline or link colour, and only the icon and name are clickable, not the whole bar. Before setup, `#me` shows the welcome screen, as it already did. Checked in headless Chromium at phone size: from Explore, tapping the header opened You. Not checked on a real device. → [#29](https://github.com/Checkmate-Prep/chess-coach/pull/29)
