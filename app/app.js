@@ -803,8 +803,15 @@ async function renderOppList() {
   }
 }
 function trapsSection(user, w, b, { current, tooFew, checked, nW, nB }) {
-  const all = [...(w || []).map((t, i) => trapHtml(t, `white:${i}`, user, 'white')), ...(b || []).map((t, i) => trapHtml(t, `black:${i}`, user, 'black'))];
-  if (all.length) return all.join('');
+  // per colour, the most important trap (they're sorted by how much it costs them times how often they play it); the rest fold away
+  const side = (list_, color) => {
+    if (!list_?.length) return '';
+    const more = list_.slice(1).map((t, i) => trapHtml(t, `${color}:${i + 1}`, user, color)).join('');
+    return trapHtml(list_[0], `${color}:0`, user, color) + (more
+      ? `<details><summary class="small">${list_.length - 1} more trap${list_.length === 2 ? '' : 's'} when they have ${color === 'white' ? 'White' : 'Black'}</summary><div class="details-body">${more}</div></details>` : '');
+  };
+  const all = side(w, 'white') + side(b, 'black');
+  if (all) return all;
   const games = `${nW} game${nW === 1 ? '' : 's'} as White and ${nB} as Black`;
   if (tooFew) return `<p class="muted">Not enough games to look for traps. They have ${games}, and a trap needs the same position at least ${TRAP_MIN_N} times.</p>`;
   if (!current) return ''; // no scan of today's games yet: the button above runs one
