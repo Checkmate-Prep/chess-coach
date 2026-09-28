@@ -152,6 +152,7 @@ function showReview(user, text) {
 async function reviewDone(user) {
   const [tab, arg] = (location.hash.slice(1) || 'me').split('/');
   if (tab === 'prep' && !arg && !document.activeElement?.matches('input, select, textarea')) renderOppList();
+  else if (tab === 'prep' && arg === user && !trapRunning[user]) renderOpp(user); // show what the review found
   else showReview(user, await rvStatus(user));
 }
 
@@ -501,6 +502,11 @@ async function aiPayload(user) {
     engineBetterMove: t.bestForHim, winChanceDrop: t.drop, punishingLine: numbered(t.punish, t.path.length + 1) });
   const ratings = (u) => Object.fromEntries(Object.entries(ls.get(`player:${u}`, null)?.ratings || {}).map(([tc, r]) => [tc, { rating: r.r, wins: r.w, losses: r.l, draws: r.d }]));
   const me = P.me.user, mine = (await gamesOf(me)) || [], theirs = (await gamesOf(user)) || [];
+  const rv = theirs.length ? summarize(theirs, await reviewCache(user)) : null;
+  const review = rv?.reviewed ? { gamesReviewed: rv.reviewed,
+    blundersPer100Moves: Object.fromEntries(Object.entries(rv.phases).map(([k, v]) => [k, { blunders: v.blunders, moves: v.moves }])),
+    winningPositionsConverted: rv.convert, losingPositionsSaved: rv.save, opponentBlundersPunished: rv.punish,
+    blundersPer100WithUnder10PctClock: rv.clock.low, blundersPer100Otherwise: rv.clock.normal } : 'not reviewed yet';
   const [tw, tb, mw, mb, trW, trB] = await Promise.all([treeOf(user, 'white'), treeOf(user, 'black'), treeOf(me, 'white'), treeOf(me, 'black'),
     cachedTraps(user, 'white'), cachedTraps(user, 'black')]);
   return {
@@ -508,7 +514,8 @@ async function aiPayload(user) {
     me: { user: me, ratings: ratings(me), profile: mine.length ? brief(profile(mine)) : null, badLines: { asWhite: bad(mw, 4), asBlack: bad(mb, 4) } },
     opp: { user, name: displayName(user), ratings: ratings(user), profile: theirs.length ? brief(profile(theirs)) : null,
       mostPlayedLines: { asWhite: treeLines(tw), asBlack: treeLines(tb) }, badLines: { asWhite: bad(tw, 8), asBlack: bad(tb, 8) },
-      engineTraps: trW || trB ? { asWhite: (trW || []).map(trap), asBlack: (trB || []).map(trap) } : 'not searched yet' },
+      engineTraps: trW || trB ? { asWhite: (trW || []).map(trap), asBlack: (trB || []).map(trap) } : 'not searched yet',
+      engineReview: review },
     headToHead: mine.filter((g) => g.opp.toLowerCase() === user).slice(0, 20).map((g) => ({ date: new Date(g.t * 1000).toISOString().slice(0, 10),
       timeControl: g.tc, youHad: g.color, result: ['loss', 'draw', 'win'][g.pts], how: g.how, opening: g.eco, moves: numbered(g.sans.slice(0, 16)) })),
   };
@@ -691,6 +698,7 @@ async function renderOpp(user) {
   const r = h2h.rec; // your wins, draws, losses
   const name = oppName(user);
   const rvLine = await rvStatus(user);
+  const rv = gs?.length ? summarize(gs, await reviewCache(user)) : null;
   view.innerHTML = `
     <a class="back" href="#prep">◀ Opponents</a>
     <header class="head"><h1>${esc(displayName(user))}</h1><a class="eyebrow profile-link" href="https://www.chess.com/member/${encodeURIComponent(name)}" target="_blank" rel="noopener">chess.com/${esc(name)}</a></header>
@@ -702,9 +710,10 @@ async function renderOpp(user) {
       <h3>Lines that go badly for them ${scoreInfo('si-weak')}</h3>${scoreNote('si-weak')}
       <h4>When they're White</h4>${weakHtml(weakLines(tw), 'white', user, 3)}
       <h4>When they're Black</h4>${weakHtml(weakLines(tb), 'black', user, 3)}` : ''}</section>
-    <section class="card" id="step-stockfish"><p class="eyebrow">${stepOf(2)} · Analyze opponent</p>
-<h2>Traps: moves they repeat that lose</h2>
+    <section class="card" id="step-stockfish"><p class="eyebrow">${stepOf(2)} · Analyze opponent</p><h2>Game review</h2>
       <p class="small muted" data-rv="${esc(user)}"${rvLine ? '' : ' hidden'}>${rvLine}</p>
+      ${reviewHtml(rv)}
+      <h3>Traps: moves they repeat that lose</h3>
       <p class="small muted">Stockfish checks the positions they reach most often and flags moves they keep playing that the engine refutes.</p>
       ${current || tooFew ? '' : `<button class="btn primary" id="traps" ${tw.n + tb.n ? '' : 'disabled'}>${scanned ? 'Check again with Stockfish' : 'Find traps with Stockfish'}</button><p class="small muted">${scanned ? 'Their games have changed since the last check. ' : ''}Takes 1–3 minutes. It runs on your device. Keep the app open.</p>`}
       ${progress('trap-progress')}
@@ -1035,6 +1044,31 @@ function insights(s) {
   if (s.punish.chances >= 5) out.push(s.punish.pct >= 60 ? `You punish blunders: ${s.punish.pct}% of the time you kept the advantage an opponent handed you.` : `You let ${100 - s.punish.pct}% of opponent blunders go unpunished. Before every move, ask what their last move left hanging.`);
   if (s.clock.low != null && s.clock.normal != null && s.clock.lowShare >= 5 && s.clock.low > 1.5 * s.clock.normal) out.push(`With under 10% of your clock left you blunder ${s.clock.low} times per 100 moves vs ${s.clock.normal} normally. Save time in the opening.`);
   if (!out.length) out.push('Review more games for a clearer picture.');
+  return out;
+}
+
+/** What Stockfish's review of their games says, as numbers (each with what it rests on) and what it means for you. */
+function reviewHtml(s) {
+  if (!s?.reviewed) return '<p class="small muted">Stockfish goes through their newest games move by move after each download: where they blunder, and how they handle good and bad positions.</p>';
+  const ph = s.phases;
+  return `${stats([
+      [`${ph.opening.blunders ?? '–'}`, 'Opening blunders per 100 moves'], [`${ph.middlegame.blunders ?? '–'}`, 'Middlegame blunders per 100 moves'],
+      [`${ph.endgame.blunders ?? '–'}`, 'Endgame blunders per 100 moves'],
+      [s.convert.games ? `${s.convert.pct}%` : '–', `Winning positions they converted (${s.convert.games})`],
+      [s.save.games ? `${s.save.pct}%` : '–', `Losing positions they saved (${s.save.games})`],
+      [s.punish.chances ? `${s.punish.pct}%` : '–', `Their opponents' blunders punished (${s.punish.chances})`]])}
+    ${list(theirInsights(s))}`;
+}
+function theirInsights(s) {
+  const out = [], ph = s.phases;
+  const phases = Object.entries(ph).filter(([, v]) => v.moves >= 30 && v.blunders != null).sort((a, b) => b[1].blunders - a[1].blunders);
+  if (phases.length >= 2) out.push(`Most of their blunders come in the <b>${phases[0][0]}</b> (${phases[0][1].blunders} per 100 moves), fewest in the ${phases.at(-1)[0]} (${phases.at(-1)[1].blunders}). Steer the game towards the ${phases[0][0]}.`);
+  if (s.convert.games >= 4 && s.convert.pct < 70) out.push(`They converted only ${s.convert.pct}% of winning positions (${s.convert.games} games). If you're worse, keep fighting: they often let it slip.`);
+  if (s.save.games >= 4 && s.save.pct >= 30) out.push(`They fight back from bad positions: saved ${s.save.pct}% (${s.save.games} games). When you're ahead, stay careful until the end.`);
+  if (s.save.games >= 4 && s.save.pct < 30) out.push(`Once they're worse, they rarely come back: saved ${s.save.pct}% (${s.save.games} games). Get an advantage and keep it simple.`);
+  if (s.punish.chances >= 5) out.push(s.punish.pct >= 60 ? `They punish blunders: ${s.punish.pct}% of the time they kept the advantage they were handed (${s.punish.chances} chances). Don't expect a slip to go unnoticed.` : `They let ${100 - s.punish.pct}% of their opponents' blunders go unpunished (${s.punish.chances} chances).`);
+  if (s.clock.low != null && s.clock.normal != null && s.clock.lowShare >= 5 && s.clock.low > 1.5 * s.clock.normal) out.push(`With under 10% of their clock left they blunder ${s.clock.low} times per 100 moves vs ${s.clock.normal} normally. Keep the position complicated when they're short of time.`);
+  if (!out.length) out.push(s.reviewed < 10 ? `Only ${s.reviewed} game${s.reviewed === 1 ? '' : 's'} reviewed so far: no clear pattern yet.` : 'No clear weakness in how they play: no phase or type of position stands out.');
   return out;
 }
 
