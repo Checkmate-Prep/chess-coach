@@ -3,7 +3,7 @@ import html, json, pathlib, re
 import chess, chess.svg
 try:
     from notes import ME, FRIENDS
-except ImportError:  # hand-written prep lives on the ai-prep branch, not on main
+except ImportError:  # hand-written prep is a local file, kept out of git
     ME = FRIENDS = None
 
 ROOT = pathlib.Path(__file__).parent
@@ -174,6 +174,6 @@ def build():
 
 if __name__ == "__main__":
     if ME is None:
-        print("no notes.py (it lives on the ai-prep branch): skipping report.html")
+        print("no notes.py (it is kept locally, out of git): skipping report.html")
     else:
         build()
