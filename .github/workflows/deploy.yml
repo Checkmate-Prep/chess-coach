@@ -1,5 +1,9 @@
 name: Deploy to Cloudflare
 
+run-name: Deploy to ${{ inputs.environment || (github.event_name == 'push' && 'production' || 'dev') }}
+
+# The run list and the job show where each run goes: "Deploy to dev" or "Deploy to production" (run-name only allows simple expressions).
+
 # One Worker per environment (see wrangler.toml). Each job reads its secrets from the GitHub
 # Environment with the same name: the secrets CLOUDFLARE_API_TOKEN and ANTHROPIC_API_KEY (AI prep; optional: without it
 # the Worker deploys and the app hides AI prep),
@@ -34,6 +38,7 @@ concurrency:
 
 jobs:
   deploy:
+    name: Deploy to ${{ github.event.inputs.environment || (github.event_name == 'push' && 'production' || 'dev') }}
     # pull requests from forks get no secrets: nothing to deploy
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
