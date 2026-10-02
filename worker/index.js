@@ -5,6 +5,8 @@ import { sync } from './sync.js';
 import { event } from './events.js';
 import { userOf } from './auth.js';
 import { prep } from './prep.js';
+import { games } from './games.js';
+import { results } from './results.js';
 
 export { PrepWorkflow } from './prep.js';
 
@@ -22,6 +24,8 @@ export default {
     if (url.pathname === '/api/health') return json({ ai: !!env.ANTHROPIC_API_KEY });
     if (url.pathname === '/api/prep') return prep(request, env);
     if (url.pathname === '/api/sync') return sync(request, env);
+    if (url.pathname === '/api/results') return results(request, env, userOf);
+    if (url.pathname === '/api/games') return games(request, env);
     if (url.pathname === '/api/event') return event(request, env, userOf);
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found.' }, 404);
     return env.ASSETS.fetch(request);

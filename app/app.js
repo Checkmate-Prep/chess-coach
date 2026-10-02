@@ -2,11 +2,12 @@ import { Chess } from './vendor/chess.js';
 import { Board } from './board.js';
 import { PIECES } from './pieces.js';
 import { idb, ls } from './store.js';
-import { player, savePlayers, syncGames, cachedGames } from './chesscom.js';
+import { player, savePlayers, syncGames, cachedGames, useGameStore } from './chesscom.js';
 import { buildTree, walk, profile, weakLines, pct, headToHead } from './stats.js';
 import { reviewGames, reviewCache, reviewedCount, summarize, findTraps, cachedTraps, trapScan, trapCandidates, TRAP_MIN_N, isGoodMove } from './analysis.js';
 import { gamePlan } from './plan.js';
 import { whileAwake } from './engine.js';
+import { markDirty, resultsReady } from './results.js';
 import { account, startSync, returningFromSignIn, signIn, signOut, syncNow, deleteSynced, forgetDevice, hasApi, token } from './sync.js';
 import { track, startTracking, screenOf, sharing, setSharing } from './track.js';
 
@@ -92,7 +93,7 @@ async function dailyDownloads() {
   if (!P?.me || navigator.onLine === false) return;
   for (const user of [P.me.user, ...P.opps.map((o) => o.user)]) {
     if (Date.now() - ((await cachedGames(user))?.fetched || 0) > DAY) queueDownload(user);
-    else if (user !== P.me.user && ((await reviewTodo(user)).length || (await trapTodo(user)).length)) queueAnalysis(user); // new opponent data, or analysis cut short last time
+    else if ((await reviewTodo(user)).length || (user !== P.me.user && (await trapTodo(user)).length)) queueAnalysis(user); // new games, or analysis cut short last time
   }
 }
 /** A background download finished or failed: redraw the screen if it was waiting for it (never a board or a job in progress). */
@@ -103,13 +104,16 @@ function downloaded(user) {
   else if ($(`[data-dl="${user}"][data-empty]`)) route();
 }
 
-// ---------- automatic analysis after each download: Stockfish reviews an opponent's newest games, then looks for traps ----------
-const AUTO_REVIEW = 20;                  // newest games reviewed per opponent (about 10 s each)
+// ---------- automatic analysis after each download: Stockfish reviews your newest games, and an opponent's newest games before looking for traps ----------
+const AUTO_REVIEW = 20;                  // newest games reviewed per player (about 10 s each)
 const reviewing = {};                    // user -> [game, of] while their review runs
-const reviewQueue = [];                  // opponents waiting for the engine
+const reviewQueue = [];                  // players waiting for the engine (you, then opponents)
 const reviewFailed = new Set();          // games Stockfish couldn't review: not tried again until the next launch
 const trapFailed = new Set();            // trap scans that failed: not tried again automatically until the next launch
 let reviewDraining = false;
+let meReviewing = false;                 // a review started with the button on the You tab is running
+/** You and your opponents: the players analyzed automatically. */
+const analyzed = (user) => !!P && (user === P.me.user || P.opps.some((o) => o.user === user));
 const reviewPending = (user) => !!reviewing[user] || reviewQueue.includes(user);
 const rvText = (user) => reviewing[user] ? `Analyzing game ${reviewing[user][0] + 1} of ${reviewing[user][1]}…` : 'Waiting to analyze…';
 const studiedText = (n) => `${n.toLocaleString()} of their games studied`;
@@ -132,9 +136,9 @@ async function trapTodo(user) {
   }
   return any ? out : [];
 }
-/** Analyze an opponent in the background, one opponent after another (the engine runs one job at a time). */
+/** Analyze a player in the background, one after another (the engine runs one job at a time). */
 function queueAnalysis(user) {
-  if (!P?.opps.some((o) => o.user === user) || reviewPending(user) || trapRunning[user]) return;
+  if (!analyzed(user) || reviewPending(user) || trapRunning[user]) return;
   reviewQueue.push(user);
   if (!reviewDraining) runAnalysis();
 }
@@ -142,15 +146,21 @@ async function runAnalysis() {
   reviewDraining = true;
   while (reviewQueue.length) {
     const user = reviewQueue[0];
+    await resultsReady(); // signed in: another device may have done this already
     try {
-      if (P?.opps.some((o) => o.user === user) && !reviewFailed.has(user) && (await reviewTodo(user)).length) {
+      const isMe = user === P?.me.user;
+      if (analyzed(user) && !(isMe && meReviewing) && !reviewFailed.has(user) && (await reviewTodo(user)).length) {
         const gs = (await gamesOf(user)).slice(0, AUTO_REVIEW);
-        await whileAwake(() => reviewGames(user, gs, AUTO_REVIEW, (i, n) => { reviewing[user] = [i, n]; if (i < n) showReview(user, rvText(user)); }));
+        await whileAwake(() => reviewGames(user, gs, AUTO_REVIEW, (i, n, g) => {
+          reviewing[user] = [i, n];
+          if (i < n) showReview(user, rvText(user));
+          if (isMe) showMyReview(i, n, g);
+        }));
         if ((await reviewTodo(user)).length) reviewFailed.add(user); // some games failed twice
       }
     } catch { reviewFailed.add(user); }
     delete reviewing[user];
-    // then the traps, once the review is done (a scan of games that haven't changed is kept)
+    // then the traps (opponents only), once the review is done (a scan of games that haven't changed is kept)
     const todo = P?.opps.some((o) => o.user === user) && !trapFailed.has(user) ? await trapTodo(user) : [];
     if (todo.length) {
       trapRunning[user] = { text: 'Finding traps…' };
@@ -186,9 +196,17 @@ function showReview(user, text) {
   document.querySelectorAll(`[data-rv="${user}"]`).forEach((el) => { el.textContent = text; el.hidden = !text; });
   refreshSteps(user);
 }
+/** Progress of the automatic review of your games, on the You tab if it's open. */
+function showMyReview(i, n, g) {
+  const bar = location.hash.slice(1) === 'me' || !location.hash.slice(1) ? $('#review-progress') : null;
+  if (!bar) return;
+  $('#review').hidden = true;
+  setProgress(bar, i, n, i >= n ? 'Done' : `Reviewing your newest games: ${i + 1} of ${n}${g ? `, vs ${g.opp} (${g.tc})` : ''}`);
+}
 /** A review finished: redraw the list, or update the line on their file. */
 async function reviewDone(user) {
   const [tab, arg] = (location.hash.slice(1) || 'me').split('/');
+  if (user === P?.me.user) { if (tab === 'me' && !meReviewing) renderMe(); return; } // show what the review found
   if (tab === 'prep' && !arg && !document.activeElement?.matches('input, select, textarea')) renderOppList();
   else if (tab === 'prep' && arg === user && !trapRunning[user]) renderOpp(user); // show what the review found
   else showReview(user, await rvStatus(user));
@@ -287,7 +305,7 @@ function renderSignIn() {
   view.innerHTML = `
     <a class="back" href="#">◀ Back</a>
     <header class="head"><p class="eyebrow">Existing account</p><h1>Welcome back</h1>
-      <p class="lede">Sign in to bring your opponents, names and drill progress to this device. Your games are downloaded again from chess.com.</p></header>
+      <p class="lede">Sign in to bring your opponents, names, drill progress and analysis to this device. Your games are downloaded again.</p></header>
     <div id="account-slot" data-mode="signin"></div>`;
   renderAccount();
 }
@@ -413,7 +431,7 @@ function renderStatsToggle() {
   $('#usage-stats').onchange = (e) => setSharing(e.target.checked);
 }
 
-// ---------- account (sync.js): the same opponents, names and drill progress on every device ----------
+// ---------- account (sync.js): the same opponents, names, drill progress and analysis on every device ----------
 function renderAccount() {
   const slot = $('#account-slot');
   if (!slot) return;
@@ -422,7 +440,7 @@ function renderAccount() {
   // Signed in, but not set up on this device yet: say whose account it is, and offer a way out.
   const who = `<p class="small">Signed in${account.email ? ` as <b>${esc(account.email)}</b>` : ''}. <button class="link-btn" data-acct="signout">Sign out</button></p>`;
   if (mode === 'welcome') slot.innerHTML = !account.enabled ? '' : account.signedIn ? who : '<a class="btn" href="#signin">I already have an account</a>';
-  else if (mode === 'setup') slot.innerHTML = account.enabled && account.signedIn ? `<section class="card">${who}<p class="small muted">Once you're set up, your opponents, names and drill progress sync to this account.</p>${err}</section>` : '';
+  else if (mode === 'setup') slot.innerHTML = account.enabled && account.signedIn ? `<section class="card">${who}<p class="small muted">Once you're set up, your opponents, names, drill progress and analysis sync to this account.</p>${err}</section>` : '';
   else if (mode === 'signin') {
     if (!account.enabled) slot.innerHTML = '<p class="muted">Sign-in isn\'t available here. <a href="#">Set up without an account</a>.</p>';
     else if (!account.signedIn) slot.innerHTML = `<button class="btn primary" data-acct="signin">Sign in</button>${err}`;
@@ -431,7 +449,7 @@ function renderAccount() {
   } else if (!account.signedIn) {
     // Without an account, everything lives on this device: offer to delete it and start again.
     slot.innerHTML = `${account.enabled ? `<section class="card"><h2>Your devices</h2>
-        <p class="small muted">Sign in to use the app on your phone and laptop with the same opponents, names and drill progress. Games and engine results stay on each device; they're downloaded again on the others.</p>
+        <p class="small muted">Sign in to use the app on your phone and laptop with the same opponents, names and drill progress. Stockfish's analysis and AI plans come along too, so the other device doesn't redo them.</p>
         <button class="btn primary" data-acct="signin">Sign in</button>${err}</section>` : ''}
       <section class="card"><details><summary><b>Delete account</b></summary><div class="details-body">
         <p class="small muted">You're not signed in, so everything is on this device only: your username, opponents, names, downloaded games and drill progress. Deleting removes it all and starts again from the welcome screen. It can't be undone.</p>
@@ -439,11 +457,11 @@ function renderAccount() {
   } else {
     const when = account.busy ? 'Syncing…' : account.at ? `Synced ${ago(account.at)}.` : 'Not synced yet.';
     slot.innerHTML = `<section class="card"><h2>Your account</h2>
-        <p class="small">Signed in${account.email ? ` as <b>${esc(account.email)}</b>` : ''}. Your opponents, names and drill progress sync to your other devices.</p>
+        <p class="small">Signed in${account.email ? ` as <b>${esc(account.email)}</b>` : ''}. Your opponents, names, drill progress and analysis sync to your other devices.</p>
         <p class="small muted" aria-live="polite">${when}</p>${err}
         <div class="row"><button class="btn" data-acct="sync" ${account.busy ? 'disabled' : ''}>Sync now</button><button class="btn" data-acct="signout">Sign out</button></div>
         <details><summary class="small">Delete account</summary><div class="details-body">
-          <p class="small muted">Deletes your opponents, names and drill progress from the server, then signs you out. Data is also deleted from this device.</p>
+          <p class="small muted">Deletes your opponents, names, drill progress and analysis from the server, then signs you out. Data is also deleted from this device.</p>
           <button class="btn" data-acct="delete">Delete account</button></div></details></section>`;
   }
   slot.querySelectorAll('[data-acct]').forEach((b) => {
@@ -467,6 +485,14 @@ function syncedDataArrived() {
   const tab = (location.hash.slice(1) || 'me').split('/');
   const typing = document.activeElement?.matches('input, select, textarea');
   if (!was?.me || (!typing && ((tab[0] === 'setup') || (tab[0] === 'prep' && !tab[1]) || (tab[0] === 'drill' && !tab[1])))) route();
+}
+
+/** Analysis results arrived from another device: redraw the lists or the opponent's file (never one with a job running). */
+function resultsArrived(players) {
+  const [tab, arg] = (location.hash.slice(1) || 'me').split('/');
+  if (document.activeElement?.matches('input, select, textarea')) return;
+  if ((tab === 'prep' || tab === 'drill') && !arg) route();
+  else if (tab === 'prep' && players.includes(arg) && !reviewing[arg] && !trapRunning[arg] && !aiWriting(arg)) renderOpp(arg);
 }
 
 // ---------- auto profile text ----------
@@ -623,6 +649,7 @@ async function writeAi(user) {
 }
 async function saveAi(user, plan) {
   await idb.set(`aiprep:${user}`, { plan, at: Date.now(), games: ((await gamesOf(user)) || []).length });
+  markDirty(user, 'aiprep');
 }
 /** Wait for a user's job to finish (one loop per job, however often it's asked), then save the plan or the error. */
 function waitAi(user) {
@@ -1027,6 +1054,7 @@ async function renderMe() {
   const s = gs ? summarize(gs, await reviewCache(user)) : null;
   const [tw, tb] = await Promise.all([treeOf(user, 'white'), treeOf(user, 'black')]);
   const ph = s?.phases;
+  const autoMe = reviewPending(user); // the automatic review of your newest games is running or waiting
   view.innerHTML = `
     <header class="head"><h1>${esc(P.me.name || 'You')}</h1><a class="eyebrow profile-link" href="https://www.chess.com/member/${encodeURIComponent(P.me.username)}" target="_blank" rel="noopener">chess.com/${esc(P.me.username)}</a></header>
     ${stats(ratingStats(user))}
@@ -1041,19 +1069,24 @@ async function renderMe() {
         [s.save.games ? `${s.save.pct}%` : '–', `Losing positions saved (${s.save.games})`],
         [s.punish.chances ? `${s.punish.pct}%` : '–', `Opponent blunders punished (${s.punish.chances})`]])}
         ${list(insights(s))}` : '<p class="small muted">Stockfish goes through your games move by move and finds where you lose the most. Your worst moments become puzzles in Drill.</p>'}
-      <div class="row"><button class="btn primary" id="review" ${gs?.length ? '' : 'disabled'}>Review ${s?.reviewed ? '20 more' : 'my last 20'} games</button><button class="btn" id="stop" hidden>Stop</button></div>
+      <div class="row"><button class="btn primary" id="review" ${gs?.length ? '' : 'disabled'}${autoMe ? ' hidden' : ''}>Review ${s?.reviewed ? '20 more' : 'my last 20'} games</button><button class="btn" id="stop" hidden>Stop</button></div>
       ${progress('review-progress')}
-      <p class="small muted">${s?.reviewed ? `${s.reviewed} games reviewed. ` : ''}About 10 seconds per game. Keep the app open. Reviewed games are saved if you stop.</p></section>
+      <p class="small muted">${s?.reviewed ? `${s.reviewed} games reviewed. ` : ''}${autoMe ? 'Your newest games are reviewed automatically after each download. ' : ''}About 10 seconds per game. Keep the app open. Reviewed games are saved if you stop.</p></section>
     <section class="card"><h2>Lines that go badly for you ${scoreInfo('si-mine')}</h2>${scoreNote('si-mine')}
       <h3>As White</h3>${weakHtml(weakLines(tw, { minN: 4 }), 'white', user)}
       <h3>As Black</h3>${weakHtml(weakLines(tb, { minN: 4 }), 'black', user)}</section>`;
   $('#sync').onclick = async (e) => { if (await sync(user, e.currentTarget, $('#sync-status'))) renderMe(); };
+  if (reviewing[user]) showMyReview(reviewing[user][0], reviewing[user][1], null);
+  else if (autoMe) setProgress($('#review-progress'), 0, 0, 'Waiting to review your newest games…');
   const signal = { stop: false };
   $('#review').onclick = async (e) => {
     e.currentTarget.hidden = true; $('#stop').hidden = false;
     const bar = $('#review-progress');
-    await whileAwake(() => reviewGames(user, gs, 20, (i, n, g) => setProgress(bar, i, n, g ? `Game ${i + 1} of ${n}: vs ${g.opp} (${g.tc})` : 'Done'), signal));
-    renderMe();
+    meReviewing = true;
+    try {
+      await whileAwake(() => reviewGames(user, gs, 20, (i, n, g) => setProgress(bar, i, n, g ? `Game ${i + 1} of ${n}: vs ${g.opp} (${g.tc})` : 'Done'), signal));
+    } finally { meReviewing = false; }
+    if (location.hash.slice(1) === 'me' || !location.hash.slice(1)) renderMe();
   };
   $('#stop').onclick = (e) => { signal.stop = true; e.currentTarget.textContent = 'Stopping after this game…'; };
 }
@@ -1144,8 +1177,9 @@ window.addEventListener('hashchange', route);
   // only the Worker (wrangler.toml) answers api/health; on GitHub Pages or live-server this 404s and AI stays off
   await fetch('api/health').then((r) => r.json()).then((j) => { AI = !!j.ai; }).catch(() => {});
   // Back from Auth0's sign-in page: finish signing in and sync before the first screen, so it shows the synced data.
-  const accounts = { data: syncedDataArrived, status: renderAccount };
-  const stats = () => { startTracking({ api: hasApi, token }); renderStatsToggle(); };
+  const accounts = { data: syncedDataArrived, status: renderAccount, results: resultsArrived };
+  // once /api answered (or didn't): games through the shared game store, usage stats
+  const stats = () => { useGameStore(hasApi); startTracking({ api: hasApi, token }); renderStatsToggle(); };
   if (returningFromSignIn()) { await startSync(accounts); route(); stats(); } else { route(); startSync(accounts).finally(stats); }
   // keep everyone's games fresh: missing or more than a day old, downloaded in the background
   dailyDownloads();

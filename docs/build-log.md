@@ -576,7 +576,49 @@ It also flags that Stockfish's GPL licence is the one real legal grey area. Save
 
 **What Claude did:** the first production deploy after #37 failed before deploying anything. The workflow always asked the Wrangler action to upload `ANTHROPIC_API_KEY`, and the action fails when that secret isn't set; production had none. #37 had said a missing key only hides AI prep. The user added the key, and Claude re-ran the deploy. The workflow now passes the key's name only when the environment has one, and otherwise deploys without it and leaves a notice that AI prep stays off. Checked on dev from the branch that the key is still uploaded when present; the no-key path wasn't run for real. → [#38](https://github.com/Checkmate-Prep/chess-coach/pull/38)
 
-### 62. A favicon on the login page
+### 62. Analysis that follows you to a new device
+> Analyze the pros and cons of moving most compute to server side.
+> Currently when an existing user signs in, the games download, stockfish analysis, claude game plan are not imported. Could this be improved by moving these 3 elements server side.
+> how much work and running cost would that entail?
+
+> implement option b
+
+> give more details on how data is stored: infra and data model
+
+> are the raw data (each moves) about each game stored? where?
+
+> store raw games on the server
+
+> how would you handle account deletion requests with shared games storage?
+
+> ok for shared store
+
+> give more details on the data model used to store review, traps and aiprep
+
+**What Claude did:** compared two options. Option A moves the compute to the server: weeks of work, and it would need a second engine pipeline, since the app must keep working without `/api`. Engine time would cost a fraction of a cent per opponent; the real costs are engineering, privacy and abuse. Option B keeps compute on the device and stores the results: a few days, and about nothing to run. It also showed why a new device paid for the AI plan again: the plan cache is keyed on the exact statistics, which differ until the device has redone the analysis. The user chose B, then asked for raw games on the server too. Claude proposed a store shared by all users and filled by the Worker, since games are public and the same for everyone.
+
+- **Game store:** `/api/games` (`worker/games.js`) keeps one copy of each chess.com player's games in R2, from neither player's side and without the PGN. A finished month is never fetched again. The current month and the archive list are refreshed after an hour. The app uses the store when served by the Worker and falls back to chess.com on any failure. The store records nothing about who asked, so deleting an account doesn't touch it. `npm run forget-player` handles erasure requests (deny-list plus delete), chess.com 404s purge a player, and a lifecycle rule set by the deploy deletes files after 180 days.
+- **Results on the account:** a new D1 table `results` holds one row per result: each reviewed game, each trap scan per colour, each AI plan. The shapes are the ones the app already keeps in IndexedDB (`app/resultsdoc.js` validates them). A review is written once, and the trap scan of more games and the newest plan win. After each sync the device pulls what changed and uploads what it computed. On a new device the automatic analysis waits for that pull, so Stockfish only runs on what's missing. "Delete my data" removes these rows too.
+
+Along the way: `compact` in `chesscom.js` split into `neutral` (stored) and `side` (the app's record, unchanged); a review running while a pull lands no longer overwrites the pulled games; the service worker now precaches the two new modules. The tests add a D1 stand-in on `node:sqlite` (the Worker's SQL runs for real), the game store with a fake R2, and two devices syncing through the real handler. All 179 JS and 17 Python tests pass, and dry-run deploys pass for all three environments. In a headless browser against `wrangler dev`, the app got its games from a seeded local store, and fell back to chess.com when the store answered 503. Not tested: real sign-in across two devices, real chess.com traffic through the Worker (not reachable from the session), and the R2 lifecycle rule on a real deploy. The first deploy to dev failed because Wrangler doesn't create a named R2 bucket, so the workflow now creates it before deploying. → [#39](https://github.com/Checkmate-Prep/chess-coach/pull/39)
+
+### 63. Pull requests deploy to dev
+> deploy to dev
+
+> should we have a dev branch on the repo, that triggers deploy onto dev env when a pr is merged? currently we don't have a dev branch.
+
+*Choice: PR branches deploy to dev*
+
+**What Claude did:** the deploy workflow deployed `main` to production and a `dev` branch to dev, but there was no `dev` branch, so dev only updated when someone ran the workflow by hand. Claude laid out three options: PRs deploy to dev, a long-lived `dev` branch that PRs merge into before `main`, or manual only. The long-lived branch would mean two merges per change and branches that drift apart. The user chose PR deploys. Now every push to an open pull request from this repository deploys it to dev.checkmateprep.com (whichever PR pushed last is what dev shows). Merging to `main` still deploys production, and the workflow can still be run by hand for test or any branch. PRs from forks are skipped, since they get no secrets. The `dev` GitHub Environment has to allow all branches. This rides in the same PR as #62, whose first deploy to dev it provides. → [#39](https://github.com/Checkmate-Prep/chess-coach/pull/39)
+
+### 64. Your games are reviewed automatically
+> Automatically trigger review my last 20 games for the "you" page
+
+**What Claude did:** the You tab only reviewed your games when you pressed "Review my last 20 games", while opponents' newest 20 games were already reviewed in the background after each download. Now your own newest 20 games go through the same background queue: after each download of your games (and at launch, if some of them are still unreviewed), Stockfish reviews them before moving on to opponents. Traps stay for opponents only. While it runs, the You tab shows progress in place of the button, then redraws with the results. The button stays for reviewing 20 older games, and the automatic review skips your games while a review you started by hand is running. All 179 JS tests pass. Not tested: the flow in a browser (the preview isn't available in the session). → [#41](https://github.com/Checkmate-Prep/chess-coach/pull/41)
+
+### 66. A favicon on the login page
 > login screens https://login.checkmateprep.com/ don't have a favicon
 
 **What Claude did:** the login page is Auth0's hosted Universal Login, so its favicon is a tenant branding setting, not something in `app/`. The Auth0 deploy script now sets the tenant's favicon to the app icon at checkmateprep.com, only when it's missing or different. The "Deploy actions" app needs two more Management API permissions, `read:branding` and `update:branding`, and the README lists them. Checked with a unit test for the change check; the script wasn't run against Auth0. → [#42](https://github.com/Checkmate-Prep/chess-coach/pull/42)
+=======
+

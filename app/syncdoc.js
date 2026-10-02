@@ -1,6 +1,6 @@
 // The synced part of a player's data, shared by the app (sync.js) and the Worker (worker/sync.js).
 // Only what the user typed or earned travels: who they are, their opponents and names, drill progress.
-// Games and engine results are rebuilt on each device.
+// Games come from the shared game store (worker/games.js); engine results and AI plans sync separately (results.js).
 //
 // Doc: { v, me: {user, username, name?, t} | null, opps: {user: {username, name?, a, t, del?}}, done: {id: 1} }
 // `t` = when that entry last changed (the latest change wins), `a` = when the opponent was added (list order),

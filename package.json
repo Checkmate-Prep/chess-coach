@@ -10,7 +10,8 @@
     "deploy": "wrangler deploy",
     "test": "node --test 'tests/*.test.mjs'",
     "stats": "node scripts/stats.mjs",
-    "auth0:deploy": "node ops/auth0/deploy-actions.mjs"
+    "auth0:deploy": "node ops/auth0/deploy-actions.mjs",
+    "forget-player": "node scripts/forget-player.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",

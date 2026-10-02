@@ -2,6 +2,7 @@
 import { Chess } from './vendor/chess.js';
 import { analyseSafe } from './engine.js';
 import { idb } from './store.js';
+import { markDirty } from './results.js';
 import { walk } from './stats.js';
 
 export const BLUNDER = 20, MISTAKE = 10;       // win-probability points lost
@@ -50,20 +51,25 @@ async function reviewGame(g) {
 }
 
 /**
- * Review the newest `count` games not yet analyzed. Cached per game in IndexedDB.
+ * Review the newest `count` games not yet analyzed. Cached per game in IndexedDB, and marked for the account
+ * (results.js). The cache is read again before each save: reviews from another device can arrive meanwhile.
  * onProgress(done, total, currentGame)
  */
 export async function reviewGames(user, games, count, onProgress = () => {}, signal = { stop: false }) {
   const key = `review:${user}`;
-  const cache = (await idb.get(key)) || {};
+  let cache = (await idb.get(key)) || {};
   const todo = games.filter((g) => !cache[g.url] && g.sans.length >= 10).slice(0, count);
   for (let i = 0; i < todo.length && !signal.stop; i++) {
     onProgress(i, todo.length, todo[i]);
-    try { cache[todo[i].url] = await reviewGame(todo[i]); } catch { continue; } // engine failed twice: skip this game
+    if ((await idb.get(key))?.[todo[i].url]) continue; // arrived from another device
+    let review;
+    try { review = await reviewGame(todo[i]); } catch { continue; } // engine failed twice: skip this game
+    cache = { ...((await idb.get(key)) || {}), [todo[i].url]: review };
     await idb.set(key, cache);
+    markDirty(user, `review:${todo[i].url}`);
   }
   onProgress(todo.length, todo.length, null);
-  return cache;
+  return (await idb.get(key)) || cache;
 }
 export const reviewCache = (user) => idb.get(`review:${user}`).then((c) => c || {});
 /** How many of `games` have been reviewed. */
@@ -168,6 +174,7 @@ export async function findTraps(user, tree, color, onProgress = () => {}, opts =
   const out = [];
   for (const t of traps) if (!out.some((o) => [...o.path, o.san].every((m, i) => t.path[i] === m))) out.push(t);
   await idb.set(key, { n: tree.n, checked: cands.length, traps: out.slice(0, 8) });
+  markDirty(user, `traps:${color}`);
   return out.slice(0, 8);
 }
 export const cachedTraps = (user, color) => idb.get(`traps:${user}:${color}`).then((c) => c?.traps || null);
