@@ -620,3 +620,10 @@ Along the way: `compact` in `chesscom.js` split into `neutral` (stored) and `sid
 > login screens https://login.checkmateprep.com/ don't have a favicon
 
 **What Claude did:** the login page is Auth0's hosted Universal Login, so its favicon is a tenant branding setting, not something in `app/`. The Auth0 deploy script now sets the tenant's favicon to the app icon at checkmateprep.com, only when it's missing or different. The "Deploy actions" app needs two more Management API permissions, `read:branding` and `update:branding`, and the README lists them, with where to grant them: Applications → Deploy actions → API Access → Edit → Client Access (not User Access). The user granted them before merging. Checked with a unit test for the change check; the script wasn't run against Auth0. → [#42](https://github.com/Checkmate-Prep/chess-coach/pull/42)
+
+### 67. dev or production in the GitHub UI
+> when looking at the gh screens, I don't know if "deploy to cloudflare" is deploying to dev or prod.
+> when creating a PR, a gh action "deploy to cloudflare" is triggered to deploy to dev. could you have "dev" visible in the github ui
+> and when merging the PR, a gh action "deploy to cloudflare" is triggered to deploy to prod. could you have "prod" visible in the github ui.
+
+**What Claude did:** the deploy workflow picks its target from the event, but nothing on GitHub showed it. It now sets `run-name` ("Deploy to dev · PR #N: title", "Deploy to production") so the Actions list says where each run goes, and names the job the same way ("Deploy to dev" / "Deploy to production") for the checks box on the PR. It used "production", the GitHub Environment's name, rather than "prod". The deploy job isn't a required check, so the ruleset is unaffected. Checked that the YAML parses; the names show only once the workflow runs on GitHub.
