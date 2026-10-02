@@ -2,7 +2,7 @@ name: Deploy to Cloudflare
 
 run-name: Deploy to ${{ inputs.environment || (github.event_name == 'push' && 'production' || 'dev') }}
 
-# The run list and the job show where each run goes: "Deploy to dev" or "Deploy to production".
+# The run list and the job show where each run goes: "Deploy to dev" or "Deploy to production" (run-name only allows simple expressions).
 
 # One Worker per environment (see wrangler.toml). Each job reads its secrets from the GitHub
 # Environment with the same name: the secrets CLOUDFLARE_API_TOKEN and ANTHROPIC_API_KEY (AI prep; optional: without it
