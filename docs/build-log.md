@@ -575,3 +575,8 @@ It also flags that Stockfish's GPL licence is the one real legal grey area. Save
 > I've added the anthropic key to gh secrets
 
 **What Claude did:** the first production deploy after #37 failed before deploying anything. The workflow always asked the Wrangler action to upload `ANTHROPIC_API_KEY`, and the action fails when that secret isn't set; production had none. #37 had said a missing key only hides AI prep. The user added the key, and Claude re-ran the deploy. The workflow now passes the key's name only when the environment has one, and otherwise deploys without it and leaves a notice that AI prep stays off. Checked on dev from the branch that the key is still uploaded when present; the no-key path wasn't run for real. → [#38](https://github.com/Checkmate-Prep/chess-coach/pull/38)
+
+### 62. A favicon on the login page
+> login screens https://login.checkmateprep.com/ don't have a favicon
+
+**What Claude did:** the login page is Auth0's hosted Universal Login, so its favicon is a tenant branding setting, not something in `app/`. The Auth0 deploy script now sets the tenant's favicon to the app icon at checkmateprep.com, only when it's missing or different. The "Deploy actions" app needs two more Management API permissions, `read:branding` and `update:branding`, and the README lists them. Checked with a unit test for the change check; the script wasn't run against Auth0. → PR pending

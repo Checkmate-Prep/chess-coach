@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { track, startTracking, screenOf, setSharing, resetTracking, SCREENS } from '../app/track.js';
 import { event } from '../worker/events.js';
-import { prodClientId, withBinding } from '../ops/auth0/deploy-actions.mjs';
+import { brandingPatch, prodClientId, withBinding } from '../ops/auth0/deploy-actions.mjs';
 import { queries } from '../scripts/stats.mjs';
 import { installFakeLocalStorage, installBrowserGlobals, flush } from './helpers.mjs';
 
@@ -175,4 +175,10 @@ describe('stats queries', () => {
       assert.match(q, /FROM checkmate_events_dev WHERE timestamp > NOW\(\) - INTERVAL '7' DAY/);
     }
   });
+});
+
+test('brandingPatch sets the login favicon only when it is missing or different', () => {
+  assert.deepEqual(brandingPatch({}), { favicon_url: 'https://checkmateprep.com/icon-192.png' });
+  assert.deepEqual(brandingPatch({ favicon_url: 'https://example.com/x.ico' }), { favicon_url: 'https://checkmateprep.com/icon-192.png' });
+  assert.equal(brandingPatch({ favicon_url: 'https://checkmateprep.com/icon-192.png' }), null);
 });

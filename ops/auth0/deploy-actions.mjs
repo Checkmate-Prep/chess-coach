@@ -1,8 +1,8 @@
-// Creates or updates the Auth0 Action in notify-signup.js and adds it to the Login flow, through the
-// Management API, so nothing is set up by hand in the Auth0 dashboard. Safe to run again: when the code is
+// Creates or updates the Auth0 Action in notify-signup.js and adds it to the Login flow, and sets the favicon
+// of the hosted login page (login.checkmateprep.com), through the Management API, so nothing is set up by hand in the Auth0 dashboard. Safe to run again: when the code is
 // already deployed and bound, it changes nothing (pass --force to redeploy anyway, e.g. for a new topic).
 //   AUTH0_MGMT_CLIENT_ID, AUTH0_MGMT_CLIENT_SECRET  a Machine-to-Machine application authorized on the
-//       Management API with read:actions, create:actions, update:actions
+//       Management API with read:actions, create:actions, update:actions, read:branding, update:branding
 //   NTFY_TOPIC        the ntfy.sh topic to notify
 //   AUTH0_MGMT_DOMAIN the tenant's own domain (default checkmateprep.us.auth0.com; not the custom domain)
 // The production application's Client ID is read from wrangler.toml.
@@ -16,6 +16,13 @@ const here = (f) => new URL(f, import.meta.url);
 export function prodClientId(toml) {
   const prod = toml.slice(toml.indexOf('[env.production]'));
   return /AUTH0_CLIENT_ID\s*=\s*"([^"]+)"/.exec(prod)?.[1] || null;
+}
+
+const FAVICON = 'https://checkmateprep.com/icon-192.png';
+
+/** The branding change that gives the login page its favicon, or null when it already has it. */
+export function brandingPatch(branding) {
+  return branding?.favicon_url === FAVICON ? null : { favicon_url: FAVICON };
 }
 
 /** The bindings to send so the Login flow runs `id` once, after the actions already in it. */
@@ -70,7 +77,10 @@ async function main() {
   const id = action?.id || (await api('GET', `actions/actions?actionName=${NAME}`)).actions.find((a) => a.name === NAME).id;
   const bindings = withBinding((await api('GET', `actions/triggers/${TRIGGER.id}/bindings`)).bindings || [], id);
   if (bindings) { await api('PATCH', `actions/triggers/${TRIGGER.id}/bindings`, { bindings }); console.log('Added it to the Login flow.'); }
-  if (!action && !bindings) console.log('Already up to date.');
+
+  const patch = brandingPatch(await api('GET', 'branding'));
+  if (patch) { await api('PATCH', 'branding', patch); console.log('Set the login page favicon.'); }
+  if (!action && !bindings && !patch) console.log('Already up to date.');
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) main().catch((e) => { console.error(e.message); process.exit(1); });
