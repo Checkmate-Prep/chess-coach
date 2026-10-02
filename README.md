@@ -80,7 +80,7 @@ Signing in is optional. It keeps your chess.com username, your opponents, the na
 One-time setup for the sign-up notification:
 
 1. **ntfy:** pick a long random topic name (for example `openssl rand -hex 16`). Anyone who knows it can read it. Install the ntfy app on your phone and subscribe to it.
-2. **Auth0:** **Applications → Create Application → Machine to Machine**, named "Deploy actions", authorized on the **Auth0 Management API** with the permissions `read:actions`, `create:actions`, `update:actions`, `read:branding` and `update:branding` (the last two set the favicon of the login page).
+2. **Auth0:** **Applications → Create Application → Machine to Machine**, named "Deploy actions", authorized on the **Auth0 Management API** with the permissions `read:actions`, `create:actions`, `update:actions`, `read:branding` and `update:branding` (the last two set the favicon of the login page). Permissions are granted on the app's **APIs** tab, under **Client Access** (the machine-to-machine grant the script uses), not **User Access**: tick them, then **Save**. When the script gains a new Management API call, add its permission there too, or the production deploy fails with a 403.
 3. **GitHub:** in **Settings → Environments → `production`**, add the variable `AUTH0_MGMT_CLIENT_ID` and the secret `AUTH0_MGMT_CLIENT_SECRET` (from that application), and the secret `NTFY_TOPIC`. The Client ID isn't secret; a secret of that name also works. The next production deploy creates the Action; until then the deploy says it was skipped. To run it by hand: `AUTH0_MGMT_CLIENT_ID=… AUTH0_MGMT_CLIENT_SECRET=… NTFY_TOPIC=… npm run auth0:deploy`. Add `-- --force` to redeploy after changing the topic.
 
 #### Domain: checkmateprep.com
