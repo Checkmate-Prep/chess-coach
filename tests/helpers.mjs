@@ -100,3 +100,45 @@ export const game = (o = {}) => ({
 
 /** Let pending promise callbacks and zero-delay timers run. */
 export const flush = () => new Promise((r) => setTimeout(r, 0));
+
+/**
+ * D1 stand-in on node:sqlite (in memory), for the Worker's SQL: prepare/bind/run/first/all, batch (one
+ * transaction) and exec (one statement per line, like D1).
+ */
+export async function fakeD1() {
+  const { DatabaseSync } = await import('node:sqlite');
+  const db = new DatabaseSync(':memory:');
+  const plain = (row) => (row ? { ...row } : null);
+  const stmt = (sql, args = []) => ({
+    bind: (...a) => stmt(sql, a),
+    run: async () => ({ meta: { changes: Number(db.prepare(sql).run(...args).changes) } }),
+    first: async () => plain(db.prepare(sql).get(...args)),
+    all: async () => ({ results: db.prepare(sql).all(...args).map(plain) }),
+  });
+  return {
+    prepare: (sql) => stmt(sql),
+    exec: async (sql) => { for (const line of sql.split('\n')) if (line.trim()) db.exec(line); },
+    batch: async (list) => {
+      db.exec('BEGIN');
+      try { const out = []; for (const s of list) out.push(await s.run()); db.exec('COMMIT'); return out; } catch (e) { db.exec('ROLLBACK'); throw e; }
+    },
+  };
+}
+
+/** Analysis results as the app stores them (app/resultsdoc.js): one game's review, a trap scan of `n` games, a plan written at `at`. */
+export const review = (extra = {}) => ({
+  loss: [0, 12.5, 0], pieces: [32, 32, 31], evals: [20, 15, -300],
+  bad: [{ ply: 2, fen: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1', played: 'f6', loss: 13, before: 15, after: -300, bestUci: null, best: 'e5', line: ['e5', 'Nf3'] }],
+  ...extra,
+});
+export const traps = (n, extra = {}) => ({
+  n, checked: 3,
+  traps: [{ path: ['e4', 'e5', 'Nf3'], san: 'f6', times: 9, of: 11, score: 44, fen: 'a', afterFen: 'b', played: 'f6', bestForHim: 'Nc6',
+    before: 30, after: -280, drop: 27, punish: ['Nxe5', 'fxe5', 'Qh5+'] }],
+  ...extra,
+});
+export const plan = (at, extra = {}) => ({
+  plan: { summary: 'They play 1.e4.', plans: [{ you_play: 'black', eyebrow: 'You have Black', title: 't', line: 'e4 c5', key_from: 1, body: ['b'], caption: 'c' }],
+    weak: ['w'], checklist: ['c'] },
+  at, games: 40, ...extra,
+});

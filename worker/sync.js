@@ -1,10 +1,11 @@
 // /api/sync: keeps one doc per signed-in user (app/syncdoc.js) in D1.
 //   POST {doc}  merges the device's doc into the stored one and returns the result.
-//   DELETE      deletes the user's synced data.
+//   DELETE      deletes the user's synced data, analysis results included (worker/results.js).
 // Only the account's own data is stored: the Auth0 user id, the doc and when it changed.
 import { json } from './http.js';
 import { userOf } from './auth.js';
 import { clean, merge, EMPTY } from '../app/syncdoc.js';
+import { dropResults } from './results.js';
 
 const MAX_BODY = 1_000_000;   // characters; a doc at the limits of clean() fits
 
@@ -21,6 +22,7 @@ export async function sync(request, env) {
 
   if (request.method === 'DELETE') {
     await env.DB.prepare('DELETE FROM docs WHERE sub = ?').bind(sub).run();
+    await dropResults(env, sub);
     return json({ deleted: true });
   }
 
