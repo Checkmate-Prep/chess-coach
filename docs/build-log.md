@@ -700,6 +700,13 @@ On native iOS, Claude recommended against a Swift rewrite: the logic would exist
 
 **What Claude did:** read the private plan on Drive and set it against the open issues. Google sign-in keys (#60), the Auth0 duplicate users (#58, #59), the iOS shell, sign-in and CORS (#53 to #55) and the store submissions (#52, #56) were already covered, and Auth0 user deletion was done (#44). Five issues were new: role addresses on checkmateprep.com (#61), moving production to the project Cloudflare account before the App Store build (#62), a second owner and recovery path for every service (#63), the public contact and trader address for the listings (#64), and a list of the external services and where their secrets live (#65). They are written for a public repo: no logins, no account names, no legal details, and no word on how accounts are split today. Each ends with a link to the plan doc and a "Before starting" line saying what to look up there. The doc is shared only with named people, with link sharing off, so the link reveals nothing. A new label, "Operations", covers non-code setup; #62 and #64 also carry the iOS and Android labels. The doc's plan section was rewritten to point at the issues and to keep only the private steps (Apple enrolment type, D-U-N-S, the Auth0 owner change). The Drive connector can't edit a document's body, so that text was pasted by hand. Nothing in the app changed.
 
+### 77. Published on Google Play
+> [the Play Console's submission status: submitted 1:36 AM, published 2:47 AM]
+> update app-stores.md and drive plan
+> repoint to updated copy
+
+**What Claude did:** the review took about 70 minutes, much less than the few days the plan allowed for. The page `docs/app-stores.md` now says the Android app is published and that the Play forms and listing are filled in, and the private plan on Drive says the same. The open issues that point at that private plan (#61 to #65) now link to the updated copy, not the 2 October original. Not checked: the public store page, which still returned 404 shortly after publishing (listings can take hours to appear), the Deep links status in the Console, and the app on a real device; all three are in #52.
+
 ### 79. How the issues are used, written into CLAUDE.md
 > add the workflow notes to CLAUDE.md
 
