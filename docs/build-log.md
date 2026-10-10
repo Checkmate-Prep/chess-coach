@@ -683,3 +683,8 @@ On native iOS, Claude recommended against a Swift rewrite: the logic would exist
 > database is on
 
 **What Claude did:** filling in the Play Console's account-creation question, the user said a password is possible, while the README said the Auth0 password database was switched off. The user checked: it is on. So the privacy page and the README now say that people can sign in with Google, an emailed code, or an email and a password, and that Auth0 holds the password in protected form. While reading the code for the Data safety form, Claude also found that the AI daily limit keeps the caller's IP address in KV for 2 days (`worker/prep.js`), which the privacy page didn't say; it does now. The Data safety answers declare both. Not changed: the stats code, which really does not store IP addresses.
+
+### 76. Apple is reviewing the enrolment
+> apple d&b is good. apple asked for ID and legal docs and is currently reviewing them.
+
+**What Claude did:** recorded it in `docs/app-stores.md` (the Apple item moves from waiting on D&B to in review at Apple) and in the private plan on Drive. The iOS code work (API base URL, CORS for `capacitor://localhost`, the native Auth0 callback, Sign in with Apple) doesn't need the account, so it can start before Apple answers. Nothing in the app changed.
