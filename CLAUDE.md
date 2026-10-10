@@ -78,6 +78,16 @@ python3 -m unittest discover -s tests  # pipeline tests
 - Commit messages say what changed and why.
 - After each PR, add an entry to docs/build-log.md, lightly clean the prompt where there is need for privacy.
 
+### Issues are the todo list
+
+- **One issue = one PR-sized change.** A bigger job is split into flat issues, not parents and sub-issues. Each issue has a short "Done when" checklist, and the PR says `Closes #N`. Blockers are a "Blocked by: #N" line above "Done when".
+- **Labels say where it belongs, not how urgent it is:** "Android App", "iOS App", "Account Management", "Operations", plus `bug` and `documentation`. No priority labels.
+- **Milestones are the goals** ("Google Play launch", "Before real users", "iOS launch"). Every open issue has one.
+- **Priority is the order of work:** first what is blocked by nothing, then what unblocks other work, then small steps toward users. Keep at most two issues in progress.
+- **Before creating an issue**, search the open ones for a duplicate. New ideas that come up mid-task become an issue, and the current task carries on.
+- **Tools:** the GitHub MCP tools can create and edit issues and set a milestone, but not create milestones or touch Projects. `gh api repos/checkmate-prep/chess-coach/...` (REST) can create milestones. GraphQL (`gh pr view`, `gh issue list`) is blocked.
+- `docs/app-stores.md` keeps the store plan and what is done; open work lives in the issues.
+
 ## Claude Code setup (`.claude/`)
 
 - `settings.json`: shared permissions (common build, preview and read-only git/gh commands run without asking; reading `.dev.vars` and pushing to `main` are denied) and the hook above (`hooks/rebuild-app.sh`). Personal overrides go in `settings.local.json`, which is gitignored.
