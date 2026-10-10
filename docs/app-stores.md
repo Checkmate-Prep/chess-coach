@@ -17,16 +17,15 @@ A plan, part done. It says what each store needs, what has to change in the app 
 **Waiting**
 - **Apple Developer Program:** D&B has fixed the D-U-N-S record (10 October), and Apple has asked for ID and the company's legal documents, which it is reviewing now. Nothing to do until Apple answers. Use the legal name exactly as D&B and New York State have it ("LLC").
 
-**To check**
-- Whether the Play Console still asks to confirm access to a physical Android phone. There is no Android device yet, and the app has not been opened on one.
-- On a phone or emulator: the app opens without a URL bar, with the right icon and the "Checkmate" label.
+**Open work** is tracked in GitHub issues, so this page doesn't repeat it:
+- Android: [#52](https://github.com/Checkmate-Prep/chess-coach/issues/52) Launch Checkmate Prep on Google Play. It covers the screenshots, the store listing and App content forms, the check on a real phone (URL bar, icon, label, whether Play asks for a physical phone), and internal testing then production.
+- iOS, once Apple accepts the enrolment (the code can start before):
+  - [#53](https://github.com/Checkmate-Prep/chess-coach/issues/53) the Capacitor shell
+  - [#54](https://github.com/Checkmate-Prep/chess-coach/issues/54) the Worker accepting the iOS app
+  - [#55](https://github.com/Checkmate-Prep/chess-coach/issues/55) sign-in from the iOS app, with Sign in with Apple
+  - [#56](https://github.com/Checkmate-Prep/chess-coach/issues/56) App Store submission
 
-**Next steps, in order**
-1. ~~PR: the one-time AI consent note before the first AI plan (Phase 1).~~ Done (#49).
-2. Phone screenshots (2–8, 1080×1920). No real friends' usernames: the listing is public.
-3. Store listing and App content forms in the Play Console (Phase 2, steps 6–7), from `store-listing.md`.
-4. Internal testing on a real phone, then production (Phase 2, step 8).
-5. iOS, once Apple accepts the enrolment (Phase 3).
+Issues carry the labels "Android App" and "iOS App". Tick things off there; update this page only when a step in the plan below changes.
 
 ## The approach
 
