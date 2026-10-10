@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Privacy · Checkmate Prep</title>
+<meta name="description" content="What Checkmate Prep stores, where, and how to delete it.">
+<meta name="theme-color" content="#eef1ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111612" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="app.css">
+<style>.view{padding-bottom:48px}.view h2{margin:10px 0 0}.view ul{margin:0;padding-left:1.2em;display:grid;gap:6px}</style>
+</head>
+<body class="no-tabs">
+<header class="appbar"><div class="appbar-in"><a class="brand" href="./"><img src="icon.svg" alt="" width="26" height="26"><span>Checkmate Prep</span></a></div></header>
+<main class="view">
+<header class="head"><p class="eyebrow">Last updated 7 October 2026</p><h1>Privacy</h1>
+  <p class="lede">Checkmate Prep works without an account, and most of what it does stays on your device. This page says what is stored, where, and how to delete it. There are no ads, and nothing is sold or shared for tracking.</p></header>
+
+<section class="card"><h2>On your device</h2>
+  <p>Your chess.com username, your opponents, the names you gave them, your drill progress, the games downloaded from chess.com and the analysis of them are stored in your browser or app. They stay there unless you sign in (see below). <b>Delete account</b> in Settings removes them.</p>
+  <p>Stockfish runs on your device. Your games are not sent anywhere to be analysed.</p></section>
+
+<section class="card"><h2>Games from chess.com</h2>
+  <p>Games come from chess.com's public API, which only has public games. To save chess.com from being asked by every user, the app keeps a shared copy of each player's public games on our server for up to 180 days. That copy has no link to who looked the player up, and no account, address or username of yours is stored with it.</p></section>
+
+<section class="card"><h2>If you sign in</h2>
+  <p>Signing in is optional. It keeps the same opponents, names, drill progress and analysis on all your devices.</p>
+  <ul>
+    <li><b>Sign-in</b> is handled by Auth0. It holds your email address and, if you use Google, the name and picture Google shares. We never see a password.</li>
+    <li><b>Sync</b> stores, on our server, your Auth0 user id, your opponents, names, drill progress and the analysis your devices computed (game reviews, trap scans, AI plans).</li>
+  </ul>
+  <p>To remove all of it, see <a href="delete-account.html">how to delete your account</a>.</p></section>
+
+<section class="card"><h2>AI game plans</h2>
+  <p>When you ask for an AI plan, the app sends your chess.com username, the opponent's, and the statistics built from your games (openings, results, mistakes) to our server, which passes them to Claude, made by Anthropic, to write the plan. A plan is kept for 30 days so identical statistics aren't written twice. Without AI prep, nothing here is sent.</p></section>
+
+<section class="card"><h2>Usage stats</h2>
+  <p>The app records which screens are opened and when, with a random id for the device, the country the request came from, and your account id when you are signed in. It never records your games, usernames, opponents or IP address. These are kept for 3 months. Turn them off with <b>Share usage stats</b> in Settings.</p></section>
+
+<section class="card"><h2>Who else handles data</h2>
+  <ul>
+    <li><b>Cloudflare</b> runs the website and stores the data above. Like any host, it sees the IP address of each request.</li>
+    <li><b>Auth0</b> (Okta) handles sign-in.</li>
+    <li><b>Anthropic</b> writes AI plans, as above.</li>
+    <li><b>Google Fonts</b> sends the fonts the pages use, so Google sees the IP address of the request.</li>
+    <li><b>chess.com</b> is asked for public games from your device or from our server.</li>
+  </ul></section>
+
+<section class="card"><h2>Who runs Checkmate Prep</h2>
+  <p>Checkmate Prep is operated by Artware Solutions LLC, 150 Ludlow Street, 6F, New York, NY 10002, USA. Write to <a href="mailto:privacy@checkmateprep.com">privacy@checkmateprep.com</a>.</p></section>
+
+<section class="card"><h2>Your choices</h2>
+  <p>You can use the app without an account, turn usage stats off, and delete your account and data at any time. To ask about your data or about this page, use the address above.</p></section>
+</main>
+</body>
+</html>

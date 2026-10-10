@@ -1,12 +1,37 @@
 # Listing Checkmate Prep on the App Store and Google Play
 
-A plan, not done yet. It says what each store needs, what has to change in the app and the Worker, and in which order. Updated after #31–#39: AI game plans with Claude, the shared game store, analysis results synced to the account, dev and test on their own domains, and deleting data without signing in.
+A plan, part done. It says what each store needs, what has to change in the app and the Worker, and in which order. The status below is kept up to date as steps land.
+
+## Status (10 October 2026)
+
+**Done**
+- **Google Play Console account** created.
+- **Privacy page** at `checkmateprep.com/privacy` and **account deletion page** at `checkmateprep.com/delete-account` (#44). They name Artware Solutions LLC and its address as the operator, with `privacy@checkmateprep.com` as the contact.
+- **Delete account deletes the Auth0 login too**, after the synced data and results (#44, `worker/account.js`). Signed out, it clears the device (#33).
+- **AI plans, the shared game store and synced results** are in the privacy page, so the store forms can be filled from it.
+
+**Waiting**
+- **Apple Developer Program:** enrolment as Artware Solutions LLC was refused because D&B listed the D-U-N-S number as out of business. A D&B update case was opened on 1 October (expected answer 7 October). Once D&B closes it, Apple can take up to about 14 days to see the change. Check with Apple's D-U-N-S lookup before filling in the form again, and use the legal name exactly as D&B and New York State have it ("LLC", not "LCC").
+- **Google Play account verification** (identity, and access to a physical Android phone), if the Console still shows it as pending.
+
+**To check**
+- That the "Deploy actions" Auth0 app has `delete:users`, and that a real Delete account in production removes the user from Auth0. The deploy log says when an environment can't delete Auth0 users.
+- Whether the Play account is an **organisation** account (no testing requirement) or a **personal** one (12 testers for 14 days before production). This changes step 8 of Phase 2.
+
+**Next steps, in order**
+1. Build the Android app with Bubblewrap and upload it to internal testing (Phase 2, steps 1–4). On the Mac, by hand.
+2. PR: serve `/.well-known/assetlinks.json` with the two SHA-256 fingerprints from step 1 (Phase 2, step 5).
+3. PR: a separate maskable icon and an `id` in the manifest, so the Android icon isn't cropped (Phase 1).
+4. PR: the one-time AI consent note before the first AI plan (Phase 1). Apple requires it; doing it now keeps both apps the same.
+5. Store listing and App content forms in the Play Console (Phase 2, steps 6–7).
+6. Testing, then production (Phase 2, step 8).
+7. iOS, once Apple accepts the enrolment (Phase 3).
 
 ## The approach
 
 | | Google Play | Apple App Store |
 | --- | --- | --- |
-| Wrapper | **Trusted Web Activity (TWA)**, generated with Bubblewrap or PWABuilder | **Capacitor**: a native WKWebView shell with the `app/` files inside it |
+| Wrapper | **Trusted Web Activity (TWA)**, generated with Bubblewrap | **Capacitor**: a native WKWebView shell with the `app/` files inside it |
 | Where the app runs from | `https://checkmateprep.com`, the same address as the website | Files packed into the app (`capacitor://localhost`), calling `https://checkmateprep.com/api/...` |
 | User data | Shared with the Chrome install, since it's the same address. Nothing moves. | A separate store on the device. Signing in brings everything over: opponents, drill progress, Stockfish's reviews, trap scans and AI plans (#39). |
 | Updates | Instant, like the website. You only resubmit for manifest or icon changes. | Every `app/` change needs a new build and a new review (or a live-update plugin). |
@@ -29,54 +54,64 @@ What native would really add is a faster engine: multi-threaded Stockfish with t
 
 **Recommendation:** Capacitor now. Add a native Stockfish plugin if speed calls for it. Reconsider a native app only if the iOS app becomes the main way people use Checkmate Prep and the web version turns into the secondary one.
 
-## Phase 0: Accounts and paperwork (start now, it's the slowest part)
+## Phase 0: Accounts and paperwork
 
-1. **Apple Developer Program** ($99/year). Enrolling as an individual is quickest. Enrolling as an organisation needs a D-U-N-S number but shows a company name instead of a person's.
-2. **Google Play Console** ($25 once). **New personal accounts must run a closed test with at least 12 testers for 14 days in a row before production is unlocked.** Start recruiting testers early. Organisation accounts (D-U-N-S needed) skip this.
-3. **EU trader status** (EU Digital Services Act) on both stores. A trader's address and phone number are shown publicly.
-4. **Privacy policy page**, required by both stores. Serve it at `checkmateprep.com/privacy`, e.g. a static `app/privacy.html`. It should say:
-   - Games come from chess.com's public API, directly or through the shared game store (`/api/games`), which keeps public games for 180 days and records nothing about who asked. Players can ask to be removed (`npm run forget-player`).
-   - Games, analysis and prep are stored on the device.
-   - The optional account (Auth0: email, or Google sign-in) keeps the synced opponents, names, drill progress and analysis results (Stockfish reviews, trap scans, AI plans) in Cloudflare D1.
-   - **AI game plans:** "Write the plan" sends both chess.com usernames, ratings, statistics, lines, the head-to-head record, traps and the name you gave the opponent to Anthropic (Claude) through the Worker. Plans are cached on the server for 30 days.
-   - Usage stats: the screen names opened, a random device id, the account id when signed in, and the country (`/api/event`, Workers Analytics Engine), with a switch in Settings to turn them off.
-   - There are no ads, and nothing is sold or shared for tracking.
-5. **Support URL and contact email.**
+1. **Apple Developer Program** ($99/year). *Waiting on D&B, see Status.* Enrolling as an organisation needs the D-U-N-S number and shows Artware Solutions LLC as the seller. If D&B drags on, enrol as an individual and convert to the organisation later; the app and its reviews move with it.
+2. **Google Play Console** ($25 once). *Done.* A personal account must run a closed test with at least 12 testers for 14 days in a row before production is unlocked; an organisation account skips this.
+3. **EU trader status** (EU Digital Services Act) on both stores. A trader's address and phone number are shown publicly. Artware Solutions LLC's address is already public on the privacy page.
+4. **Privacy policy page.** *Done:* `app/privacy.html`, served at `checkmateprep.com/privacy` (#44). It covers device storage, the shared game store, the account (Auth0, D1), AI plans (both usernames and statistics go to Anthropic), usage stats, and the processors (Cloudflare, Auth0, Anthropic, Google Fonts).
+5. **Support URL and contact email.** Use `checkmateprep.com` and `privacy@checkmateprep.com`, or add a `support@` address in Cloudflare Email Routing.
 
 ## Phase 1: Web app and Worker changes both stores need
 
-1. **Account deletion that deletes the account.** Apple requires this under guideline 5.1.1(v), and Google requires a deletion link.
-   - Done: "Delete account" signed in removes the synced doc and all analysis results (`DELETE /api/sync`), and signed out clears the device (#33).
-   - Still missing: the **Auth0 user** remains. Make the Worker also delete it through the Management API. The M2M application used by the Auth0 deploy script can be reused, with the `delete:users` scope added and its credentials stored as Worker secrets.
-   - Add a public web page explaining how to delete an account, for the Play listing.
-2. **Consent before AI plans.** Apple's guideline 5.1.2(i) asks apps to say clearly when personal data goes to a third-party AI, and to ask first. Before the first "Write the plan", show a one-time note: what is sent, that it goes to Anthropic, and a button to agree. Remember the answer on the device.
-3. **Sign in with Apple.** Required on iOS because Auth0 offers Google sign-in (guideline 4.8). Add the Apple connection in Auth0 (it works on the web too), or hide Google in the iOS app and keep email codes only.
-4. **Store assets:**
+1. **Account deletion.** *Done* (#33, #44). Delete account signed in removes the synced doc, all analysis results, then the Auth0 user (`worker/account.js`, needs `delete:users` on the "Deploy actions" M2M app). Signed out, it clears the device. `checkmateprep.com/delete-account` is the public page the Play listing asks for.
+2. **Consent before AI plans.** *To do.* Apple's guideline 5.1.2(i) asks apps to say clearly when personal data goes to a third-party AI, and to ask first. Before the first "Write the plan", show a one-time note: what is sent, that it goes to Anthropic, a link to the privacy page, and a button to agree. Remember the answer on the device.
+3. **Sign in with Apple.** *To do, iOS only.* Required because Auth0 offers Google sign-in (guideline 4.8). Add the Apple connection in Auth0 (it works on the web too), or hide Google in the iOS app and keep email codes only.
+4. **Manifest and icons.** *To do.* Add an `id` to `manifest.webmanifest`, and a separate `icon-512-maskable.png` with the knight inside the safe zone. Today `icon-512.png` is both "any" and "maskable", so Android may crop it.
+5. **Store assets:**
    - A 1024×1024 icon with no transparency for Apple.
    - A 512×512 icon and a 1024×500 feature graphic for Play.
-   - Screenshots: iPhone 6.9" (1320×2868) and Play phone screenshots. iPad screenshots too, unless iPad is excluded. Include the three-step opponent page and an AI plan.
-   - A separate PNG maskable icon (the current 512 does double duty as "any maskable").
-5. **Wording and trademarks.** "For chess.com players" in the description is fine. Keep chess.com's name and logo out of the app name and icon, or review will flag it. Mention that AI plans are written by Claude.
+   - Screenshots: 2–8 Play phone screenshots (1080×1920), iPhone 6.9" (1320×2868), and iPad unless iPad is excluded. Include the three-step opponent page and an AI plan.
+6. **Wording and trademarks.** "For chess.com players" in the description is fine. Keep chess.com's name and logo out of the app name and icon, or review will flag it. Mention that AI plans are written by Claude.
 
-## Phase 2: Google Play (TWA), the quicker win
+## Phase 2: Google Play (TWA)
 
-1. Pass the Lighthouse PWA checks: the manifest is already good, and the service worker gives offline support.
-2. Generate the Android project with `bubblewrap init --manifest https://checkmateprep.com/manifest.webmanifest`:
-   - Package id, e.g. `com.checkmateprep.app`.
-   - Let Play App Signing manage the key.
-   - Optionally a second build pointing at `dev.checkmateprep.com` for testing PRs on a phone (#35, #39 made dev a real domain that every PR deploys to).
-3. **Digital Asset Links.** Serve `/.well-known/assetlinks.json` with the Play signing key's SHA-256. Without it, Chrome shows a URL bar and the app looks like a browser tab.
-   - Easiest: add a route in `worker/index.js`, which avoids any doubt about serving a dot-folder from assets. Every environment gets it for free.
-   - The file isn't secret, so it can live in the repo.
-4. No change for Auth0, the AI plan's origin check or CORS: everything stays on the same address.
-5. Play Console:
-   - Store listing.
-   - **Data safety form**: email (optional, for accounts), user content (synced opponents, names, progress and results), app interactions and a device id (usage stats), data sent to Anthropic for AI plans. All encrypted in transit and deletable.
-   - Content rating questionnaire, target audience, ads = no.
-6. Internal test, then the **closed test (12 testers × 14 days)**, then production.
-7. Keep the Android wrapper in its own folder such as `android/`, or in a separate repo. It must not go under `app/`, which is published.
+1. **Build the app on the Mac with Bubblewrap.**
+   ```bash
+   npm i -g @bubblewrap/cli
+   mkdir ~/checkmate-prep-android && cd ~/checkmate-prep-android
+   bubblewrap init --manifest https://checkmateprep.com/manifest.webmanifest
+   bubblewrap build    # app-release-bundle.aab for Play, app-release-signed.apk for a phone
+   ```
+   - Domain `checkmateprep.com`, start URL `/`, name Checkmate Prep.
+   - Package id `com.checkmateprep.app`. **It can never change.**
+   - Let Bubblewrap create the upload keystore, and back up the file and both passwords in a password manager.
+   - Keep the project out of `chess-coach/app/`, which is published. A separate private repo is fine. The keystore never goes in a public repo.
+2. **Try it on a phone:** `bubblewrap install` with USB debugging on. It shows a URL bar until step 5.
+3. **Create the app** in the Play Console: Checkmate Prep, App, Free, then accept the declarations.
+4. **Internal testing → Create release**, upload `app-release-bundle.aab`, and accept Play App Signing. Add yourself as a tester.
+5. **Digital Asset Links**, so the app opens without a URL bar.
+   - Collect two SHA-256 fingerprints: the *app signing key* (Play Console → Test and release → App integrity → App signing) and the *upload key* (`bubblewrap fingerprint`). They aren't secret.
+   - Serve them at `/.well-known/assetlinks.json` from the Worker: a route in `worker/index.js`, and `/.well-known/*` added to `run_worker_first` in `wrangler.toml`. Every environment gets it, so a dev build on `dev.checkmateprep.com` can be tested too.
+6. **App content** (Policy → App content):
+   - Privacy policy: `https://checkmateprep.com/privacy`.
+   - App access: all functionality is available without special access (sign-in is optional).
+   - Ads: no.
+   - Content rating questionnaire: no violence or user chat; expect Everyone.
+   - Target audience: 13 and over, to stay out of the Families programme.
+   - **Data safety:** email address (account, optional), user content (synced opponents, names, progress and analysis results), app interactions and a device id (usage stats, can be turned off), data shared with Anthropic for AI plans. All encrypted in transit and deletable.
+   - Data deletion URL: `https://checkmateprep.com/delete-account`.
+7. **Store listing:**
+   - Short description (80 characters at most), e.g. "Prep for the people you play on chess.com: openings, traps and drills."
+   - Full description, the 512×512 icon, the 1024×500 feature graphic and the phone screenshots (Phase 1).
+8. **Testing, then production.**
+   - Organisation account: internal test, then Production → Create release. Review takes a few days.
+   - Personal account: a closed test with at least 12 testers who opt in and keep the app for 14 days in a row, then Apply for production, then review.
+9. **After launch:** web changes reach the app straight away. Rebuild only when the manifest or icons change: raise `appVersionCode` in `twa-manifest.json`, `bubblewrap build`, upload the new `.aab`.
 
 ## Phase 3: Apple (Capacitor)
+
+Starts once the Apple enrolment is accepted. The code work in step 2 can start before.
 
 1. `npm i @capacitor/core @capacitor/ios`, with `webDir: "app"`.
    - This keeps the "no build step" rule for the web app: Capacitor copies `app/` as it is.
@@ -89,7 +124,7 @@ What native would really add is a faster engine: multi-threaded Stockfish with t
    - **Auth0 in a native app.** `redirect_uri: location.origin + location.pathname` won't work from `capacitor://`.
      - Add an Auth0 **Native** application with a custom-scheme or universal-link callback, on `login.checkmateprep.com`.
      - Open sign-in in the system browser (`@capacitor/browser`) and handle the callback with `@capacitor/app` `appUrlOpen`.
-     - Sign-out and "Delete account" must also log out of Auth0 in the system browser.
+     - Sign-out and Delete account must also log out of Auth0 in the system browser.
      - This is the biggest piece of new work.
    - **Service worker.** WKWebView doesn't support service workers on custom schemes. Skip `sw.js` registration in the native app; the files are already local. Leave the localhost rule as it is.
    - **Stockfish.** The single-threaded lite build doesn't need SharedArrayBuffer, so it should run in WKWebView. Test on a real device, including keeping the engine going (`whileAwake`) when the app goes to the background. Measure how long a trap scan takes; that decides the native Stockfish plugin (see above).
@@ -97,6 +132,7 @@ What native would really add is a faster engine: multi-threaded Stockfish with t
 3. Add some native value to strengthen the 4.2 case: haptics on moves, share-sheet export of a game plan, a proper splash screen and safe-area layout (the tab bar work in #31 helps). Optionally local notifications for drill reminders.
 4. App Store Connect:
    - App Privacy "nutrition label", matching the Play data safety form, including the data sent to Anthropic.
+   - Privacy policy URL `https://checkmateprep.com/privacy`.
    - Age rating questionnaire (AI-written content is chess advice only).
    - Export compliance: HTTPS only, so exempt (set `ITSAppUsesNonExemptEncryption = NO`).
    - **Demo account in the review notes**, plus a chess.com username the reviewer can try. Make sure production has `ANTHROPIC_API_KEY` set so the reviewer sees AI plans work.
@@ -108,14 +144,5 @@ What native would really add is a faster engine: multi-threaded Stockfish with t
   - GPL and Apple's terms have clashed before (VLC). Stockfish apps are on the App Store today, but this is the one real legal grey area here, so check it early. A native Stockfish plugin would be GPL too.
   - Vendored Auth0 SDK and chess.js: add their licence notices to the same screen.
 - **CI.** Add a workflow to build the iOS app (Fastlane or Xcode Cloud) so shipping `app/` changes to iOS isn't manual. Android updates itself through the TWA.
-- **Tests.** The API base, CORS and the widened origin check need tests. The Worker tests from #39 (D1 on `node:sqlite`, a fake R2) make that easy.
+- **Tests.** The `assetlinks.json` route, the API base, CORS and the widened origin check need tests. The Worker tests (D1 on `node:sqlite`, a fake R2, a fake Auth0) make that easy.
 - **CLAUDE.md.** Add the two wrappers to the layout table, and a rule that iOS needs a rebuild after `app/` changes.
-
-## Suggested order
-
-1. Enrol in both programs, write the privacy policy, and start recruiting Play testers (days of waiting, little work).
-2. Auth0 user deletion, the AI consent note and Sign in with Apple: about one PR each.
-3. The TWA, `assetlinks.json` and the Play closed test: about one PR, then 14+ days of testing.
-4. Capacitor iOS with the API base, CORS, the origin check and native Auth0: the largest part, 2–3 PRs.
-5. Store assets, listings and submissions.
-6. Later, if iPhones are slow: the native Stockfish plugin.

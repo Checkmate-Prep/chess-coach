@@ -26,8 +26,9 @@ See `README.md` for the user-facing description.
 | `app/sync.js`, `app/syncdoc.js` | Optional account: Auth0 sign-in and when to sync; what syncs and how copies merge (also used by the Worker) |
 | `app/results.js`, `app/resultsdoc.js` | Analysis results (reviews, trap scans, AI plans) on the account: upload and pull; what's accepted and which copy wins (also used by the Worker) |
 | `app/vendor/` | Vendored `chess.js` 1.4.0, Stockfish 19 lite single-threaded (GPL, see `COPYING.txt`) and the Auth0 SPA SDK 2.27.0 (MIT) |
-| `worker/`, `wrangler.toml` | The Worker: `/api/config`, `/api/sync` and `/api/results` (D1), `/api/games` (shared game store, R2), `/api/event` (usage stats, Analytics Engine), Auth0 token checks, `/api/health` and `/api/prep` (AI prep: `prep.js` runs Claude in a Workflow, `prompt.js` holds the instructions); environments `dev`, `test`, `production` |
+| `worker/`, `wrangler.toml` | The Worker: `/api/config`, `/api/sync` and `/api/results` (D1), `/api/games` (shared game store, R2), `/api/event` (usage stats, Analytics Engine), Auth0 token checks, `account.js` (deletes the Auth0 user with the account), `/api/health` and `/api/prep` (AI prep: `prep.js` runs Claude in a Workflow, `prompt.js` holds the instructions); environments `dev`, `test`, `production` |
 | `app/track.js`, `scripts/stats.mjs` | Usage stats: which screens are opened (never usernames or opponents); `npm run stats` reads them |
+| `app/privacy.html`, `app/delete-account.html` | Public pages for the stores and users: what's stored (keep in step with the code: new data, new processors) and how to delete an account. Served at `/privacy` and `/delete-account` |
 | `ops/auth0/` | Auth0 Action that notifies new sign-ups (ntfy.sh), and the script that deploys it (runs in `deploy.yml`) |
 
 Gitignored and rebuilt locally: `data/` (games, analysis, profiles), `bin/` (native Stockfish, auto-downloaded), `report.html`, `node_modules/`, `.wrangler/`, `.dev.vars`.
