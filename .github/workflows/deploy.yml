@@ -9,7 +9,7 @@ run-name: Deploy to ${{ inputs.environment || (github.event_name == 'push' && 'p
 # the Worker deploys and the app hides AI prep),
 # and CLOUDFLARE_ACCOUNT_ID (a variable, since it isn't secret; a secret of that name works too).
 # Until those are set, the job skips the deploy instead of failing (the app still deploys to GitHub Pages).
-# Production also deploys the Auth0 Action that notifies new sign-ups (ops/auth0/), once the environment has
+# Production also deploys the Auth0 Actions (ops/auth0/: account linking, sign-up notification), once the environment has
 # the secrets AUTH0_MGMT_CLIENT_SECRET and NTFY_TOPIC, and AUTH0_MGMT_CLIENT_ID (a variable, since it isn't
 # secret; a secret of that name works too). See README.
 # Where each run goes: a push to main deploys production; each push to an open pull request from this repository
@@ -122,9 +122,9 @@ jobs:
           case "$u" in http*|'') ;; *) u="https://$u" ;; esac
           echo "url=$u" >> "$GITHUB_OUTPUT"
       - if: env.HAS_TOKEN == 'true' && env.TARGET == 'production' && env.HAS_AUTH0_MGMT != 'true'
-        run: echo "::notice::No AUTH0_MGMT_CLIENT_SECRET in the production GitHub Environment, so the sign-up notification Action wasn't deployed. See README (Monitoring)."
+        run: echo "::notice::No AUTH0_MGMT_CLIENT_SECRET in the production GitHub Environment, so the Auth0 Actions (account linking, sign-up notification) weren't deployed. See README (Monitoring)."
       - if: env.HAS_TOKEN == 'true' && env.TARGET == 'production' && env.HAS_AUTH0_MGMT == 'true'
-        name: Deploy the Auth0 sign-up notification
+        name: Deploy the Auth0 Actions
         run: node ops/auth0/deploy-actions.mjs
         env:
           AUTH0_MGMT_CLIENT_ID: ${{ vars.AUTH0_MGMT_CLIENT_ID || secrets.AUTH0_MGMT_CLIENT_ID }}

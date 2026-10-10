@@ -1,10 +1,13 @@
 // Auth0 Action (Login flow, post-login trigger): a phone notification through ntfy.sh when someone signs in
-// for the first time, that is, when a new account is created. Only for the production application, so test
+// for the first time, that is, when a new account is created (not when link-accounts.js just attached the login
+// to an existing user: that is no new account). Only for the production application, so test
 // sign-ins on dev don't notify. Deployed by ops/auth0/deploy-actions.mjs; don't edit it in the Auth0 dashboard.
 // Secrets (set by the deploy script): NTFY_TOPIC, a long random topic name (anyone who knows it can read it),
 // and PROD_CLIENT_ID. It never blocks a sign-in.
 exports.onExecutePostLogin = async (event) => {
   if (event.stats?.logins_count !== 1) return;
+  // After link-accounts.js the user is the primary, which has more than one identity (and earlier logins).
+  if ((event.user?.identities || []).length > 1 || event.user?.app_metadata?.linked_to) return;
   if (!event.secrets.NTFY_TOPIC || event.client?.client_id !== event.secrets.PROD_CLIENT_ID) return;
   try {
     await fetch(`https://ntfy.sh/${event.secrets.NTFY_TOPIC}`, {
