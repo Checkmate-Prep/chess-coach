@@ -7,6 +7,7 @@ import { userOf } from './auth.js';
 import { prep } from './prep.js';
 import { games } from './games.js';
 import { results } from './results.js';
+import { assetLinks } from './assetlinks.js';
 
 export { PrepWorkflow } from './prep.js';
 
@@ -28,6 +29,7 @@ export default {
     if (url.pathname === '/api/games') return games(request, env);
     if (url.pathname === '/api/event') return event(request, env, userOf);
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found.' }, 404);
+    if (url.pathname === '/.well-known/assetlinks.json') return assetLinks(request);
     return env.ASSETS.fetch(request);
   },
 };

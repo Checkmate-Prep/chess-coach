@@ -18,8 +18,8 @@ A plan, part done. It says what each store needs, what has to change in the app 
 - That the "Deploy actions" Auth0 app has `delete:users`, and that a real Delete account in production removes the user from Auth0. The deploy log says when an environment can't delete Auth0 users.
 
 **Next steps, in order**
-1. Build the Android app with Bubblewrap and upload it to internal testing (Phase 2, steps 1–4). On the Mac, by hand.
-2. PR: serve `/.well-known/assetlinks.json` with the two SHA-256 fingerprints from step 1 (Phase 2, step 5).
+1. ~~Build the Android app with Bubblewrap and upload it to internal testing (Phase 2, steps 1–4).~~ Done: package `com.checkmateprep.app`, minSdk 24, in internal testing.
+2. ~~PR: serve `/.well-known/assetlinks.json` with the two SHA-256 fingerprints (Phase 2, step 5).~~ Done (`worker/assetlinks.js`). Check on a device or emulator that the URL bar is gone.
 3. ~~PR: a separate maskable icon and an `id` in the manifest, so the Android icon isn't cropped (Phase 1).~~ Done. If you built the Android app before this landed, run `bubblewrap update`, raise `appVersionCode` and rebuild, so it picks up the new icon.
 4. PR: the one-time AI consent note before the first AI plan (Phase 1). Apple requires it; doing it now keeps both apps the same.
 5. Store listing and App content forms in the Play Console (Phase 2, steps 6–7).
@@ -84,6 +84,7 @@ What native would really add is a faster engine: multi-threaded Stockfish with t
    ```
    - Domain `checkmateprep.com`, start URL `/`, name Checkmate Prep.
    - Package id `com.checkmateprep.app`. **It can never change.**
+   - Bubblewrap's template needs `minSdkVersion` 24 (its default 21 fails the build), and `enableNotifications` off in `twa-manifest.json`. Short name at most 12 characters ("Checkmate").
    - Let Bubblewrap create the upload keystore, and back up the file and both passwords in a password manager.
    - Keep the project out of `chess-coach/app/`, which is published. A separate private repo is fine. The keystore never goes in a public repo.
 2. **Try it on a phone:** `bubblewrap install` with USB debugging on. It shows a URL bar until step 5.
@@ -91,7 +92,7 @@ What native would really add is a faster engine: multi-threaded Stockfish with t
 4. **Internal testing → Create release**, upload `app-release-bundle.aab`, and accept Play App Signing. Add yourself as a tester.
 5. **Digital Asset Links**, so the app opens without a URL bar.
    - Collect two SHA-256 fingerprints: the *app signing key* (Play Console → Test and release → App integrity → App signing) and the *upload key* (`bubblewrap fingerprint`). They aren't secret.
-   - Serve them at `/.well-known/assetlinks.json` from the Worker: a route in `worker/index.js`, and `/.well-known/*` added to `run_worker_first` in `wrangler.toml`. Every environment gets it, so a dev build on `dev.checkmateprep.com` can be tested too.
+   - Served at `/.well-known/assetlinks.json` by the Worker (`worker/assetlinks.js`, with `/.well-known/*` in `run_worker_first`). Every environment gets it, so a dev build on `dev.checkmateprep.com` can be tested too. If the package id or either key changes, edit the constants in that file.
 6. **App content** (Policy → App content):
    - Privacy policy: `https://checkmateprep.com/privacy`.
    - App access: all functionality is available without special access (sign-in is optional).
