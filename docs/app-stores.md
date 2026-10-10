@@ -5,7 +5,7 @@ A plan, part done. It says what each store needs, what has to change in the app 
 ## Status (10 October 2026)
 
 **Done**
-- **Google Play Console account** created.
+- **Google Play Console account** created, as an **organisation** account for Artware Solutions LLC. No 12-tester, 14-day closed test is needed: internal testing, then production.
 - **Privacy page** at `checkmateprep.com/privacy` and **account deletion page** at `checkmateprep.com/delete-account` (#44). They name Artware Solutions LLC and its address as the operator, with `privacy@checkmateprep.com` as the contact.
 - **Delete account deletes the Auth0 login too**, after the synced data and results (#44, `worker/account.js`). Signed out, it clears the device (#33).
 - **AI plans, the shared game store and synced results** are in the privacy page, so the store forms can be filled from it.
@@ -16,7 +16,6 @@ A plan, part done. It says what each store needs, what has to change in the app 
 
 **To check**
 - That the "Deploy actions" Auth0 app has `delete:users`, and that a real Delete account in production removes the user from Auth0. The deploy log says when an environment can't delete Auth0 users.
-- Whether the Play account is an **organisation** account (no testing requirement) or a **personal** one (12 testers for 14 days before production). This changes step 8 of Phase 2.
 
 **Next steps, in order**
 1. Build the Android app with Bubblewrap and upload it to internal testing (Phase 2, steps 1–4). On the Mac, by hand.
@@ -24,7 +23,7 @@ A plan, part done. It says what each store needs, what has to change in the app 
 3. PR: a separate maskable icon and an `id` in the manifest, so the Android icon isn't cropped (Phase 1).
 4. PR: the one-time AI consent note before the first AI plan (Phase 1). Apple requires it; doing it now keeps both apps the same.
 5. Store listing and App content forms in the Play Console (Phase 2, steps 6–7).
-6. Testing, then production (Phase 2, step 8).
+6. Internal testing, then production (Phase 2, step 8).
 7. iOS, once Apple accepts the enrolment (Phase 3).
 
 ## The approach
@@ -57,7 +56,7 @@ What native would really add is a faster engine: multi-threaded Stockfish with t
 ## Phase 0: Accounts and paperwork
 
 1. **Apple Developer Program** ($99/year). *Waiting on D&B, see Status.* Enrolling as an organisation needs the D-U-N-S number and shows Artware Solutions LLC as the seller. If D&B drags on, enrol as an individual and convert to the organisation later; the app and its reviews move with it.
-2. **Google Play Console** ($25 once). *Done.* A personal account must run a closed test with at least 12 testers for 14 days in a row before production is unlocked; an organisation account skips this.
+2. **Google Play Console** ($25 once). *Done*, as an organisation account for Artware Solutions LLC, so the closed test that personal accounts need (12 testers for 14 days) doesn't apply.
 3. **EU trader status** (EU Digital Services Act) on both stores. A trader's address and phone number are shown publicly. Artware Solutions LLC's address is already public on the privacy page.
 4. **Privacy policy page.** *Done:* `app/privacy.html`, served at `checkmateprep.com/privacy` (#44). It covers device storage, the shared game store, the account (Auth0, D1), AI plans (both usernames and statistics go to Anthropic), usage stats, and the processors (Cloudflare, Auth0, Anthropic, Google Fonts).
 5. **Support URL and contact email.** Use `checkmateprep.com` and `privacy@checkmateprep.com`, or add a `support@` address in Cloudflare Email Routing.
@@ -104,9 +103,7 @@ What native would really add is a faster engine: multi-threaded Stockfish with t
 7. **Store listing:**
    - Short description (80 characters at most), e.g. "Prep for the people you play on chess.com: openings, traps and drills."
    - Full description, the 512×512 icon, the 1024×500 feature graphic and the phone screenshots (Phase 1).
-8. **Testing, then production.**
-   - Organisation account: internal test, then Production → Create release. Review takes a few days.
-   - Personal account: a closed test with at least 12 testers who opt in and keep the app for 14 days in a row, then Apply for production, then review.
+8. **Testing, then production.** The account is an organisation account, so: internal test on a few phones, then Production → Create release. Review takes a few days. (A personal account would first need a 14-day closed test with 12 testers.)
 9. **After launch:** web changes reach the app straight away. Rebuild only when the manifest or icons change: raise `appVersionCode` in `twa-manifest.json`, `bubblewrap build`, upload the new `.aab`.
 
 ## Phase 3: Apple (Capacitor)
