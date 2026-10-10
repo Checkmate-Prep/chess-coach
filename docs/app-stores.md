@@ -22,7 +22,7 @@ A plan, part done. It says what each store needs, what has to change in the app 
 - On a phone or emulator: the app opens without a URL bar, with the right icon and the "Checkmate" label.
 
 **Next steps, in order**
-1. PR: the one-time AI consent note before the first AI plan (Phase 1). Apple requires it; doing it now keeps both apps the same.
+1. ~~PR: the one-time AI consent note before the first AI plan (Phase 1).~~ Done (#49).
 2. Phone screenshots (2–8, 1080×1920). No real friends' usernames: the listing is public.
 3. Store listing and App content forms in the Play Console (Phase 2, steps 6–7), from `store-listing.md`.
 4. Internal testing on a real phone, then production (Phase 2, step 8).
@@ -66,7 +66,7 @@ What native would really add is a faster engine: multi-threaded Stockfish with t
 ## Phase 1: Web app and Worker changes both stores need
 
 1. **Account deletion.** *Done* (#33, #44). Delete account signed in removes the synced doc, all analysis results, then the Auth0 user (`worker/account.js`, needs `delete:users` on the "Deploy actions" M2M app). Signed out, it clears the device. `checkmateprep.com/delete-account` is the public page the Play listing asks for.
-2. **Consent before AI plans.** *To do.* Apple's guideline 5.1.2(i) asks apps to say clearly when personal data goes to a third-party AI, and to ask first. Before the first "Write the plan", show a one-time note: what is sent, that it goes to Anthropic, a link to the privacy page, and a button to agree. Remember the answer on the device.
+2. **Consent before AI plans.** *Done* (`app/aiconsent.js`): the note and an "Agree and …" button show on the opponent's game plan until the user agrees once per device, and nothing is sent before. Apple's guideline 5.1.2(i) asks apps to say clearly when personal data goes to a third-party AI, and to ask first. Before the first "Write the plan", show a one-time note: what is sent, that it goes to Anthropic, a link to the privacy page, and a button to agree. Remember the answer on the device.
 3. **Sign in with Apple.** *To do, iOS only.* Required because Auth0 offers Google sign-in (guideline 4.8). Add the Apple connection in Auth0 (it works on the web too), or hide Google in the iOS app and keep email codes only.
 4. **Manifest and icons.** *Done.* `manifest.webmanifest` has `"id": "/"`, and `icon-512-maskable.png` (the knight at 80% inside the safe zone) is the "maskable" icon, apart from `icon-512.png` which is "any". The `id` is the app's identity for Chrome, so don't change it.
 5. **Store assets:**

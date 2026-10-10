@@ -9,6 +9,7 @@ import { gamePlan } from './plan.js';
 import { whileAwake } from './engine.js';
 import { markDirty, resultsReady } from './results.js';
 import { account, startSync, returningFromSignIn, signIn, signOut, syncNow, deleteSynced, forgetDevice, hasApi, token } from './sync.js';
+import { hasAiConsent, giveAiConsent } from './aiconsent.js';
 import { track, startTracking, screenOf, sharing, setSharing } from './track.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -600,7 +601,9 @@ function mountPlans(plans, prefix) {
  */
 function planStep(user, { saved, canWrite, hasGames, writing, error, quick }) {
   const plan = saved?.plan;
-  const button = canWrite ? `<button class="btn${plan ? '' : ' primary'}" id="ai-write" ${hasGames && !writing ? '' : 'disabled'}>${plan ? 'Rewrite with the latest games' : 'Use AI to enhance game plan'}</button>
+  const asks = canWrite && !hasAiConsent(); // the one-time note: nothing is sent until the user agrees
+  const note = asks ? `<p class="small ai-consent" id="ai-consent">Claude, made by Anthropic, writes this plan. To do it, the app sends your chess.com username, the opponent's and statistics from your games (openings, results, mistakes) to our server, which passes them on. Nothing is sent until you agree. <a href="privacy.html">Privacy</a></p>` : '';
+  const button = canWrite ? `${note}<button class="btn${plan ? '' : ' primary'}" id="ai-write" ${hasGames && !writing ? '' : 'disabled'}>${asks ? 'Agree and ' : ''}${plan ? (asks ? 'rewrite with the latest games' : 'Rewrite with the latest games') : (asks ? 'use AI to enhance game plan' : 'Use AI to enhance game plan')}</button>
       ${writing ? `${progress('ai-progress')}<p class="ai-thought" id="ai-thought" hidden></p>` : ''}
       <p class="small muted" id="ai-status" aria-live="polite">${writing ? 'Takes about a minute. You can leave or close the app: the plan will be here when you come back.'
         : error ? `<span class="warn">${esc(error)}</span>` : hasGames ? (plan ? '' : 'Takes about a minute.') : 'Download their games first.'}</p>` : '';
@@ -635,6 +638,7 @@ function aiChanged(user) {
   else if (location.hash === '#prep') renderOppList();
 }
 async function writeAi(user) {
+  if (!hasAiConsent()) return; // never send anything before the note has been agreed to
   delete aiErrors[user];
   aiStarting[user] = true;
   try {
@@ -792,7 +796,7 @@ async function renderOpp(user) {
   if (ai) mountPlans(ai.plan.plans.map(aiPlan), 'ai');
   mountTraps(trW, trB);
   view.querySelectorAll('[data-plan]').forEach((host) => { const pl = PLAN_LINES[host.dataset.plan]; if (pl) lineViewer(host, pl.line, pl.flipped, pl.keyFrom); });
-  $('#ai-write')?.addEventListener('click', () => { writeAi(user); renderOpp(user); });
+  $('#ai-write')?.addEventListener('click', () => { giveAiConsent(); writeAi(user); renderOpp(user); });
   if (aiJobs()[user]) waitAi(user);
   if (aiWriting(user)) paintAi(user);
   if (!ls.get(`player:${user}`, null)) {
