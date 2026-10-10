@@ -688,3 +688,8 @@ On native iOS, Claude recommended against a Swift rewrite: the logic would exist
 > apple d&b is good. apple asked for ID and legal docs and is currently reviewing them.
 
 **What Claude did:** recorded it in `docs/app-stores.md` (the Apple item moves from waiting on D&B to in review at Apple) and in the private plan on Drive. The iOS code work (API base URL, CORS for `capacitor://localhost`, the native Auth0 callback, Sign in with Apple) doesn't need the account, so it can start before Apple answers. Nothing in the app changed.
+
+### 77. The todo list moves to GitHub issues
+> Plan how I could use GitHub issues to organize todo list … issues should be PR size … flat, with labels "iOS App" and "Android App"
+
+**What Claude did:** the todo list lived in Claude discussions and in the status section of `docs/app-stores.md`. It read the docs, grouped the open items into five PR-sized issues, and opened them as a flat list: #52 launch on Google Play (label "Android App"), and #53 to #56 for iOS (the Capacitor shell, the Worker accepting the app, sign-in, App Store submission; label "iOS App"). Each has a "Done when" checklist. `docs/app-stores.md` now points to the issues instead of repeating the next steps, so there is one place to tick things off. Nothing in the app changed.
