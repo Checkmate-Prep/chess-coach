@@ -655,6 +655,13 @@ On native iOS, Claude recommended against a Swift rewrite: the logic would exist
 
 **What Claude did:** the plan's next steps listed this PR before the Android build. `icon-512.png` was declared both "any" and "maskable", and Android launchers crop maskable icons to a circle or rounded square, so one file can't be right for both uses. Claude rendered a separate `icon-512-maskable.png` from `icon.svg` with the board and knight at 80% of the canvas on the full-bleed green, which keeps the knight well inside the safe zone (the 80% circle). `icon-512.png` is now "any" only. The manifest also gets `"id": "/"`, which gives Chrome a stable identity for the installed app, so the id no longer follows the start URL. Nothing else in `app/` changed besides the stamped cache name. If the Android app was built before this, it needs `bubblewrap update` and a version bump to pick up the icon. Not tested: how the icon looks in a real Android launcher or on a TWA install, which needs a device or the emulator.
 
+### 71. A short name that fits Android
+> Short name: (Checkmate Prep) Checkmate Prep
+> >> Maximum length is 12 but input is 14.
+> update manifest for short name checkmate
+
+**What Claude did:** Bubblewrap limits the launcher name (the short name) to 12 characters, and "Checkmate Prep" has 14. The manifest's `short_name` is now "Checkmate", which fits and still reads as the product. The full `name` stays "Checkmate Prep" for the install dialog and the store listing. The short name is what shows under the icon on a home screen, so installed copies of the web app show the shorter label after they pick up the new manifest.
+
 ### 72. The Android app opens full screen
 > [the Bubblewrap build, the Play Console upload, and the app signing key's SHA-256]
 
