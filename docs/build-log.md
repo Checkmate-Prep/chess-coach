@@ -706,3 +706,8 @@ On native iOS, Claude recommended against a Swift rewrite: the logic would exist
 > repoint to updated copy
 
 **What Claude did:** the review took about 70 minutes, much less than the few days the plan allowed for. The page `docs/app-stores.md` now says the Android app is published and that the Play forms and listing are filled in, and the private plan on Drive says the same. The open issues that point at that private plan (#61 to #65) now link to the updated copy, not the 2 October original. Not checked: the public store page, which still returned 404 shortly after publishing (listings can take hours to appear), the Deep links status in the Console, and the app on a real device; all three are in #52.
+
+### 79. How the issues are used, written into CLAUDE.md
+> add the workflow notes to CLAUDE.md
+
+**What Claude did:** after the todo list moved to GitHub issues, the way of working was only in the chat. `CLAUDE.md` now has an "Issues are the todo list" part under Workflow: one PR-sized issue per change, flat, with a "Done when" checklist and `Closes #N`; labels for where something belongs and none for urgency; milestones as goals; priority as order of work with at most two in progress; and which tools can do what (milestones need `gh api`). A project board was left out for now, since 13 issues are easy to rank without one. Nothing in the app changed.
