@@ -67,7 +67,7 @@ What native would really add is a faster engine: multi-threaded Stockfish with t
 
 1. **Account deletion.** *Done* (#33, #44). Delete account signed in removes the synced doc, all analysis results, then the Auth0 user (`worker/account.js`, needs `delete:users` on the "Deploy actions" M2M app). Signed out, it clears the device. `checkmateprep.com/delete-account` is the public page the Play listing asks for.
 2. **Consent before AI plans.** *Done* (`app/aiconsent.js`): the note and an "Agree and …" button show on the opponent's game plan until the user agrees once per device, and nothing is sent before. Apple's guideline 5.1.2(i) asks apps to say clearly when personal data goes to a third-party AI, and to ask first. Before the first "Write the plan", show a one-time note: what is sent, that it goes to Anthropic, a link to the privacy page, and a button to agree. Remember the answer on the device.
-3. **Sign in with Apple.** *To do, iOS only.* Required because Auth0 offers Google sign-in (guideline 4.8). Add the Apple connection in Auth0 (it works on the web too), or hide Google in the iOS app and keep email codes only.
+3. **Sign in with Apple.** *To do, iOS only.* Required because Auth0 offers Google sign-in (guideline 4.8). Add the Apple connection in Auth0 (it works on the web too), or hide Google in the iOS app and keep email codes and passwords only.
 4. **Manifest and icons.** *Done.* `manifest.webmanifest` has `"id": "/"`, and `icon-512-maskable.png` (the knight at 80% inside the safe zone) is the "maskable" icon, apart from `icon-512.png` which is "any". The `id` is the app's identity for Chrome, so don't change it.
 5. **Store assets:**
    - A 1024×1024 icon with no transparency for Apple.
