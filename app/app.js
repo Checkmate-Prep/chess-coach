@@ -297,7 +297,8 @@ function renderWelcome() {
   view.innerHTML = `
     <header class="head welcome">${heroSvg()}<p class="eyebrow">Welcome to Checkmate Prep</p><h1>Prepare for your next opponent</h1>
       <p class="lede">Checkmate Prep studies the chess.com games of the people you're about to play (a friend, a club rival, your next tournament pairing) and turns them into a game plan: the openings they play, where they go wrong, and traps to set.</p></header>
-    <div class="choices"><a class="btn primary" href="#start">I'm new here</a><div id="account-slot" data-mode="welcome"></div></div>`;
+    <div class="choices"><a class="btn primary" href="#start">I'm new here</a><div id="account-slot" data-mode="welcome"></div></div>
+    <p class="small muted"><a href="privacy.html">Privacy</a></p>`;
   renderAccount();
 }
 
@@ -340,7 +341,8 @@ async function renderSetup(first = false) {
     ${head}
     ${youCard + oppCard}
     <div id="account-slot"${me ? '' : ' data-mode="setup"'}></div>
-    ${me ? '<div id="stats-slot"></div>' : ''}`;
+    ${me ? '<div id="stats-slot"></div>' : ''}
+    <p class="small muted"><a href="privacy.html">Privacy</a></p>`;
 
   renderAccount();
   renderStatsToggle();
@@ -461,7 +463,7 @@ function renderAccount() {
         <p class="small muted" aria-live="polite">${when}</p>${err}
         <div class="row"><button class="btn" data-acct="sync" ${account.busy ? 'disabled' : ''}>Sync now</button><button class="btn" data-acct="signout">Sign out</button></div>
         <details><summary class="small">Delete account</summary><div class="details-body">
-          <p class="small muted">Deletes your opponents, names, drill progress and analysis from the server, then signs you out. Data is also deleted from this device.</p>
+          <p class="small muted">Deletes your opponents, names, drill progress and analysis from the server, and your sign-in, then removes everything from this device. It can't be undone.</p>
           <button class="btn" data-acct="delete">Delete account</button></div></details></section>`;
   }
   slot.querySelectorAll('[data-acct]').forEach((b) => {

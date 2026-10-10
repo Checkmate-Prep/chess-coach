@@ -49,6 +49,7 @@ jobs:
       HAS_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
       HAS_AUTH0_MGMT: ${{ secrets.AUTH0_MGMT_CLIENT_SECRET != '' }}
       HAS_AI_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+      HAS_MGMT_ID: ${{ (vars.AUTH0_MGMT_CLIENT_ID || secrets.AUTH0_MGMT_CLIENT_ID) != '' }}
       TARGET: ${{ github.event.inputs.environment || (github.event_name == 'push' && 'production' || 'dev') }}
     steps:
       - if: env.HAS_TOKEN != 'true'
@@ -73,17 +74,27 @@ jobs:
           case "$TARGET" in production) bucket=chess-coach-games-prod ;; *) bucket="chess-coach-games-$TARGET" ;; esac
           echo "name=$bucket" >> "$GITHUB_OUTPUT"
           npx wrangler r2 bucket info "$bucket" > /dev/null 2>&1 || npx wrangler r2 bucket create "$bucket"
+      # Worker secrets this environment has: the Anthropic key (AI prep) and the Auth0 Management API credentials
+      # (deleting the Auth0 user with the account, worker/account.js). The action fails on a secret it can't find.
+      - if: env.HAS_TOKEN == 'true'
+        id: secrets
+        run: |
+          names=""
+          [ "$HAS_AI_KEY" = true ] && names="$names ANTHROPIC_API_KEY"
+          if [ "$HAS_AUTH0_MGMT" = true ] && [ "$HAS_MGMT_ID" = true ]; then names="$names AUTH0_MGMT_CLIENT_ID AUTH0_MGMT_CLIENT_SECRET"; fi
+          { echo "names<<EOF"; for n in $names; do echo "$n"; done; echo "EOF"; } >> "$GITHUB_OUTPUT"
       - if: env.HAS_TOKEN == 'true'
         id: deploy
         uses: cloudflare/wrangler-action@v3
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          AUTH0_MGMT_CLIENT_ID: ${{ vars.AUTH0_MGMT_CLIENT_ID || secrets.AUTH0_MGMT_CLIENT_ID }}
+          AUTH0_MGMT_CLIENT_SECRET: ${{ secrets.AUTH0_MGMT_CLIENT_SECRET }}
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID || secrets.CLOUDFLARE_ACCOUNT_ID }}
           environment: ${{ github.event.inputs.environment || (github.event_name == 'push' && 'production' || 'dev') }}
-          # upload the key only when this environment has one (the action fails on a secret it can't find)
-          secrets: ${{ env.HAS_AI_KEY == 'true' && 'ANTHROPIC_API_KEY' || '' }}
+          secrets: ${{ steps.secrets.outputs.names }}
       # The shared game store (worker/games.js) keeps each file 180 days at most (ops/r2/games-lifecycle.json).
       # `set` replaces the bucket's rules, so running it on every deploy is harmless.
       - if: env.HAS_TOKEN == 'true'
@@ -96,6 +107,8 @@ jobs:
         run: |
           npx wrangler r2 bucket lifecycle set "$BUCKET" --file ops/r2/games-lifecycle.json --force \
             || echo "::warning::Couldn't set the game store's 180-day rule on $BUCKET. The API token needs R2 edit access. See README (Game store)."
+      - if: env.HAS_TOKEN == 'true' && (env.HAS_AUTH0_MGMT != 'true' || env.HAS_MGMT_ID != 'true')
+        run: echo "::notice::No AUTH0_MGMT_CLIENT_ID and AUTH0_MGMT_CLIENT_SECRET in this GitHub Environment, so Delete account here removes the synced data but leaves the Auth0 user. See README (Monitoring, step 3)."
       - if: env.HAS_TOKEN == 'true' && env.HAS_AI_KEY != 'true'
         run: echo "::notice::No ANTHROPIC_API_KEY in this GitHub Environment, so AI prep stays off here (the app shows the quick plan). See README (AI-written prep)."
       # The environment's link on GitHub. Wrangler reports a custom domain as "checkmateprep.com (custom domain)",

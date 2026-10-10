@@ -19,7 +19,7 @@ The split follows from the rule that checkmateprep.com is permanent: a TWA keeps
 1. **Apple Developer Program** ($99/year). Enrolling as an individual is quickest. Enrolling as an organisation needs a D-U-N-S number but shows a company name instead of a person's.
 2. **Google Play Console** ($25 once). **New personal accounts must run a closed test with at least 12 testers for 14 days in a row before production is unlocked.** Start recruiting testers early. Organisation accounts (D-U-N-S needed) skip this.
 3. **EU trader status** (EU Digital Services Act) on both stores. A trader's address and phone number are shown publicly.
-4. **Privacy policy page**, required by both stores. Serve it at `checkmateprep.com/privacy`, e.g. a static `app/privacy.html`. It should say:
+4. **Privacy policy page**, required by both stores. **Done:** `app/privacy.html`, served at `checkmateprep.com/privacy`. Contact is `privacy@checkmateprep.com`. The operator (Artware Solutions LLC and its address) is on the page. It says:
    - Games come from the public chess.com API.
    - Games, analysis and prep are stored on the device.
    - The optional account stores the email (Auth0) plus the synced opponents, names and drill progress (Cloudflare D1).
@@ -29,7 +29,7 @@ The split follows from the rule that checkmateprep.com is permanent: a TWA keeps
 
 ## Phase 1: Web app changes both stores need
 
-1. **In-app account deletion.** Apple requires this under guideline 5.1.1(v), and Google requires a deletion link.
+1. **In-app account deletion.** **Done** (`worker/account.js`, `app/delete-account.html`; needs `delete:users` on the Auth0 M2M app). Apple requires this under guideline 5.1.1(v), and Google requires a deletion link.
    - Today "Delete account" calls `DELETE /api/sync` (`worker/sync.js`), which deletes only the synced data. The Auth0 user remains.
    - Make the Worker also delete the Auth0 user through the Management API. The M2M application used by the Auth0 deploy script can be reused, with the `delete:users` scope added and its credentials stored as Worker secrets.
    - Add a public web page explaining how to delete an account, for the Play listing.
