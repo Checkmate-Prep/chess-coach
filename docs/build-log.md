@@ -659,3 +659,10 @@ On native iOS, Claude recommended against a Swift rewrite: the logic would exist
 > [the Bubblewrap build, the Play Console upload, and the app signing key's SHA-256]
 
 **What Claude did:** with the app in internal testing, the Worker had to prove to Android that `com.checkmateprep.app` belongs to checkmateprep.com, or the app shows a browser URL bar. It now answers `/.well-known/assetlinks.json` (`worker/assetlinks.js`) with two certificate fingerprints: the key Play signs the app with, and the upload key the build was signed with. The Worker only runs first for `/api/*`, so `/.well-known/*` was added to `run_worker_first`. Every environment serves the file, so dev can be tested too. Getting to this point took a few fixes outside the repo: Bubblewrap's short name limit of 12 characters (#46), and its default minSdk 21, which the Android Browser Helper library refuses (set to 24 in `twa-manifest.json`). Tests cover the document's shape, the fingerprint format and that only reads are answered. Not tested: the URL bar disappearing, which needs an Android device or emulator.
+
+### 73. Store text and graphics, and the plan brought up to date
+> 1  [the listing text, from the options offered after the assetlinks.json deploy]
+> ok  [the icon and feature graphic]
+> and update plan on drive, and commit current work.
+
+**What Claude did:** wrote the Play listing text from the README and the privacy page: a short description at 79 of 80 characters, a full description (with the optional AI plans said plainly, naming Anthropic, and a line that the app isn't affiliated with Chess.com) and the internal-testing release notes. They are in `docs/store-listing.md`, so the Apple listing can start from them. The 512×512 icon and the 1024×500 feature graphic were rendered from `icon.svg` with `rsvg-convert` and kept with the Android project, outside the repo. `docs/app-stores.md` now lists what is done (the Bubblewrap build, internal testing, assetlinks, manifest) and what is next (AI consent note, screenshots, forms, a test on a real phone). Not done: screenshots, which need the app running, and any test on an Android device.
