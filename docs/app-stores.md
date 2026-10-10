@@ -15,7 +15,7 @@ A plan, part done. It says what each store needs, what has to change in the app 
 - **Store text and graphics:** the listing text is in [store-listing.md](store-listing.md). The 512×512 icon and the 1024×500 feature graphic were rendered from `icon.svg` (kept with the Android project in `store/`).
 
 **Waiting**
-- **Apple Developer Program:** enrolment as Artware Solutions LLC was refused because D&B listed the D-U-N-S number as out of business. A D&B update case was opened on 1 October (expected answer 7 October). Once D&B closes it, Apple can take up to about 14 days to see the change. Check with Apple's D-U-N-S lookup before filling in the form again, and use the legal name exactly as D&B and New York State have it ("LLC", not "LCC").
+- **Apple Developer Program:** D&B has fixed the D-U-N-S record (10 October), and Apple has asked for ID and the company's legal documents, which it is reviewing now. Nothing to do until Apple answers. Use the legal name exactly as D&B and New York State have it ("LLC").
 
 **To check**
 - Whether the Play Console still asks to confirm access to a physical Android phone. There is no Android device yet, and the app has not been opened on one.
@@ -57,7 +57,7 @@ What native would really add is a faster engine: multi-threaded Stockfish with t
 
 ## Phase 0: Accounts and paperwork
 
-1. **Apple Developer Program** ($99/year). *Waiting on D&B, see Status.* Enrolling as an organisation needs the D-U-N-S number and shows Artware Solutions LLC as the seller. If D&B drags on, enrol as an individual and convert to the organisation later; the app and its reviews move with it.
+1. **Apple Developer Program** ($99/year). *In review at Apple (ID and legal documents sent), see Status.* Enrolling as an organisation needs the D-U-N-S number and shows Artware Solutions LLC as the seller. If D&B drags on, enrol as an individual and convert to the organisation later; the app and its reviews move with it.
 2. **Google Play Console** ($25 once). *Done*, as an organisation account for Artware Solutions LLC, so the closed test that personal accounts need (12 testers for 14 days) doesn't apply.
 3. **EU trader status** (EU Digital Services Act) on both stores. A trader's address and phone number are shown publicly. Artware Solutions LLC's address is already public on the privacy page.
 4. **Privacy policy page.** *Done:* `app/privacy.html`, served at `checkmateprep.com/privacy` (#44). It covers device storage, the shared game store, the account (Auth0, D1), AI plans (both usernames and statistics go to Anthropic), usage stats, and the processors (Cloudflare, Auth0, Anthropic, Google Fonts).
