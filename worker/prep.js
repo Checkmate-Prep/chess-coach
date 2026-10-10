@@ -9,6 +9,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { WorkflowEntrypoint } from 'cloudflare:workers';
 import { json } from './http.js';
+import { allowedOrigin } from './cors.js';
 import { SYSTEM, SCHEMA } from './prompt.js';
 import { lastSentences } from './thought.js';
 
@@ -39,9 +40,10 @@ export async function prep(request, env) {
   if (request.method === 'GET') return poll(new URL(request.url).searchParams.get('job'), env);
   if (request.method !== 'POST') return json({ error: 'Use POST.' }, 405);
   const url = new URL(request.url);
-  // Browsers send Origin on POST: only the app's own pages may call this. (curl can still fake it;
-  // the rate limits and the Anthropic workspace spend limit are what actually cap the cost.)
-  if (request.headers.get('origin') !== url.origin) return json({ error: 'Forbidden.' }, 403);
+  // Browsers send Origin on POST: only the app's own pages and the iOS app (capacitor://localhost, worker/cors.js)
+  // may call this. (curl can still fake it; the per-IP limits, the daily caps and the Anthropic workspace
+  // spend limit are what actually cap the cost.)
+  if (!allowedOrigin(request.headers.get('origin'), url.origin)) return json({ error: 'Forbidden.' }, 403);
   if (!env.ANTHROPIC_API_KEY) return json({ error: 'AI prep is not set up on this server.' }, 503);
 
   const text = await request.text();
