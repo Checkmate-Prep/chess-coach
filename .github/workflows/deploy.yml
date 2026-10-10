@@ -107,6 +107,8 @@ jobs:
         run: |
           npx wrangler r2 bucket lifecycle set "$BUCKET" --file ops/r2/games-lifecycle.json --force \
             || echo "::warning::Couldn't set the game store's 180-day rule on $BUCKET. The API token needs R2 edit access. See README (Game store)."
+      - if: env.HAS_TOKEN == 'true' && (env.HAS_AUTH0_MGMT != 'true' || env.HAS_MGMT_ID != 'true')
+        run: echo "::notice::No AUTH0_MGMT_CLIENT_ID and AUTH0_MGMT_CLIENT_SECRET in this GitHub Environment, so Delete account here removes the synced data but leaves the Auth0 user. See README (Monitoring, step 3)."
       - if: env.HAS_TOKEN == 'true' && env.HAS_AI_KEY != 'true'
         run: echo "::notice::No ANTHROPIC_API_KEY in this GitHub Environment, so AI prep stays off here (the app shows the quick plan). See README (AI-written prep)."
       # The environment's link on GitHub. Wrangler reports a custom domain as "checkmateprep.com (custom domain)",
