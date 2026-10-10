@@ -7,7 +7,7 @@ A plan, part done. It says what each store needs, what has to change in the app 
 **Done**
 - **Google Play Console account** created, as an **organisation** account for Artware Solutions LLC, and its **identity verified** (10 October). No 12-tester, 14-day closed test is needed: internal testing, then production.
 - **Privacy page** at `checkmateprep.com/privacy` and **account deletion page** at `checkmateprep.com/delete-account` (#44). They name Artware Solutions LLC and its address as the operator, with `privacy@checkmateprep.com` as the contact.
-- **Delete account deletes the Auth0 login too**, after the synced data and results (#44, `worker/account.js`). Signed out, it clears the device (#33). The "Deploy actions" Auth0 app has the `delete:users` permission it needs.
+- **Delete account deletes the Auth0 login too**, after the synced data and results (#44, `worker/account.js`). Signed out, it clears the device (#33). The "Deploy actions" Auth0 app has the `delete:users` permission it needs, and a real sign-up deleted in production (10 October) removed the Auth0 user too.
 - **AI plans, the shared game store and synced results** are in the privacy page, so the store forms can be filled from it.
 - **Manifest** has an `id` and a separate maskable icon (#45), and the short name "Checkmate" fits Android's 12 characters (#46).
 - **Android app built** with Bubblewrap (`com.checkmateprep.app`, minSdk 24, notifications off) and uploaded to internal testing. The project and upload keystore live in `~/checkmate-prep-android`, outside the repo, with the keystore and its passwords in a password manager.
@@ -19,7 +19,6 @@ A plan, part done. It says what each store needs, what has to change in the app 
 
 **To check**
 - Whether the Play Console still asks to confirm access to a physical Android phone. There is no Android device yet, and the app has not been opened on one.
-- That a real Delete account in production removes the user from Auth0. The "Deploy actions" app has `delete:users`; the deploy log says when an environment can't delete Auth0 users.
 - On a phone or emulator: the app opens without a URL bar, with the right icon and the "Checkmate" label.
 
 **Next steps, in order**
