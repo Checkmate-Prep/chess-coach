@@ -5,26 +5,28 @@ A plan, part done. It says what each store needs, what has to change in the app 
 ## Status (10 October 2026)
 
 **Done**
-- **Google Play Console account** created, as an **organisation** account for Artware Solutions LLC. No 12-tester, 14-day closed test is needed: internal testing, then production.
+- **Google Play Console account** created, as an **organisation** account for Artware Solutions LLC, and its **identity verified** (10 October). No 12-tester, 14-day closed test is needed: internal testing, then production.
 - **Privacy page** at `checkmateprep.com/privacy` and **account deletion page** at `checkmateprep.com/delete-account` (#44). They name Artware Solutions LLC and its address as the operator, with `privacy@checkmateprep.com` as the contact.
-- **Delete account deletes the Auth0 login too**, after the synced data and results (#44, `worker/account.js`). Signed out, it clears the device (#33).
+- **Delete account deletes the Auth0 login too**, after the synced data and results (#44, `worker/account.js`). Signed out, it clears the device (#33). The "Deploy actions" Auth0 app has the `delete:users` permission it needs, and a real sign-up deleted in production (10 October) removed the Auth0 user too.
 - **AI plans, the shared game store and synced results** are in the privacy page, so the store forms can be filled from it.
+- **Manifest** has an `id` and a separate maskable icon (#45), and the short name "Checkmate" fits Android's 12 characters (#46).
+- **Android app built** with Bubblewrap (`com.checkmateprep.app`, minSdk 24, notifications off) and uploaded to internal testing. The project and upload keystore live in `~/checkmate-prep-android`, outside the repo, with the keystore and its passwords in a password manager.
+- **`assetlinks.json`** is served by the Worker with the Play signing key and the upload key (#47).
+- **Store text and graphics:** the listing text is in [store-listing.md](store-listing.md). The 512×512 icon and the 1024×500 feature graphic were rendered from `icon.svg` (kept with the Android project in `store/`).
 
 **Waiting**
 - **Apple Developer Program:** enrolment as Artware Solutions LLC was refused because D&B listed the D-U-N-S number as out of business. A D&B update case was opened on 1 October (expected answer 7 October). Once D&B closes it, Apple can take up to about 14 days to see the change. Check with Apple's D-U-N-S lookup before filling in the form again, and use the legal name exactly as D&B and New York State have it ("LLC", not "LCC").
-- **Google Play account verification** (identity, and access to a physical Android phone), if the Console still shows it as pending.
 
 **To check**
-- That the "Deploy actions" Auth0 app has `delete:users`, and that a real Delete account in production removes the user from Auth0. The deploy log says when an environment can't delete Auth0 users.
+- Whether the Play Console still asks to confirm access to a physical Android phone. There is no Android device yet, and the app has not been opened on one.
+- On a phone or emulator: the app opens without a URL bar, with the right icon and the "Checkmate" label.
 
 **Next steps, in order**
-1. Build the Android app with Bubblewrap and upload it to internal testing (Phase 2, steps 1–4). On the Mac, by hand.
-2. PR: serve `/.well-known/assetlinks.json` with the two SHA-256 fingerprints from step 1 (Phase 2, step 5).
-3. ~~PR: a separate maskable icon and an `id` in the manifest, so the Android icon isn't cropped (Phase 1).~~ Done. If you built the Android app before this landed, run `bubblewrap update`, raise `appVersionCode` and rebuild, so it picks up the new icon.
-4. PR: the one-time AI consent note before the first AI plan (Phase 1). Apple requires it; doing it now keeps both apps the same.
-5. Store listing and App content forms in the Play Console (Phase 2, steps 6–7).
-6. Internal testing, then production (Phase 2, step 8).
-7. iOS, once Apple accepts the enrolment (Phase 3).
+1. ~~PR: the one-time AI consent note before the first AI plan (Phase 1).~~ Done (#49).
+2. Phone screenshots (2–8, 1080×1920). No real friends' usernames: the listing is public.
+3. Store listing and App content forms in the Play Console (Phase 2, steps 6–7), from `store-listing.md`.
+4. Internal testing on a real phone, then production (Phase 2, step 8).
+5. iOS, once Apple accepts the enrolment (Phase 3).
 
 ## The approach
 
@@ -64,7 +66,7 @@ What native would really add is a faster engine: multi-threaded Stockfish with t
 ## Phase 1: Web app and Worker changes both stores need
 
 1. **Account deletion.** *Done* (#33, #44). Delete account signed in removes the synced doc, all analysis results, then the Auth0 user (`worker/account.js`, needs `delete:users` on the "Deploy actions" M2M app). Signed out, it clears the device. `checkmateprep.com/delete-account` is the public page the Play listing asks for.
-2. **Consent before AI plans.** *To do.* Apple's guideline 5.1.2(i) asks apps to say clearly when personal data goes to a third-party AI, and to ask first. Before the first "Write the plan", show a one-time note: what is sent, that it goes to Anthropic, a link to the privacy page, and a button to agree. Remember the answer on the device.
+2. **Consent before AI plans.** *Done* (`app/aiconsent.js`): the note and an "Agree and …" button show on the opponent's game plan until the user agrees once per device, and nothing is sent before. Apple's guideline 5.1.2(i) asks apps to say clearly when personal data goes to a third-party AI, and to ask first. Before the first "Write the plan", show a one-time note: what is sent, that it goes to Anthropic, a link to the privacy page, and a button to agree. Remember the answer on the device.
 3. **Sign in with Apple.** *To do, iOS only.* Required because Auth0 offers Google sign-in (guideline 4.8). Add the Apple connection in Auth0 (it works on the web too), or hide Google in the iOS app and keep email codes only.
 4. **Manifest and icons.** *Done.* `manifest.webmanifest` has `"id": "/"`, and `icon-512-maskable.png` (the knight at 80% inside the safe zone) is the "maskable" icon, apart from `icon-512.png` which is "any". The `id` is the app's identity for Chrome, so don't change it.
 5. **Store assets:**
@@ -84,6 +86,7 @@ What native would really add is a faster engine: multi-threaded Stockfish with t
    ```
    - Domain `checkmateprep.com`, start URL `/`, name Checkmate Prep.
    - Package id `com.checkmateprep.app`. **It can never change.**
+   - Bubblewrap's template needs `minSdkVersion` 24 (its default 21 fails the build), and `enableNotifications` off in `twa-manifest.json`. Short name at most 12 characters ("Checkmate").
    - Let Bubblewrap create the upload keystore, and back up the file and both passwords in a password manager.
    - Keep the project out of `chess-coach/app/`, which is published. A separate private repo is fine. The keystore never goes in a public repo.
 2. **Try it on a phone:** `bubblewrap install` with USB debugging on. It shows a URL bar until step 5.
@@ -91,7 +94,7 @@ What native would really add is a faster engine: multi-threaded Stockfish with t
 4. **Internal testing → Create release**, upload `app-release-bundle.aab`, and accept Play App Signing. Add yourself as a tester.
 5. **Digital Asset Links**, so the app opens without a URL bar.
    - Collect two SHA-256 fingerprints: the *app signing key* (Play Console → Test and release → App integrity → App signing) and the *upload key* (`bubblewrap fingerprint`). They aren't secret.
-   - Serve them at `/.well-known/assetlinks.json` from the Worker: a route in `worker/index.js`, and `/.well-known/*` added to `run_worker_first` in `wrangler.toml`. Every environment gets it, so a dev build on `dev.checkmateprep.com` can be tested too.
+   - Served at `/.well-known/assetlinks.json` by the Worker (`worker/assetlinks.js`, with `/.well-known/*` in `run_worker_first`). Every environment gets it, so a dev build on `dev.checkmateprep.com` can be tested too. If the package id or either key changes, edit the constants in that file.
 6. **App content** (Policy → App content):
    - Privacy policy: `https://checkmateprep.com/privacy`.
    - App access: all functionality is available without special access (sign-in is optional).
