@@ -10,7 +10,8 @@ A plan, part done. It says what each store needs, what has to change in the app 
 - **Delete account deletes the Auth0 login too**, after the synced data and results (#44, `worker/account.js`). Signed out, it clears the device (#33). The "Deploy actions" Auth0 app has the `delete:users` permission it needs, and a real sign-up deleted in production (10 October) removed the Auth0 user too.
 - **AI plans, the shared game store and synced results** are in the privacy page, so the store forms can be filled from it.
 - **Manifest** has an `id` and a separate maskable icon (#45), and the short name "Checkmate" fits Android's 12 characters (#46).
-- **Android app built** with Bubblewrap (`com.checkmateprep.app`, minSdk 24, notifications off) and uploaded to internal testing. The project and upload keystore live in `~/checkmate-prep-android`, outside the repo, with the keystore and its passwords in a password manager.
+- **Android app built** with Bubblewrap (`com.checkmateprep.app`, minSdk 24, notifications off) uploaded to internal testing and then **released to production**: published on Google Play on 10 October, about 70 minutes after it was sent for review. The project and upload keystore live in `~/checkmate-prep-android`, outside the repo, with the keystore and its passwords in a password manager.
+- **Play Console forms and listing** are filled in from the privacy page and [store-listing.md](store-listing.md): app access, ads, advertising ID, content rating, target audience (13+), Data safety (passwords possible, usernames and statistics shared with Anthropic for AI plans), account creation methods and the data deletion URL.
 - **`assetlinks.json`** is served by the Worker with the Play signing key and the upload key (#47).
 - **Store text and graphics:** the listing text is in [store-listing.md](store-listing.md). The 512×512 icon and the 1024×500 feature graphic were rendered from `icon.svg` (kept with the Android project in `store/`).
 
