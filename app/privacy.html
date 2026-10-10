@@ -27,13 +27,13 @@
 <section class="card"><h2>If you sign in</h2>
   <p>Signing in is optional. It keeps the same opponents, names, drill progress and analysis on all your devices.</p>
   <ul>
-    <li><b>Sign-in</b> is handled by Auth0. It holds your email address and, if you use Google, the name and picture Google shares. We never see a password.</li>
+    <li><b>Sign-in</b> is handled by Auth0. You can sign in with Google, with a code sent to your email, or with an email and a password. It holds your email address, a protected form of your password if you chose one, and, if you use Google, the name and picture Google shares. We never see a password.</li>
     <li><b>Sync</b> stores, on our server, your Auth0 user id, your opponents, names, drill progress and the analysis your devices computed (game reviews, trap scans, AI plans).</li>
   </ul>
   <p>To remove all of it, see <a href="delete-account.html">how to delete your account</a>.</p></section>
 
 <section class="card"><h2>AI game plans</h2>
-  <p>When you ask for an AI plan, the app sends your chess.com username, the opponent's, and the statistics built from your games (openings, results, mistakes) to our server, which passes them to Claude, made by Anthropic, to write the plan. A plan is kept for 30 days so identical statistics aren't written twice. The app asks you to agree before the first plan is written, and remembers your answer on that device. Without AI prep, nothing here is sent.</p></section>
+  <p>When you ask for an AI plan, the app sends your chess.com username, the opponent's, and the statistics built from your games (openings, results, mistakes) to our server, which passes them to Claude, made by Anthropic, to write the plan. A plan is kept for 30 days so identical statistics aren't written twice. The app asks you to agree before the first plan is written, and remembers your answer on that device. To keep the daily limit on plans fair, the server counts plans per IP address; that counter is kept for 2 days. Without AI prep, nothing here is sent.</p></section>
 
 <section class="card"><h2>Usage stats</h2>
   <p>The app records which screens are opened and when, with a random id for the device, the country the request came from, and your account id when you are signed in. It never records your games, usernames, opponents or IP address. These are kept for 3 months. Turn them off with <b>Share usage stats</b> in Settings.</p></section>
