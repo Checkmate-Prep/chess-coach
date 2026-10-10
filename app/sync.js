@@ -5,7 +5,7 @@
 import { idb, ls } from './store.js';
 import { fromLocal, merge, toLocal } from './syncdoc.js';
 import { syncResults, expectPull, endPull } from './results.js';
-import { apiUrl } from './native.js';
+import { apiUrl, isNative, plugin, callbackUrl, isAuthCallbackUrl, clientIdFor } from './native.js';
 
 const SYNCED = ['profile', 'done'];
 /** What the UI shows. `at`: last successful sync. */
@@ -35,17 +35,21 @@ export async function startSync({ data, status, results = () => {} }) {
     hasApi = r.ok;
     if (cfg) ls.set('auth-config', cfg); else ls.del('auth-config');
   } catch { /* offline, or no server */ }
-  if (!cfg) { if (isCallback()) history.replaceState(null, '', location.pathname); return; }
+  // The iOS app signs in through its own Auth0 Native application (cfg.nativeClientId); without one, no accounts there.
+  const clientId = cfg && clientIdFor(cfg);
+  if (!clientId) { if (isCallback()) history.replaceState(null, '', location.pathname); return; }
   try {
     const { createAuth0Client } = await import('./vendor/auth0/auth0-spa-js.production.esm.js');
     // Refresh tokens in localStorage: Safari blocks the third-party cookies Auth0's other silent sign-in needs,
     // and an installed app must stay signed in across launches.
     client = await createAuth0Client({
-      domain: cfg.domain, clientId: cfg.clientId, cacheLocation: 'localstorage', useRefreshTokens: true,
-      authorizationParams: { audience: cfg.audience, redirect_uri: location.origin + location.pathname },
+      domain: cfg.domain, clientId, cacheLocation: 'localstorage', useRefreshTokens: true,
+      authorizationParams: { audience: cfg.audience, redirect_uri: isNative() ? callbackUrl(cfg.domain) : location.origin + location.pathname },
     });
   } catch (e) { console.error(e); return; }
   account.enabled = true;
+  authDomain = cfg.domain;
+  if (isNative()) listenForNativeCallback();
   if (isCallback()) {
     let hash = '';
     try { hash = (await client.handleRedirectCallback()).appState?.hash || ''; } catch (e) { account.error = `Sign-in didn't finish (${e.message}). Try again.`; }
@@ -129,7 +133,37 @@ export async function token() {
 }
 
 export function signIn() {
-  return client?.loginWithRedirect({ appState: { hash: location.hash } });
+  // Native: Auth0's page opens in the system browser, and comes back through nativeCallback below.
+  const openUrl = isNative() && plugin('Browser') ? (url) => plugin('Browser').open({ url }) : undefined;
+  return client?.loginWithRedirect({ appState: { hash: location.hash }, ...(openUrl && { openUrl }) });
+}
+
+let listening = false, loggingOut = false, authDomain = '';
+const afterLogout = () => { if (loggingOut) { loggingOut = false; location.replace(location.pathname); } };
+/** Native app: Auth0 sends the user back to the app's URL scheme; finish signing in from that URL. */
+function listenForNativeCallback() {
+  const app = plugin('App');
+  if (listening || !app?.addListener) return;
+  listening = true;
+  app.addListener('appUrlOpen', ({ url }) => { nativeCallback(url).catch(console.error).finally(afterLogout); });
+  // Signed out and the user closed the browser themselves (Done) instead of waiting for the redirect.
+  plugin('Browser')?.addListener?.('browserFinished', afterLogout);
+}
+
+/** Finish a native sign-in (or just close the system browser after a sign-out). Exported for tests. */
+export async function nativeCallback(url) {
+  try {
+    if (!client || !isAuthCallbackUrl(url)) return;
+    let hash = '';
+    try { hash = (await client.handleRedirectCallback(url)).appState?.hash || ''; } catch (e) { account.error = `Sign-in didn't finish (${e.message}). Try again.`; }
+    account.signedIn = await client.isAuthenticated().catch(() => false);
+    account.email = account.signedIn ? (await client.getUser())?.email || '' : '';
+    if (account.signedIn) { account.error = ''; if (hash) history.replaceState(null, '', location.pathname + hash); }
+    onStatus();
+    if (account.signedIn) await syncNow();
+  } finally {
+    try { await plugin('Browser')?.close(); } catch { /* already closed */ }
+  }
 }
 
 /**
@@ -142,7 +176,14 @@ export async function signOut({ send = true } = {}) {
   clearTimeout(timer);
   Object.assign(account, { signedIn: false, email: '', at: 0, error: '' });
   await idb.clear(); ls.clear();
-  if (client) await client.logout({ logoutParams: { returnTo: location.origin + location.pathname } });
+  if (client && isNative() && plugin('Browser')) {
+    // Log out of Auth0 in the system browser too, or its cookie would sign the next person straight back in.
+    // This page's own state is already cleared; it reloads to the welcome screen when the browser closes.
+    loggingOut = true;
+    try {
+      await client.logout({ logoutParams: { returnTo: callbackUrl(authDomain) }, openUrl: (url) => plugin('Browser').open({ url }) });
+    } catch (e) { console.error(e); loggingOut = false; location.replace(location.pathname); }
+  } else if (client) await client.logout({ logoutParams: { returnTo: location.origin + location.pathname } });
   else location.replace(location.pathname);
 }
 

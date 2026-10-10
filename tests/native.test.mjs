@@ -2,7 +2,7 @@
 import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { isNative, API_BASE, apiUrl, SITE } from '../app/native.js';
+import { isNative, API_BASE, apiUrl, SITE, callbackUrl, isAuthCallbackUrl, clientIdFor, plugin } from '../app/native.js';
 import { syncGames, useGameStore } from '../app/chesscom.js';
 import { installFakeIndexedDB, installFakeLocalStorage, installFakeFetch } from './helpers.mjs';
 
@@ -38,6 +38,37 @@ describe('API base', () => {
     });
     await syncGames('testplayer');
     assert.equal(calls[0], 'https://checkmateprep.com/api/games?player=testplayer');
+  });
+});
+
+describe('native sign-in helpers', () => {
+  const CB = 'com.checkmateprep.app://login.checkmateprep.com/capacitor/com.checkmateprep.app/callback';
+  test('the callback address is the app scheme on the Auth0 domain', () => {
+    assert.equal(callbackUrl('login.checkmateprep.com'), CB);
+  });
+  test('only the sign-in return (state plus code or error) counts as a callback', () => {
+    assert.equal(isAuthCallbackUrl(`${CB}?code=abc&state=xyz`), true);
+    assert.equal(isAuthCallbackUrl(`${CB}?error=access_denied&error_description=no&state=xyz`), true);
+    assert.equal(isAuthCallbackUrl(CB), false);                       // logout returns here with no parameters
+    assert.equal(isAuthCallbackUrl(`${CB}?code=abc`), false);         // no state
+    assert.equal(isAuthCallbackUrl('https://evil.example/?code=a&state=b'), false);
+    assert.equal(isAuthCallbackUrl('other.app://x?code=a&state=b'), false);
+    assert.equal(isAuthCallbackUrl(undefined), false);
+  });
+  test('the native app uses the Native application; no id there means no accounts', () => {
+    const cfg = { clientId: 'web', nativeClientId: 'native' };
+    assert.equal(clientIdFor(cfg), 'web');
+    assert.equal(clientIdFor({ clientId: 'web' }), 'web');
+    globalThis.Capacitor = {};
+    assert.equal(clientIdFor(cfg), 'native');
+    assert.equal(clientIdFor({ clientId: 'web' }), null);
+  });
+  test('plugins are found only inside the shell', () => {
+    const Browser = { open() {} };
+    assert.equal(plugin('Browser'), null);
+    globalThis.Capacitor = { Plugins: { Browser } };
+    assert.equal(plugin('Browser'), Browser);
+    assert.equal(plugin('App'), null);
   });
 });
 
