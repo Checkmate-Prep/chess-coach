@@ -25,6 +25,7 @@ See `README.md` for the user-facing description.
 | `tests/` | Node (`node:test`) tests for the app modules, Python `unittest` for the pipeline; synthetic fixtures |
 | `app/sync.js`, `app/syncdoc.js` | Optional account: Auth0 sign-in and when to sync; what syncs and how copies merge (also used by the Worker) |
 | `app/results.js`, `app/resultsdoc.js` | Analysis results (reviews, trap scans, AI plans) on the account: upload and pull; what's accepted and which copy wins (also used by the Worker) |
+| `app/native.js`, `capacitor.config.json`, `ios/` | The iOS shell (Capacitor, `webDir: "app"`): `native.js` says whether the app runs inside it and prefixes `api/...` with the site's address (`apiUrl`). Use `apiUrl` for every `/api` call. After `app/` changes: `npm run ios:sync`, then build in Xcode. `ios/App/App/public` is a generated copy (gitignored) |
 | `app/vendor/` | Vendored `chess.js` 1.4.0, Stockfish 19 lite single-threaded (GPL, see `COPYING.txt`) and the Auth0 SPA SDK 2.27.0 (MIT) |
 | `worker/`, `wrangler.toml` | The Worker: `/api/config`, `/api/sync` and `/api/results` (D1), `/api/games` (shared game store, R2), `/api/event` (usage stats, Analytics Engine), Auth0 token checks, `account.js` (deletes the Auth0 user with the account), `/api/health` and `/api/prep` (AI prep: `prep.js` runs Claude in a Workflow, `prompt.js` holds the instructions); environments `dev`, `test`, `production` |
 | `app/track.js`, `scripts/stats.mjs` | Usage stats: which screens are opened (never usernames or opponents); `npm run stats` reads them |

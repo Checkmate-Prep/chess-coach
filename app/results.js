@@ -4,6 +4,7 @@
 // localStorage: `results-dirty` = {player: {item: stamp}} waiting to upload; `results-at` = server time of the last pull.
 import { idb, ls } from './store.js';
 import { apply, idbKey, itemsOf } from './resultsdoc.js';
+import { apiUrl } from './native.js';
 
 const BATCH = 800_000;                   // characters per upload
 const BATCH_ITEMS = 200;
@@ -78,7 +79,7 @@ async function push(headers) {
   let batch = [], size = 0;
   const send = async () => {
     if (!batch.length) return;
-    const r = await fetch('api/results', { method: 'POST', headers: { ...headers, 'content-type': 'application/json' },
+    const r = await fetch(apiUrl('api/results'), { method: 'POST', headers: { ...headers, 'content-type': 'application/json' },
       body: JSON.stringify({ items: batch.map(({ player, item, data }) => ({ player, item, data })) }) });
     if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || `The server answered ${r.status}.`);
     sent.push(...batch); // saved, or refused as invalid (sending it again wouldn't help)
@@ -110,7 +111,7 @@ export async function syncResults(token, players) {
     if (!last) await markAll(players);
     let since = Math.max(0, last - OVERLAP), at;
     for (;;) {
-      const r = await fetch(`api/results?since=${since}`, { headers });
+      const r = await fetch(apiUrl(`api/results?since=${since}`),{ headers });
       const out = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(out.error || `The server answered ${r.status}.`);
       changed = new Set([...changed, ...(await merge(out.items || []))]);

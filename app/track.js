@@ -3,6 +3,7 @@
 // Never sent: usernames, opponents, games, drill ids. Only works with /api (not on GitHub Pages or a static
 // server), and the user can turn it off in Settings.
 import { ls } from './store.js';
+import { apiUrl } from './native.js';
 
 /** Every screen name the Worker accepts. A route with an argument (an opponent, a drill) keeps only its kind. */
 export const SCREENS = ['welcome', 'start', 'signin', 'me', 'prep', 'prep-opp', 'add', 'explore', 'drill', 'drill-item', 'setup'];
@@ -55,7 +56,7 @@ async function send(revisit) {
   try {
     const token = await server.token();
     if (token) headers.authorization = `Bearer ${token}`;
-    await fetch('api/event', { method: 'POST', headers, keepalive: true, body: JSON.stringify({ screen: last, device }) });
+    await fetch(apiUrl('api/event'), { method: 'POST', headers, keepalive: true, body: JSON.stringify({ screen: last, device }) });
   } catch { /* offline or blocked: stats are best effort */ }
 }
 

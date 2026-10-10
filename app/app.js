@@ -8,6 +8,7 @@ import { reviewGames, reviewCache, reviewedCount, summarize, findTraps, cachedTr
 import { gamePlan } from './plan.js';
 import { whileAwake } from './engine.js';
 import { markDirty, resultsReady } from './results.js';
+import { apiUrl, isNative } from './native.js';
 import { account, startSync, returningFromSignIn, signIn, signOut, syncNow, deleteSynced, forgetDevice, hasApi, token } from './sync.js';
 import { hasAiConsent, giveAiConsent } from './aiconsent.js';
 import { track, startTracking, screenOf, sharing, setSharing } from './track.js';
@@ -642,7 +643,7 @@ async function writeAi(user) {
   delete aiErrors[user];
   aiStarting[user] = true;
   try {
-    const r = await fetch('api/prep', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(await aiPayload(user)) });
+    const r = await fetch(apiUrl('api/prep'), { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(await aiPayload(user)) });
     const out = await r.json().catch(() => ({}));
     if (out.plan) await saveAi(user, out.plan); // written before for the same games: no wait, no cost
     else if (r.ok && out.job) setAiJob(user, out.job);
@@ -667,7 +668,7 @@ function waitAi(user) {
       if (!j) return;
       if (Date.now() - j.at > AI_GIVE_UP) { aiErrors[user] = 'The plan took too long. Try again.'; break; }
       let out;
-      try { out = await (await fetch(`api/prep?job=${encodeURIComponent(j.job)}`)).json(); } catch { out = { pending: true }; } // offline for a moment: keep waiting
+      try { out = await (await fetch(apiUrl(`api/prep?job=${encodeURIComponent(j.job)}`))).json(); } catch { out = { pending: true }; } // offline for a moment: keep waiting
       if (out.pending) {
         if (out.progress) aiProgress[user] = out.progress;
         paintAi(user); refreshSteps(user);
@@ -1181,7 +1182,7 @@ window.addEventListener('hashchange', route);
 
 (async () => {
   // only the Worker (wrangler.toml) answers api/health; on GitHub Pages or live-server this 404s and AI stays off
-  await fetch('api/health').then((r) => r.json()).then((j) => { AI = !!j.ai; }).catch(() => {});
+  await fetch(apiUrl('api/health')).then((r) => r.json()).then((j) => { AI = !!j.ai; }).catch(() => {});
   // Back from Auth0's sign-in page: finish signing in and sync before the first screen, so it shows the synced data.
   const accounts = { data: syncedDataArrived, status: renderAccount, results: resultsArrived };
   // once /api answered (or didn't): games through the shared game store, usage stats
@@ -1194,6 +1195,7 @@ window.addEventListener('hashchange', route);
   // Offline mode only on the real site: on localhost it would serve stale files during development,
   // so remove any worker and cache an earlier local run installed.
   const local = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+  if (isNative()) return; // the files are on the device already, and WKWebView has no service workers on capacitor://
   if (!('serviceWorker' in navigator)) return;
   if (!local) { navigator.serviceWorker.register('sw.js').catch(() => {}); return; }
   navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => r.unregister())).catch(() => {});
