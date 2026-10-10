@@ -5,7 +5,7 @@ A plan, part done. It says what each store needs, what has to change in the app 
 ## Status (10 October 2026)
 
 **Done**
-- **Google Play Console account** created, as an **organisation** account for Artware Solutions LLC. No 12-tester, 14-day closed test is needed: internal testing, then production.
+- **Google Play Console account** created, as an **organisation** account for Artware Solutions LLC, and its **identity verified** (10 October). No 12-tester, 14-day closed test is needed: internal testing, then production.
 - **Privacy page** at `checkmateprep.com/privacy` and **account deletion page** at `checkmateprep.com/delete-account` (#44). They name Artware Solutions LLC and its address as the operator, with `privacy@checkmateprep.com` as the contact.
 - **Delete account deletes the Auth0 login too**, after the synced data and results (#44, `worker/account.js`). Signed out, it clears the device (#33).
 - **AI plans, the shared game store and synced results** are in the privacy page, so the store forms can be filled from it.
@@ -16,9 +16,9 @@ A plan, part done. It says what each store needs, what has to change in the app 
 
 **Waiting**
 - **Apple Developer Program:** enrolment as Artware Solutions LLC was refused because D&B listed the D-U-N-S number as out of business. A D&B update case was opened on 1 October (expected answer 7 October). Once D&B closes it, Apple can take up to about 14 days to see the change. Check with Apple's D-U-N-S lookup before filling in the form again, and use the legal name exactly as D&B and New York State have it ("LLC", not "LCC").
-- **Google Play account verification** (identity, and access to a physical Android phone), if the Console still shows it as pending. There is no Android device yet, so the app has not been opened on one: the missing URL bar (Digital Asset Links) is unchecked.
 
 **To check**
+- Whether the Play Console still asks to confirm access to a physical Android phone. There is no Android device yet, and the app has not been opened on one.
 - That the "Deploy actions" Auth0 app has `delete:users`, and that a real Delete account in production removes the user from Auth0. The deploy log says when an environment can't delete Auth0 users.
 - On a phone or emulator: the app opens without a URL bar, with the right icon and the "Checkmate" label.
 
