@@ -26,6 +26,8 @@ A plan, part done. It says what each store needs, what has to change in the app 
   - [#55](https://github.com/Checkmate-Prep/chess-coach/issues/55) sign-in from the iOS app, with Sign in with Apple
   - [#56](https://github.com/Checkmate-Prep/chess-coach/issues/56) App Store submission
 
+To try the Android app on a Mac, see [android-testing.md](android-testing.md).
+
 Issues carry the labels "Android App" and "iOS App". Tick things off there; update this page only when a step in the plan below changes.
 
 ## The approach
