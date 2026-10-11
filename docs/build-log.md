@@ -741,3 +741,8 @@ On native iOS, Claude recommended against a Swift rewrite: the logic would exist
 > document how to test via Android Studio and the emulator in the repo
 
 **What Claude did:** after the user asked how to reach the app through internal testing on macOS, wrote `docs/android-testing.md`: set up a Play Store emulator in Android Studio, opt in to the internal test and install, what to check (no address bar, icon, sign-in, offline, phone size), how to install a build that isn't in Play yet with `bundletool`, and a table of what each symptom usually means. It is linked from the status section of `docs/app-stores.md`. Nothing in the app or the Worker changed. Not run: the emulator steps themselves (no emulator in this session).
+
+### 86. Sign-in by Google or email code only
+> stop offering passwords: force sign-ups through a verified email
+
+**What Claude did:** compared four ways to make sure a password sign-up owns its address (deny until verified, gate features on the verified claim, rely on Auth0's own setting, or drop passwords) and the user chose to drop them: with the email-code connection the code proves the address at every login. The Auth0 side is a dashboard change (the password database is switched off on both applications), so the repo only had its words changed: the README, the privacy page (accounts created with a password earlier keep a protected copy of it at Auth0 until deleted) and the store notes (the Play Data safety answer and Sign in with Apple note). Nothing in the Worker or the app changed, since sign-in is Auth0's page. Known catch: someone whose password account was never verified is not linked to a new code login, so they would start from an empty account; the Auth0 user list is the place to check for them.
