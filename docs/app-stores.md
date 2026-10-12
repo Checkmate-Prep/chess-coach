@@ -11,7 +11,7 @@ A plan, part done. It says what each store needs, what has to change in the app 
 - **AI plans, the shared game store and synced results** are in the privacy page, so the store forms can be filled from it.
 - **Manifest** has an `id` and a separate maskable icon (#45), and the short name "Checkmate" fits Android's 12 characters (#46).
 - **Android app built** with Bubblewrap (`com.checkmateprep.app`, minSdk 24, notifications off) uploaded to internal testing and then **released to production**: published on Google Play on 10 October, about 70 minutes after it was sent for review. The project and upload keystore live in `~/checkmate-prep-android`, outside the repo, with the keystore and its passwords in a password manager.
-- **Play Console forms and listing** are filled in from the privacy page and [store-listing.md](store-listing.md): app access, ads, advertising ID, content rating, target audience (13+), Data safety (passwords possible, usernames and statistics shared with Anthropic for AI plans), account creation methods and the data deletion URL.
+- **Play Console forms and listing** are filled in from the privacy page and [store-listing.md](store-listing.md): app access, ads, advertising ID, content rating, target audience (13+), Data safety (passwords: only for accounts created before they were turned off; re-check the form, usernames and statistics shared with Anthropic for AI plans), account creation methods and the data deletion URL.
 - **`assetlinks.json`** is served by the Worker with the Play signing key and the upload key (#47).
 - **Store text and graphics:** the listing text is in [store-listing.md](store-listing.md). The 512×512 icon and the 1024×500 feature graphic were rendered from `icon.svg` (kept with the Android project in `store/`).
 
@@ -69,7 +69,7 @@ What native would really add is a faster engine: multi-threaded Stockfish with t
 
 1. **Account deletion.** *Done* (#33, #44). Delete account signed in removes the synced doc, all analysis results, then the Auth0 user (`worker/account.js`, needs `delete:users` on the "Deploy actions" M2M app). Signed out, it clears the device. `checkmateprep.com/delete-account` is the public page the Play listing asks for.
 2. **Consent before AI plans.** *Done* (`app/aiconsent.js`): the note and an "Agree and …" button show on the opponent's game plan until the user agrees once per device, and nothing is sent before. Apple's guideline 5.1.2(i) asks apps to say clearly when personal data goes to a third-party AI, and to ask first. Before the first "Write the plan", show a one-time note: what is sent, that it goes to Anthropic, a link to the privacy page, and a button to agree. Remember the answer on the device.
-3. **Sign in with Apple.** *To do, iOS only.* Required because Auth0 offers Google sign-in (guideline 4.8). Add the Apple connection in Auth0 (it works on the web too), or hide Google in the iOS app and keep email codes and passwords only.
+3. **Sign in with Apple.** *To do, iOS only.* Required because Auth0 offers Google sign-in (guideline 4.8). Add the Apple connection in Auth0 (it works on the web too), or hide Google in the iOS app and keep email codes only.
 4. **Manifest and icons.** *Done.* `manifest.webmanifest` has `"id": "/"`, and `icon-512-maskable.png` (the knight at 80% inside the safe zone) is the "maskable" icon, apart from `icon-512.png` which is "any". The `id` is the app's identity for Chrome, so don't change it.
 5. **Store assets:**
    - A 1024×1024 icon with no transparency for Apple.
