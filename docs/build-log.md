@@ -782,3 +782,13 @@ On native iOS, Claude recommended against a Swift rewrite: the logic would exist
 > write docs/ios-testing.md
 
 **What Claude did:** wrote `docs/ios-testing.md` after the first run of the shell on a phone: preparing the project (`npm run ios:sync`), running in the simulator and on a real iPhone (Developer Mode, a personal team, a temporary bundle id), a table of what to check (API base, game-store fallback, no service worker, engine speed, backgrounding, tab icons, safe areas), the Auth0 Native setup for sign-in, and the usual causes of each symptom. It is linked from the status section of `docs/app-stores.md`. The simulator steps and the first real-device run (build, trap scan about 2 minutes, backgrounding resumed) were done in this session; the sign-in steps were not yet run on a device.
+
+### 97. Sign-in code emails through Resend
+> go with resend, write the DNS records and template
+
+**What Claude did:** compared Resend, Amazon SES and Postmark on their pricing pages (Resend's free plan covers 3,000 emails a month at 100 a day; SES is $0.10 per 1,000; Postmark starts at $15) and wrote `docs/email-setup.md`: the Resend domain, the four DNS records in Cloudflare (MX and SPF on the `send` subdomain, the DKIM key at `resend._domainkey`, and a `_dmarc` record starting at `p=none`), the Auth0 email provider steps, and the passwordless code email's subject and message. The records' values are per account and come from Resend's dashboard, so the page has their shape and not their values. Not done: the setup itself (it needs the Resend account, Cloudflare and Auth0), and the privacy page and `docs/services.md` entries, which wait until the provider is live. Refs #86.
+
+### 98. The privacy page and the services list name Resend
+> worked. implement (privacy page and docs/services.md entries for the email provider)
+
+**What Claude did:** after the first Resend sign-in code reached the inbox, replaced the privacy page's "an email service it works with" with a line naming Resend, which sees the address and the code message, and gave Auth0 its own line. `docs/services.md` now has a Resend row and section (what it is for, that the key is in Auth0 and the password manager and not in GitHub, the DNS records it depends on, how to rotate the key, and the free plan's 100-a-day cap), and the "to confirm" list asks for Resend's log retention, which Claude didn't state because the page doesn't say. Closes #86 once the runbook and this are merged.

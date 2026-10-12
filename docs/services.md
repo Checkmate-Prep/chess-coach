@@ -12,7 +12,7 @@ Secrets live in **GitHub → Settings → Environments** (`dev`, `test`, `produc
 | Anthropic API | AI game plans (Claude) | `ANTHROPIC_API_KEY` | GitHub Environments, uploaded to the Worker |
 | Auth0 | Sign-in, one tenant shared by all environments | `AUTH0_MGMT_CLIENT_SECRET` (Management API); `AUTH0_MGMT_CLIENT_ID` is a variable | GitHub Environments, uploaded to the Worker |
 | ntfy.sh | Phone notification on a new sign-up | `NTFY_TOPIC` (the topic name is the secret) | GitHub Environment `production`, then stored in the Auth0 Action |
-| Email provider for sign-in codes | Sends the emailed one-time codes | To confirm | To confirm |
+| Resend | Sends the emailed one-time sign-in codes, as Auth0's email provider, from `no-reply@checkmateprep.com` | An API key with sending access limited to `checkmateprep.com` | Auth0 dashboard (Branding → Email Provider) and the password manager. Not in GitHub. |
 | GitHub (Pages, Actions) | Hosts the repo and CI, serves `app/` at the github.io address, runs the deploys | None of its own (uses the environments above) | n/a |
 | Google (sign-in, Fonts, Play Console) | Google sign-in through Auth0, fonts, the Android listing | Google OAuth client id and secret (Auth0 connection); upload keystore for Android | Auth0 dashboard; password manager |
 | Apple Developer Program | The planned iOS app | App Store signing and API keys, when they exist | To confirm (not set up yet) |
@@ -66,12 +66,15 @@ The Auth0 Action posts "New Checkmate Prep account" to a topic on the public ntf
 - **Where:** GitHub Environment `production`. The deploy script copies it into the Auth0 Action's secrets.
 - **Rotate:** make a new topic (`openssl rand -hex 16`), subscribe to it in the ntfy app, update the `NTFY_TOPIC` secret, then redeploy the Action by hand with `--force` (`npm run auth0:deploy -- --force`, with the three Auth0/ntfy variables set; see the README): the script skips an Action whose code hasn't changed, so a plain deploy would not pick up the new topic. Unsubscribe from the old topic.
 
-## Email provider for sign-in codes
+## Resend (email provider for sign-in codes)
 
-Auth0's passwordless login emails a one-time code. The README says Auth0's built-in sender is for testing only and that production should use a dedicated provider (Resend or Amazon SES), sending from an address on checkmateprep.com, with the provider's SPF and DKIM records in Cloudflare DNS.
+Auth0's passwordless login emails a one-time code. Auth0's built-in sender signs with Auth0's own domain, so DMARC fails and the codes land in spam (#86). Resend sends them as `checkmateprep.com` instead. Setup, DNS records and the template are in [email-setup.md](email-setup.md).
 
-- **Which provider is in use, and where its API key lives: to confirm.** The repo holds no code or workflow for it, so the key is most likely set in the Auth0 dashboard (**Branding → Email Provider**) rather than in GitHub.
-- **Rotate (once confirmed):** create a new key at the provider, paste it in Auth0's Email Provider settings, send a test email from there, then revoke the old key.
+- **What it holds:** the recipient's email address and the code message, for a short time in its sending log. It is named on the privacy page.
+- **Where the key lives:** Auth0 (**Branding → Email Provider**) and the password manager. Nothing in GitHub or the Worker uses it.
+- **DNS:** records in Cloudflare for `checkmateprep.com` (MX and SPF on `send`, DKIM at `resend._domainkey`, DMARC at `_dmarc`). Deleting them breaks delivery and DMARC.
+- **Rotate:** Resend → API Keys → create a new key with sending access limited to the domain, paste it in Auth0 → Branding → Email Provider, press **Send test email**, then delete the old key in Resend.
+- **Plan:** the free plan allows 3,000 emails a month and 100 a day. A day with more than 100 codes drops the rest, so move to a paid plan before a launch.
 - Mail to `privacy@checkmateprep.com` and the other role addresses is separate: Cloudflare Email Routing receives it (see above).
 
 ## GitHub
@@ -104,7 +107,7 @@ Apple Developer Program enrolment for the iOS app is in review (see `docs/app-st
 
 ## To confirm
 
-- The email provider for sign-in codes, and where its key lives.
+- How long Resend keeps its sending log (it holds the code message), to state on the privacy page.
 - The full list of role addresses on Cloudflare Email Routing and the mailbox they go to.
 - The Apple items above, once the enrolment is accepted.
 - Who else holds access to each service (issue #63).

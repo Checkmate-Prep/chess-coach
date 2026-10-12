@@ -42,7 +42,8 @@
   <ul>
     <li><b>Cloudflare</b> runs the website and stores the data above. Like any host, it sees the IP address of each request. It also receives mail sent to the address below.</li>
     <li><b>GitHub</b> hosts a second, static copy of the app (checkmate-prep.github.io) with no accounts. Like any host, it sees the IP address of each request.</li>
-    <li><b>Auth0</b> (Okta) handles sign-in, and an email service it works with sends the sign-in codes, so it sees your email address and the code.</li>
+    <li><b>Auth0</b> (Okta) handles sign-in, so it sees your email address.</li>
+    <li><b>Resend</b> sends the sign-in codes by email, so it sees your email address and the code in the message.</li>
     <li><b>Google</b> handles "Sign in with Google", if you choose it. Google Fonts and Google Play are covered below.</li>
     <li><b>ntfy.sh</b> delivers a one-time notification to the operator's phone when an account is created. It contains your email address and how you signed in.</li>
     <li><b>Anthropic</b> writes AI plans, as above.</li>
