@@ -9,7 +9,7 @@ Text for the Play Console (and, later, App Store Connect). Written for the Play 
 | App name | Checkmate Prep |
 | Category | Education (or Sports) |
 | Tags | Chess, Board, Strategy games, Training |
-| Email | `privacy@checkmateprep.com` |
+| Email | `contact@checkmateprep.com` |
 | Website | `https://checkmateprep.com` |
 | Privacy policy | `https://checkmateprep.com/privacy` |
 | Data deletion | `https://checkmateprep.com/delete-account` |

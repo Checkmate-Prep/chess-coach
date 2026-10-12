@@ -32,7 +32,7 @@ Hosts everything server-side. One Worker per environment (`chess-coach-dev`, `ch
 | Analytics Engine | Usage stats, kept 3 months (`worker/events.js`); must be enabled once per account |
 | Rate limiting | `BURST`, `AI_BURST`, `GAMES_BURST` bindings |
 | DNS and Registrar | checkmateprep.com, including the `login` CNAME for Auth0 (proxy off) |
-| Email Routing | Forwards `privacy@checkmateprep.com` and other role addresses to a mailbox; to confirm the full list of addresses |
+| Email Routing | Forwards the role addresses to the project mailbox (see below) |
 
 - **Secrets:** `CLOUDFLARE_API_TOKEN` (secret) and `CLOUDFLARE_ACCOUNT_ID` (variable) in each GitHub Environment. The token comes from the "Edit Cloudflare Workers" template with D1 and R2 edit access, and the zone for checkmateprep.com.
 - **Rotate:** create a new API token in the Cloudflare dashboard (**My Profile → API Tokens**), put it in the `CLOUDFLARE_API_TOKEN` secret of each environment, run a deploy to check, then delete the old token. A separate read-only token (Account Analytics: Read) is used by `npm run stats`; it is passed on the command line and not stored in GitHub.
@@ -75,7 +75,18 @@ Auth0's passwordless login emails a one-time code. Auth0's built-in sender signs
 - **DNS:** records in Cloudflare for `checkmateprep.com` (MX and SPF on `send`, DKIM at `resend._domainkey`, DMARC at `_dmarc`). Deleting them breaks delivery and DMARC.
 - **Rotate:** Resend → API Keys → create a new key with sending access limited to the domain, paste it in Auth0 → Branding → Email Provider, press **Send test email**, then delete the old key in Resend.
 - **Plan:** the free plan allows 3,000 emails a month and 100 a day. A day with more than 100 codes drops the rest, so move to a paid plan before a launch.
-- Mail to `privacy@checkmateprep.com` and the other role addresses is separate: Cloudflare Email Routing receives it (see above).
+- Mail to the role addresses is separate: Cloudflare Email Routing receives it (see [Role addresses](#role-addresses)).
+
+## Role addresses
+
+Cloudflare Email Routing forwards these to the project mailbox (which one is in the private accounts doc). Tested with a message from another account (#61). Use them everywhere a contact email is asked for, so a change is made once.
+
+| Address | Use |
+| --- | --- |
+| `privacy@checkmateprep.com` | Data and deletion requests. On the privacy and delete-account pages. Also the DMARC `rua` address |
+| `contact@checkmateprep.com` | Public contact: Google Play and App Store listings, GitHub billing contact |
+| `support@checkmateprep.com` | Auth0 tenant support email |
+| `no-reply@checkmateprep.com` | Sender of sign-in code emails (Resend, via Auth0). Nobody reads replies |
 
 ## GitHub
 
@@ -108,6 +119,5 @@ Apple Developer Program enrolment for the iOS app is in review (see `docs/app-st
 ## To confirm
 
 - How long Resend keeps its sending log (it holds the code message), to state on the privacy page.
-- The full list of role addresses on Cloudflare Email Routing and the mailbox they go to.
 - The Apple items above, once the enrolment is accepted.
 - Who else holds access to each service (issue #63).

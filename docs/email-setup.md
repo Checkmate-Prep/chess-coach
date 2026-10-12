@@ -23,7 +23,7 @@ Cloudflare → `checkmateprep.com` → **DNS → Records → Add record**. Enter
 Notes:
 - The MX and SPF records are on the `send` **subdomain**, so they don't clash with Cloudflare Email Routing's MX and SPF on the root domain (#61).
 - Don't add a second SPF record on the root; there can only be one there.
-- DMARC: start with `p=none` (report only). Once the reports show nothing but Resend and Email Routing, raise it to `p=quarantine`, later `p=reject`. Use a role address for `rua` (not a personal one).
+- DMARC: start with `p=none` (report only). Once the reports show nothing but Resend and Email Routing, raise it to `p=quarantine`, later `p=reject`. Use `privacy@checkmateprep.com` for `rua` (a role address, not a personal one).
 - Back in Resend, press **Verify DNS Records**. It is usually minutes, up to 72 hours.
 
 ## 3. Resend settings

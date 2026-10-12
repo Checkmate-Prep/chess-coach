@@ -63,7 +63,7 @@ What native would really add is a faster engine: multi-threaded Stockfish with t
 2. **Google Play Console** ($25 once). *Done*, as an organisation account for Artware Solutions LLC, so the closed test that personal accounts need (12 testers for 14 days) doesn't apply.
 3. **EU trader status** (EU Digital Services Act) on both stores. A trader's address and phone number are shown publicly. Artware Solutions LLC's address is already public on the privacy page.
 4. **Privacy policy page.** *Done:* `app/privacy.html`, served at `checkmateprep.com/privacy` (#44). It covers device storage, the shared game store, the account (Auth0, D1), AI plans (both usernames and statistics go to Anthropic), usage stats, and the processors (Cloudflare, Auth0, Anthropic, Google Fonts).
-5. **Support URL and contact email.** Use `checkmateprep.com` and `privacy@checkmateprep.com`, or add a `support@` address in Cloudflare Email Routing.
+5. **Support URL and contact email.** Use `checkmateprep.com` and `contact@checkmateprep.com` (a role address on Cloudflare Email Routing, see `docs/services.md`). `privacy@checkmateprep.com` is for data requests.
 
 ## Phase 1: Web app and Worker changes both stores need
 
