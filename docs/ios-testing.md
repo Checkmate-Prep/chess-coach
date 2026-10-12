@@ -53,7 +53,7 @@ A build signed with a personal team stops working after 7 days; run it again fro
 
 Signing in from the app needs three things outside the app:
 
-1. **An Auth0 Native application** with Allowed Callback URLs and Allowed Logout URLs both set to `com.checkmateprep.app://login.checkmateprep.com/capacitor/com.checkmateprep.app/callback`, Authorization Code and Refresh Token grants, and the Checkmate Prep API authorized.
+1. **An Auth0 Native application** with Allowed Callback URLs and Allowed Logout URLs both set to `com.checkmateprep.app://login.checkmateprep.com/capacitor/com.checkmateprep.app/callback`, **`capacitor://localhost` in both Allowed Origins (CORS) and Allowed Web Origins** (the app exchanges the sign-in code from its web view, and Auth0 refuses it otherwise: `Failed Cross Origin Authentication`, "Load failed" in the app), Authorization Code and Refresh Token grants, and the Checkmate Prep API authorized for user access.
 2. **Its connections:** email code on, Google **off** (App Store guideline 4.8 asks for Sign in with Apple wherever Google is offered).
 3. **The Worker returning its client id** as `auth.nativeClientId` from `/api/config`. Production does (`AUTH0_NATIVE_CLIENT_ID` in `wrangler.toml`); check with `curl https://checkmateprep.com/api/config`. Without it the app hides accounts and works signed out.
 
@@ -70,3 +70,6 @@ Then check: sign in opens the system browser and returns to the app; opponents, 
 | API calls fail with CORS errors | The Worker must allow `capacitor://localhost` (`worker/cors.js`); check production was deployed since that change. |
 | Sign-in button missing | `/api/config` isn't returning `auth.nativeClientId` (check production was deployed), or the app can't reach it. |
 | Sign-in returns to a blank page | The callback URL isn't in the Native application's Allowed Callback URLs. |
+| "Sign-in didn't finish (Load failed)" | `capacitor://localhost` is missing from Allowed Origins (CORS). Auth0's log shows `fco`, "Origin capacitor://localhost is not allowed". |
+| Auth0 shows "Authorize App" | Auth0's consent screen for a custom-scheme app. Tap Accept; enabling "Allow Skipping User Consent" on the API may hide it. |
+| The sheet stays open after a good sign-in | Fixed once the sheet is closed on the callback (see the build log); tap X in older builds. |
