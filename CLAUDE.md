@@ -30,6 +30,7 @@ See `README.md` for the user-facing description.
 | `worker/`, `wrangler.toml` | The Worker: `/api/config`, `/api/sync` and `/api/results` (D1), `/api/games` (shared game store, R2), `/api/event` (usage stats, Analytics Engine), Auth0 token checks, `account.js` (deletes the Auth0 user with the account), `/api/health` and `/api/prep` (AI prep: `prep.js` runs Claude in a Workflow, `prompt.js` holds the instructions); environments `dev`, `test`, `production` |
 | `app/track.js`, `scripts/stats.mjs` | Usage stats: which screens are opened (never usernames or opponents); `npm run stats` reads them |
 | `app/privacy.html`, `app/delete-account.html` | Public pages for the stores and users: what's stored (keep in step with the code: new data, new processors) and how to delete an account. Served at `/privacy` and `/delete-account` |
+| `scripts/store-shots/` | Store screenshots (1080×1920) of a made-up opponent: `games.mjs` plays synthetic games with the native Stockfish, `shoot.mjs` seeds them into the app on `npm run dev` in headless Chrome and captures the screens. Output goes to `data/` (gitignored) |
 | `ops/auth0/` | Auth0 Action that notifies new sign-ups (ntfy.sh), and the script that deploys it (runs in `deploy.yml`) |
 
 Gitignored and rebuilt locally: `data/` (games, analysis, profiles), `bin/` (native Stockfish, auto-downloaded), `report.html`, `node_modules/`, `.wrangler/`, `.dev.vars`.
