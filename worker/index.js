@@ -9,15 +9,14 @@ import { games } from './games.js';
 import { results } from './results.js';
 import { assetLinks } from './assetlinks.js';
 import { withCors } from './cors.js';
+import { authConfig } from './config.js';
 
 export { PrepWorkflow } from './prep.js';
 
 async function route(request, env, url) {
   // What this server offers. The app hides accounts when this is missing (GitHub Pages, a static server).
   if (url.pathname === '/api/config') {
-    const auth = env.AUTH0_DOMAIN && env.AUTH0_CLIENT_ID && env.AUTH0_AUDIENCE
-      ? { domain: env.AUTH0_DOMAIN, clientId: env.AUTH0_CLIENT_ID, audience: env.AUTH0_AUDIENCE } : null;
-    return json({ auth });
+    return json({ auth: authConfig(env) });
   }
   if (url.pathname === '/api/health') return json({ ai: !!env.ANTHROPIC_API_KEY });
   if (url.pathname === '/api/prep') return prep(request, env);
