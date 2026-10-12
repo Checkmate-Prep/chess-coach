@@ -152,6 +152,15 @@ function listenForNativeCallback() {
 
 /** Finish a native sign-in (or just close the system browser after a sign-out). Exported for tests. */
 export async function nativeCallback(url) {
+  // Once Auth0 has redirected, the sheet has nothing left to show: close it now, not after the token exchange
+  // and the first sync (which can take seconds, with the finished sign-in page still on screen).
+  let closed = false;
+  const closeSheet = async () => {
+    if (closed) return;
+    closed = true;
+    try { await plugin('Browser')?.close(); } catch { /* already closed */ }
+  };
+  if (isAuthCallbackUrl(url)) closeSheet();
   try {
     if (!client || !isAuthCallbackUrl(url)) return;
     let hash = '';
@@ -162,7 +171,7 @@ export async function nativeCallback(url) {
     onStatus();
     if (account.signedIn) await syncNow();
   } finally {
-    try { await plugin('Browser')?.close(); } catch { /* already closed */ }
+    await closeSheet();
   }
 }
 

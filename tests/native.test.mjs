@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { isNative, API_BASE, apiUrl, SITE, callbackUrl, isAuthCallbackUrl, clientIdFor, plugin } from '../app/native.js';
 import { syncGames, useGameStore } from '../app/chesscom.js';
+import { nativeCallback } from '../app/sync.js';
 import { installFakeIndexedDB, installFakeLocalStorage, installFakeFetch } from './helpers.mjs';
 
 const db = installFakeIndexedDB();
@@ -78,5 +79,37 @@ describe('no build step', () => {
       const src = readFileSync(new URL(`../app/${f}`, import.meta.url), 'utf8');
       assert.doesNotMatch(src, /fetch\(\s*['"`]api\//, `${f} fetches a bare api/ path`);
     }
+  });
+});
+
+describe('closing the sign-in sheet', () => {
+  const browser = () => {
+    const calls = [];
+    globalThis.Capacitor = { Plugins: { Browser: { close: async () => { calls.push('close'); } } } };
+    return calls;
+  };
+  const cb = `${callbackUrl('login.example.test')}?code=abc&state=xyz`;
+
+  test('closes once when Auth0 sends the user back', async () => {
+    const calls = browser();
+    await nativeCallback(cb);
+    assert.deepEqual(calls, ['close']);
+  });
+  test('closes once for the sign-out return, which carries no code', async () => {
+    const calls = browser();
+    await nativeCallback(callbackUrl('login.example.test'));
+    assert.deepEqual(calls, ['close']);
+  });
+  test('a sheet that is already closed is not an error', async () => {
+    globalThis.Capacitor = { Plugins: { Browser: { close: async () => { throw new Error('nothing to close'); } } } };
+    await nativeCallback(cb);
+  });
+  test('the sheet is closed before the token exchange starts, not after the sync', async () => {
+    const order = [];
+    globalThis.Capacitor = { Plugins: { Browser: { close: async () => { order.push('close'); } } } };
+    const p = nativeCallback(cb);
+    order.push('after call');   // nativeCallback is async: its synchronous part has run by now
+    await p;
+    assert.deepEqual(order, ['close', 'after call']);
   });
 });
