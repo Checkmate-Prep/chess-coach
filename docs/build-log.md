@@ -797,3 +797,8 @@ On native iOS, Claude recommended against a Swift rewrite: the logic would exist
 > I've setup and tested the 3 emails
 
 **What Claude did:** after the three Email Routing addresses (`privacy@`, `contact@`, `support@`) were created and tested from another account, recorded them in a Role addresses section of `docs/services.md` with what each is for, and pointed the store listing fields, the app-stores plan, the DMARC `rua` note and the README at them. `contact@` is now the public contact for the store listings; `privacy@` stays on the privacy and delete-account pages. `support@` is the Auth0 tenant support email. `no-reply@` is only the sender for sign-in codes. The GitHub billing contact and the Play Console listing contact are `contact@` too, both changed by hand in those dashboards. Closes #61.
+
+### 100. The public trader address for the store listings
+> 150 Ludlow is business address
+
+**What Claude did:** read issue #64 and the private ownership doc, which says to use the LLC's business address because the EU trader (DSA) address is shown publicly on the stores. The privacy page already names 150 Ludlow Street, 6F, and it was confirmed to be a business address, so no page text changed. Recorded the decision in `docs/app-stores.md` (Phase 0) and as trader rows in `docs/store-listing.md`. The public phone number is still undecided, so #64 stays open for it, and for entering the details in Play Console and (later) App Store Connect.

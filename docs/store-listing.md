@@ -10,6 +10,8 @@ Text for the Play Console (and, later, App Store Connect). Written for the Play 
 | Category | Education (or Sports) |
 | Tags | Chess, Board, Strategy games, Training |
 | Email | `contact@checkmateprep.com` |
+| Trader address (EU DSA, shown publicly) | Artware Solutions LLC, 150 Ludlow Street, 6F, New York, NY 10002, USA (business address, as on the privacy page) |
+| Trader phone (shown publicly) | To be chosen: a business line, not a personal mobile (#64) |
 | Website | `https://checkmateprep.com` |
 | Privacy policy | `https://checkmateprep.com/privacy` |
 | Data deletion | `https://checkmateprep.com/delete-account` |
