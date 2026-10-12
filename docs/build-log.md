@@ -751,3 +751,8 @@ On native iOS, Claude recommended against a Swift rewrite: the logic would exist
 > fix the tab icons
 
 **What Claude did:** in the iOS simulator three of the five tab icons (You, Prep, Drill) showed as "?" boxes: they were text characters (♔ ♞ ◎, and ⌥ for Explore) and the web view's fonts had no glyph for them. Settings was already an inline SVG and rendered fine. Claude drew the other four the same way (same 24×24 stroke style and `currentColor`, so the active tab and dark mode colour them as before): a person for You, a clipboard for Prep, a compass for Explore and a target for Drill. Only `app/index.html` changed, plus the cache name. Checked at phone size in the preview, in dark mode; not yet seen on a real iPhone. The captured-piece figurines in `app.js` (♔♕♖♗♘) are text too and weren't touched.
+
+### 88. The app gets an iOS shell (Capacitor)
+> start on #53 and #55 in two stacked branches, code as far as possible without Xcode, list what can't be tested
+
+**What Claude did:** added Capacitor with `webDir: "app"` and generated the iOS project (`ios/`, Swift package based, no CocoaPods). The app files stay as they are: no build step. One helper, `app/native.js`, says whether `window.Capacitor` exists and prefixes every `api/...` call with `https://checkmateprep.com/` when it does; `app.js`, `chesscom.js`, `results.js`, `sync.js` and `track.js` use it, and in a browser the paths stay relative. The service worker isn't registered in the native app (the localhost rule is untouched). Tests cover the helper and that the game store is asked at the site. Not checked, as it needs Xcode and a real iPhone: the Xcode build, Stockfish in WKWebView and its timing, going to the background, and the Worker accepting `capacitor://localhost` (#54).

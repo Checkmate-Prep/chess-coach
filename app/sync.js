@@ -5,6 +5,7 @@
 import { idb, ls } from './store.js';
 import { fromLocal, merge, toLocal } from './syncdoc.js';
 import { syncResults, expectPull, endPull } from './results.js';
+import { apiUrl } from './native.js';
 
 const SYNCED = ['profile', 'done'];
 /** What the UI shows. `at`: last successful sync. */
@@ -29,7 +30,7 @@ export async function startSync({ data, status, results = () => {} }) {
   // Offline, the last answer is reused so a signed-in device keeps its account; a server without /api clears it.
   let cfg = ls.get('auth-config', null);
   try {
-    const r = await fetch('api/config', { cache: 'no-store' });
+    const r = await fetch(apiUrl('api/config'), { cache: 'no-store' });
     cfg = r.ok ? (await r.json()).auth || null : null;
     hasApi = r.ok;
     if (cfg) ls.set('auth-config', cfg); else ls.del('auth-config');
@@ -80,7 +81,7 @@ export async function syncNow() {
         const prev = ls.get('sync-doc', null);
         const mine = fromLocal(ls.get('profile', null), ls.get('done', {}), prev, Date.now());
         const token = await client.getTokenSilently();
-        const r = await fetch('api/sync', { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ doc: mine }) });
+        const r = await fetch(apiUrl('api/sync'), { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ doc: mine }) });
         const out = await r.json().catch(() => ({}));
         if (r.status === 409 && attempt < 3) { await new Promise((ok) => setTimeout(ok, 400 * (attempt + 1))); continue; }
         if (!r.ok) throw Object.assign(new Error(out.error || `The server answered ${r.status}.`), { status: r.status });
@@ -156,7 +157,7 @@ export async function deleteSynced() {
   clearTimeout(timer); await running; // a sync landing after the delete would store the data again
   try {
     const token = await client.getTokenSilently();
-    const r = await fetch('api/sync', { method: 'DELETE', headers: { authorization: `Bearer ${token}` } });
+    const r = await fetch(apiUrl('api/sync'), { method: 'DELETE', headers: { authorization: `Bearer ${token}` } });
     if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || `The server answered ${r.status}.`);
   } catch (e) {
     account.error = e instanceof TypeError ? "Couldn't reach the server. Check your connection." : e.message;

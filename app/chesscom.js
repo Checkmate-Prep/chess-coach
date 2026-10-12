@@ -1,5 +1,6 @@
 // chess.com public API (CORS-enabled, no login needed).
 import { idb, ls } from './store.js';
+import { apiUrl } from './native.js';
 
 const API = 'https://api.chess.com/pub/player/';
 const DRAWS = new Set(['agreed', 'repetition', 'stalemate', 'insufficient', '50move', 'timevsinsufficient']);
@@ -79,12 +80,12 @@ export const monthEnd = (month) => { const [y, m] = month.split('/'); return Dat
 let viaApi = false;
 /** Turn the game store on or off (on once /api answered, see sync.js `hasApi`). */
 export const useGameStore = (on) => { viaApi = !!on; };
-const STORE_API = 'api/games?player=';
+const storeApi = () => apiUrl('api/games?player=');
 
 /** The player's archive months ('YYYY/MM', oldest first), and whether they came from the game store. */
 async function archivesOf(user) {
   if (viaApi) {
-    try { return { months: (await getJSON(STORE_API + encodeURIComponent(user))).archives, store: true }; } catch { /* chess.com below */ }
+    try { return { months: (await getJSON(storeApi() + encodeURIComponent(user))).archives, store: true }; } catch { /* chess.com below */ }
   }
   const { archives } = await getJSON(`${API}${user}/games/archives`);
   return { months: archives.map((u) => u.split('/').slice(-2).join('/')), store: false };
@@ -92,7 +93,7 @@ async function archivesOf(user) {
 /** One month of games, as stored games (neutral). */
 async function monthOf(user, month, store) {
   if (store) {
-    try { return (await getJSON(`${STORE_API}${encodeURIComponent(user)}&month=${month}`)).games; } catch { /* chess.com below */ }
+    try { return (await getJSON(`${storeApi()}${encodeURIComponent(user)}&month=${month}`)).games; } catch { /* chess.com below */ }
   }
   const { games } = await getJSON(`${API}${user}/games/${month}`);
   return games.map(neutral).filter(Boolean);
