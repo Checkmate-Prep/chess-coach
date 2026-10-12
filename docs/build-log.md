@@ -792,3 +792,8 @@ On native iOS, Claude recommended against a Swift rewrite: the logic would exist
 > worked. implement (privacy page and docs/services.md entries for the email provider)
 
 **What Claude did:** after the first Resend sign-in code reached the inbox, replaced the privacy page's "an email service it works with" with a line naming Resend, which sees the address and the code message, and gave Auth0 its own line. `docs/services.md` now has a Resend row and section (what it is for, that the key is in Auth0 and the password manager and not in GitHub, the DNS records it depends on, how to rotate the key, and the free plan's 100-a-day cap), and the "to confirm" list asks for Resend's log retention, which Claude didn't state because the page doesn't say. Closes #86 once the runbook and this are merged.
+
+### 99. Role addresses on checkmateprep.com
+> I've setup and tested the 3 emails
+
+**What Claude did:** after the three Email Routing addresses (`privacy@`, `contact@`, `support@`) were created and tested from another account, recorded them in a Role addresses section of `docs/services.md` with what each is for, and pointed the store listing fields, the app-stores plan, the DMARC `rua` note and the README at them. `contact@` is now the public contact for the store listings; `privacy@` stays on the privacy and delete-account pages. `support@` is the Auth0 tenant support email. `no-reply@` is only the sender for sign-in codes. The GitHub billing contact and the Play Console listing contact are `contact@` too, both changed by hand in those dashboards. Closes #61.

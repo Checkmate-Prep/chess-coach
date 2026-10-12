@@ -110,7 +110,7 @@ The product domain is **checkmateprep.com**, registered at Cloudflare Registrar 
 | `dev.checkmateprep.com`, `test.checkmateprep.com` | The dev and test environments (their own Workers, databases and Auth0 application). No environment has a workers.dev address, so each one keeps its data in one place |
 
 - **DNS** is managed in Cloudflare. Deploying the production Worker creates the records for `checkmateprep.com` and `www`; if a record already exists on either name (a parking page, for example), delete it first or the deploy fails.
-- **Email:** Cloudflare Email Routing (free) can forward an address like `hello@checkmateprep.com` to a personal inbox, for Auth0, payment and user mail. Sending sign-in emails needs a sending provider (below).
+- **Email:** Cloudflare Email Routing (free) forwards the role addresses `privacy@`, `contact@` and `support@checkmateprep.com` to the project mailbox (listed in `docs/services.md`), for the store listings, Auth0, billing and user mail. Sending sign-in emails needs a sending provider (below).
 - **Protect the domain:** auto-renew on, two-factor sign-in on the Cloudflare account.
 
 #### Moving production to the project Cloudflare account
