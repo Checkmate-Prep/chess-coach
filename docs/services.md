@@ -50,7 +50,7 @@ Writes the AI game plans (`worker/prep.js`, instructions in `worker/prompt.js`).
 
 One tenant (US region) for all environments, with one API and two Single Page Applications ("Checkmate Prep" for production, "Checkmate Prep - non prod" for dev, test and local). Sign-in is at `login.checkmateprep.com`, the tenant's custom domain.
 
-- **Public values:** `AUTH0_DOMAIN`, `AUTH0_CLIENT_ID`, `AUTH0_AUDIENCE` in `wrangler.toml`. Not secret.
+- **Public values:** `AUTH0_DOMAIN`, `AUTH0_CLIENT_ID`, `AUTH0_AUDIENCE` and (production) `AUTH0_NATIVE_CLIENT_ID` in `wrangler.toml`. Not secret.
 - **Machine-to-Machine app "Deploy actions":** used by the deploy script (`ops/auth0/deploy-actions.mjs`: the sign-up Action, the login page favicon) and by the Worker to delete a user with their account (`worker/account.js`). Both call the Management API on the tenant domain, not the custom domain.
   - **Secret:** `AUTH0_MGMT_CLIENT_SECRET`; `AUTH0_MGMT_CLIENT_ID` is a variable (a secret of that name also works).
   - **Where:** GitHub Environment `production` (required for the Action deploy); `dev` and `test` only if account deletion should be testable there.

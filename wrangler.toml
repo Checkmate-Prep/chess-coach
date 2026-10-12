@@ -21,7 +21,8 @@ run_worker_first = ["/api/*", "/.well-known/*"]
 # Auth0: one tenant (checkmateprep.us.auth0.com) with one API and two Single Page Applications:
 # "Checkmate Prep" for production, "Checkmate Prep - non prod" for dev, test and local runs.
 # AUTH0_DOMAIN = where sign-in happens (tokens must come from this exact domain), AUTH0_CLIENT_ID = the
-# application, AUTH0_AUDIENCE = the API identifier. Every environment uses the custom domain
+# application (AUTH0_NATIVE_CLIENT_ID = the Native application the iOS app signs in with, production only: the
+# app calls checkmateprep.com), AUTH0_AUDIENCE = the API identifier. Every environment uses the custom domain
 # login.checkmateprep.com; the tenant domain is only for Management API calls (worker/account.js, ops/auth0).
 # Locally, set them in .dev.vars.
 # AI prep: MODEL writes the plans, DAILY_LIMIT caps plans per day for everyone, PER_IP_DAILY per address.
@@ -97,7 +98,7 @@ ratelimits = [{ name = "BURST", namespace_id = "1002", simple = { limit = 30, pe
 name = "chess-coach"
 workers_dev = false
 routes = [{ pattern = "checkmateprep.com", custom_domain = true }, { pattern = "www.checkmateprep.com", custom_domain = true }]
-vars = { AUTH0_DOMAIN = "login.checkmateprep.com", AUTH0_CLIENT_ID = "2tQ9JSSnfNd6GraU8bmoe9bQ5P64yMnm", AUTH0_AUDIENCE = "https://api.checkmateprep.com", MODEL = "claude-opus-5", FALLBACKS = "default", DAILY_LIMIT = "40", PER_IP_DAILY = "5" }
+vars = { AUTH0_DOMAIN = "login.checkmateprep.com", AUTH0_CLIENT_ID = "2tQ9JSSnfNd6GraU8bmoe9bQ5P64yMnm", AUTH0_NATIVE_CLIENT_ID = "tQxT598ciW2w4kCzmNneUWGOsNucESBw", AUTH0_AUDIENCE = "https://api.checkmateprep.com", MODEL = "claude-opus-5", FALLBACKS = "default", DAILY_LIMIT = "40", PER_IP_DAILY = "5" }
 kv_namespaces = [{ binding = "PREP" }]
 workflows = [{ name = "chess-coach-prep", binding = "PREP_JOBS", class_name = "PrepWorkflow" }]
 d1_databases = [{ binding = "DB" }]
