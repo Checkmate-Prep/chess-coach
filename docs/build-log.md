@@ -852,3 +852,10 @@ On native iOS, Claude recommended against a Swift rewrite: the logic would exist
 > should we move the android project in the gh repo? or should we keep it separate?
 
 **What Claude did:** recommended keeping the generated project and the upload keystore out of the (public) repo, since Bubblewrap regenerates the project from `twa-manifest.json` and a keystore must never be committed, but versioning the manifest itself. `android/twa-manifest.json` is now the source of truth (keystore path made relative), with `monochromeIconUrl` set and the version raised to 3 for the themed icon (#67); `android/README.md` has the rebuild steps; `.gitignore` blocks keystores and the generated project. Not done: the Bubblewrap build, the Play upload and the check on a device (#67 stays open).
+
+### 107. Wide screens: Prep file, You, lists
+> Yes, start #98 with the Prep file (two columns, tracker on top, plan board in view), then continue in your suggested order on this branch.
+
+**What Claude did:** from 1180px wide the Prep file puts the header, stats and steps tracker across the top, with games and game review on the left and the game plan on the right; plan boards stay stacked there and are never taller than the window. `#me` does the same with the engine review on the right. Stat tiles wrap (150px each) instead of a fixed two columns from 700px. The opponent list, settings and add-opponent screens keep a 720px width, set through a `data-page` attribute on the view. `privacy.html` and `delete-account.html` already sit in a 560px column and were left alone.
+
+**What changed along the way:** the `.split` and `.cols` wrappers had no spacing below their two-column breakpoints until a base grid rule was added. Checked at 375, 744 and 1280 wide (dark mode at 744 and 1280) with real downloaded games; not checked at 1920, with a real iPad or Surface, or the sign-in and add-opponent screens. Keyboard and drag-and-drop are still #99.
