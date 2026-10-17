@@ -14,21 +14,28 @@ Known-good: Bubblewrap CLI 1.27.0, Android Gradle Plugin 8.13.2, Gradle 8.13. Bu
 
 ## Rebuild
 
-1. Edit `android/twa-manifest.json` here and raise `appVersionCode` (and `appVersion` / `appVersionName` with it). Merge the change.
-2. Copy it over the project's file and build:
+Run the commands from this repo's folder (`REPO` below), on an up-to-date `main`.
+
+1. Edit `android/twa-manifest.json` and raise `appVersionCode`, with `appVersion` and `appVersionName` to match (Play rejects a version code it has already seen). Merge the change.
+2. Copy it over the project's file, regenerate, pin the versions and build:
 
    ```bash
-   cp ~/chess-coach/android/twa-manifest.json ~/checkmate-prep-android/twa-manifest.json
+   REPO=$(pwd)
+   cp "$REPO/android/twa-manifest.json" ~/checkmate-prep-android/twa-manifest.json
    cd ~/checkmate-prep-android
-   bubblewrap update     # regenerates the project; say yes if it offers to refetch the web manifest
-   ~/chess-coach/android/patch-project.sh   # pins AGP and Gradle again (update resets them)
-   bubblewrap build      # asks for the keystore and key passwords
+   bubblewrap update                    # regenerates the project; say yes if it offers to refetch the web manifest
+   "$REPO/android/patch-project.sh"     # pins AGP and Gradle again (update resets them)
+   bubblewrap build                     # asks for the keystore and key passwords
    ```
 
    This writes `app-release-bundle.aab` (for Play) and `app-release-signed.apk` (for a phone). The icon URLs must already be live on checkmateprep.com.
 3. Check the build on a device or emulator: see [docs/android-testing.md](../docs/android-testing.md). With Settings → Wallpaper & style → Themed icons on, the icon should be tinted and not clipped.
 4. Play Console → Test and release → Create new release → upload the `.aab`.
 
-If Bubblewrap changes a setting while you build (it can rewrite the file), copy the file back here and commit it.
+If Bubblewrap changes a setting while you build (it can rewrite the file), copy `~/checkmate-prep-android/twa-manifest.json` back to `android/` here and commit it. Check that the version in both files is the same.
 
 The project folder needs `android.keystore` next to `twa-manifest.json`; the path in the file is relative for that reason.
+
+## Android Studio
+
+Opening `~/checkmate-prep-android` in Android Studio also works for syncing and running on an emulator. Studio may offer an Android Gradle Plugin upgrade (the AGP Upgrade Assistant) or a newer Gradle: skip both and change the versions in `patch-project.sh` instead, since Studio's edits are lost on the next `bubblewrap update`.
