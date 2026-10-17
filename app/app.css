@@ -219,6 +219,7 @@ h2 .info-btn{font-size:1.05rem}
   .tabbar a[aria-current="true"]{background:color-mix(in srgb,var(--accent) 16%,transparent)}
   .tabbar a span{width:2rem}
   .drills{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+  .bd{width:100%;max-width:max(280px,calc(100vh - 190px))}
 }
 @media (min-width:960px){
   .split{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,380px);gap:18px 32px;grid-auto-rows:min-content;align-items:start}
@@ -226,4 +227,7 @@ h2 .info-btn{font-size:1.05rem}
   .split>.back{grid-column:1/-1}
   .split>.bd{grid-column:1;grid-row:1/span 12;position:sticky;top:73px;width:100%;max-width:max(320px,calc(100vh - 130px))}
   .split.top>.bd{grid-row:2/span 12}
+  .viewer{grid-template-columns:min(56%,max(280px,calc(100vh - 190px))) minmax(0,1fr);gap:10px 24px;grid-auto-rows:min-content;align-items:start}
+  .viewer>*{grid-column:2}
+  .viewer>.bd{grid-column:1;grid-row:1/span 4;max-width:none}
 }
