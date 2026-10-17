@@ -285,23 +285,69 @@ const viewerHtml = (cap) => `<div class="viewer"><div class="bd"></div><div clas
   ${cap ? `<p class="cap">${fig(cap)}</p>` : ''}</div>`;
 
 // ---------- first run: welcome, new user, existing user ----------
-/** A strip of board: you (white king) facing your next opponent (black knight). Pieces from pieces.js. */
+/** A strip of board: your rook (white) giving check to your next opponent's king (black). Pieces from pieces.js. */
 function heroSvg() {
   const sq = (i) => `<rect x="${i * 45}" width="45" height="45" class="${i % 2 ? 'hero-dk' : 'hero-lt'}"/>`;
-  return `<svg class="hero" viewBox="0 0 225 66" aria-hidden="true" focusable="false">
+  return `<svg class="hero" viewBox="0 0 225 45" aria-hidden="true" focusable="false">
     ${[0, 1, 2, 3, 4].map(sq).join('')}
     <path d="M52 22.5h112" class="hero-path"/><path d="M160 17l7 5.5-7 5.5" class="hero-path"/>
-    <g>${PIECES.K}</g><g transform="translate(180 0)">${PIECES.n}</g>
-    <text x="22.5" y="61" class="hero-lbl">You</text><text x="202.5" y="61" class="hero-lbl">Them</text></svg>`;
+    <g>${PIECES.R}</g><g transform="translate(180 0)">${PIECES.k}</g></svg>`;
+}
+
+/** The one line at the foot of the welcome and settings screens: the privacy page and who runs the app. */
+const footerHtml = '<p class="foot"><a href="privacy.html">Privacy</a> · Artware Solutions</p>';
+
+/** The three steps of getting started, shown on the welcome screen and as step 1 of setup (`now` marks the current one). */
+const howItWorksHtml = (now = 0) => `<ol class="steps">
+      <li${now === 1 ? ' class="now"' : ''}><div><b>Enter your chess.com username.</b> We download your games and find your strengths and weaknesses.</div></li>
+      <li><div><b>Add the people you'll play.</b> Friends, rivals, anyone on chess.com. We learn their favorite openings and find their weak lines.</div></li>
+      <li><div><b>Get your AI game plan.</b> A plan for each opponent, with recommended traps to set and puzzles to practice them.</div></li></ol>`;
+
+/**
+ * The example screens as a carousel, one at a time: rolls on its own every few seconds, and the arrows (or a swipe)
+ * move it by hand. Rolling stops for good once the visitor touches the carousel, pauses while hovered, hidden or off
+ * screen, and never runs with "reduce motion" on. Arrows wrap around.
+ */
+function rollShots(box) {
+  const el = box?.querySelector('.shots'); if (!el) return;
+  const go = (dir) => {
+    const step = el.clientWidth + 12;   // an image plus the gap
+    const i = Math.round(el.scrollLeft / step) + dir, n = el.children.length;
+    el.scrollTo({ left: ((i + n) % n) * step, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  };
+  box.querySelectorAll('[data-dir]').forEach((b) => { b.onclick = () => go(+b.dataset.dir); });
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  let stopped = false, hovered = false, visible = false;
+  ['touchstart', 'wheel', 'pointerdown', 'keydown', 'focusin'].forEach((t) => box.addEventListener(t, () => { stopped = true; }, { once: true, passive: true }));
+  box.addEventListener('mouseenter', () => { hovered = true; });
+  box.addEventListener('mouseleave', () => { hovered = false; });
+  new IntersectionObserver(([e]) => { visible = e.isIntersecting; }).observe(box);
+  const timer = setInterval(() => {
+    if (stopped || !box.isConnected) return clearInterval(timer);
+    if (!hovered && visible && !document.hidden) go(1);
+  }, 3000);
 }
 
 function renderWelcome() {
   view.innerHTML = `
-    <header class="head welcome">${heroSvg()}<p class="eyebrow">Welcome to Checkmate Prep</p><h1>Prepare for your next opponent</h1>
-      <p class="lede">Checkmate Prep studies the chess.com games of the people you're about to play (a friend, a club rival, your next tournament pairing) and turns them into a game plan: the openings they play, where they go wrong, and traps to set.</p></header>
-    <div class="choices"><a class="btn primary" href="#start">I'm new here</a><div id="account-slot" data-mode="welcome"></div></div>
-    <p class="small muted"><a href="privacy.html">Privacy</a></p>`;
+    <header class="head welcome">${heroSvg()}<p class="eyebrow">Welcome to Checkmate Prep</p><h1>Win your next chess game</h1>
+      <p class="lede">Checkmate Prep studies how your opponents play and teaches you how to beat them.</p></header>
+    <div class="choices"><a class="btn primary" href="#start">Prepare for an opponent</a><div id="account-slot" data-mode="welcome"></div></div>
+    <ul class="plain facts"><li>Free, with no sign-up or password required</li><li>Automatically downloads chess.com games</li><li>Uses the world's strongest chess engine and frontier AI models</li></ul>
+    <section class="example"><h2>What you get for each opponent</h2>
+      <div class="carousel" role="group" aria-roledescription="carousel" aria-label="Example screens">
+        <button type="button" class="arrow prev" data-dir="-1" aria-label="Previous screen">‹</button>
+        <div class="shots" tabindex="0">${[
+        ['1-opponent-file', 'An opponent file with ratings, and the three steps: download games, analyse, write the game plan'],
+        ['2-trap', 'A trap the opponent keeps falling into, shown on the board'],
+        ['4-ai-plan', 'Claude\'s written plan for the opponent, with the trap line on the board'],
+        ['5-game-plan-consent', 'The quick game plan, and the note you agree to before the AI writes a deeper one'],
+      ].map(([f, alt]) => `<img src="shots/${f}.webp" alt="${alt}" width="540" height="960" loading="lazy">`).join('')}</div>
+        <button type="button" class="arrow next" data-dir="1" aria-label="Next screen">›</button></div></section>
+    <section class="card"><h2>How it works</h2>${howItWorksHtml()}</section>
+    ${footerHtml}`;
   renderAccount();
+  rollShots(view.querySelector('.carousel'));
 }
 
 function renderSignIn() {
@@ -319,10 +365,7 @@ async function renderSetup(first = false) {
   const head = first
     ? `<a class="back" href="#">◀ Back</a>
     <header class="head"><p class="eyebrow">Step 1 of 3</p><h1>Get started</h1></header>
-    <section class="card"><h2>How it works</h2><ol class="steps">
-      <li class="now"><div><b>Your chess.com username.</b> We download your public games to see how you play. No sign-up, no password.</div></li>
-      <li><div><b>Add the people you'll play.</b> Friends, rivals, anyone on chess.com. Their games are public too.</div></li>
-      <li><div><b>Get your prep.</b> Their favourite openings, weak lines, traps and drills, all worked out on this device.</div></li></ol></section>`
+    <section class="card"><h2>How it works</h2>${howItWorksHtml(1)}</section>`
     : `<header class="head"><h1>Settings</h1><p class="lede">Change your username or the opponents you prepare for.</p></header>`;
   const youCard = `<section class="card">${me ? '<h2>You</h2>' : ''}
       <form id="me-form" class="add-form"><label for="me-input"><b>Your chess.com username</b></label>
@@ -344,7 +387,7 @@ async function renderSetup(first = false) {
     ${youCard + oppCard}
     <div id="account-slot"${me ? '' : ' data-mode="setup"'}></div>
     ${me ? '<div id="stats-slot"></div>' : ''}
-    <p class="small muted"><a href="privacy.html">Privacy</a></p>`;
+    ${footerHtml}`;
 
   renderAccount();
   renderStatsToggle();
