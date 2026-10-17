@@ -21,3 +21,7 @@ node_modules/
 htmlcov/
 # D1 exports (README: moving production) hold users' synced data
 *.sql
+# Android: keystores and the generated project live outside the repo (see android/README.md)
+*.keystore
+*.jks
+android/*/

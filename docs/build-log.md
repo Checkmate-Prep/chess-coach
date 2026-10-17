@@ -847,3 +847,8 @@ On native iOS, Claude recommended against a Swift rewrite: the logic would exist
 > work on issue 100 (improve the description when sending a link via WhatsApp)
 
 **What Claude did:** rewrote the description, Open Graph title and Open Graph description in `app/index.html` to match the landing page: "Win your next chess game", and that Checkmate Prep studies how your chess.com opponents play and teaches you how to beat them (the owner then shortened it to: "Checkmate Prep studies how your opponents play and teaches you how to beat them. Free, no sign-up required."). The service worker cache name was re-stamped by hand because `python-chess` could not be installed in the cloud session. Not done: a 1200×630 share image (the preview still shows the knight icon) and a check in WhatsApp itself, which caches previews, so an old preview may show for a while.
+
+### 106. The Android manifest moves into the repo
+> should we move the android project in the gh repo? or should we keep it separate?
+
+**What Claude did:** recommended keeping the generated project and the upload keystore out of the (public) repo, since Bubblewrap regenerates the project from `twa-manifest.json` and a keystore must never be committed, but versioning the manifest itself. `android/twa-manifest.json` is now the source of truth (keystore path made relative), with `monochromeIconUrl` set and the version raised to 3 for the themed icon (#67); `android/README.md` has the rebuild steps; `.gitignore` blocks keystores and the generated project. Not done: the Bubblewrap build, the Play upload and the check on a device (#67 stays open).
