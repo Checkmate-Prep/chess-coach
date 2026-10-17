@@ -109,7 +109,7 @@ What native would really add is a faster engine: multi-threaded Stockfish with t
    - Short description (80 characters at most), e.g. "Prep for the people you play on chess.com: openings, traps and drills."
    - Full description, the 512×512 icon, the 1024×500 feature graphic and the phone screenshots (Phase 1).
 8. **Testing, then production.** The account is an organisation account, so: internal test on a few phones, then Production → Create release. Review takes a few days. (A personal account would first need a 14-day closed test with 12 testers.)
-9. **After launch:** web changes reach the app straight away. Rebuild only when the manifest or icons change: raise `appVersionCode` in `twa-manifest.json`, `bubblewrap build`, upload the new `.aab`.
+9. **After launch:** web changes reach the app straight away. Rebuild only when the manifest or icons change: raise `appVersionCode` in `android/twa-manifest.json`, then rebuild and upload the new `.aab` (steps in `android/README.md`).
 
 ## Phase 3: Apple (Capacitor)
 
