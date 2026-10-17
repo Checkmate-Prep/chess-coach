@@ -213,6 +213,16 @@ describe('reviewGames', () => {
     assert.deepEqual(out, {});
   });
 
+  test('"review more" takes the next games after the ones already reviewed', async () => {
+    FakeWorker.script = () => ({ cp: 0 });
+    const games = ['n1', 'n2', 'n3', 'n4'].map((url) => game({ url, sans }));
+    db.set('review:u', { n1: { loss: [] }, n2: { loss: [] } });
+    const progress = [];
+    const cache = await reviewGames('u', games, 1, (i, n, x) => progress.push([i, n, x?.url]));
+    assert.deepEqual(Object.keys(cache).sort(), ['n1', 'n2', 'n3'], 'one more, from the newest unreviewed');
+    assert.deepEqual(progress, [[0, 1, 'n3'], [1, 1, undefined]]);
+  });
+
   test('marks each new review for the account', async () => {
     await reviewGames('u', [g], 5);
     assert.deepEqual(Object.keys(dirty().u), ['review:r1']);
