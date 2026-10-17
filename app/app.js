@@ -815,7 +815,7 @@ async function renderOpp(user) {
   const name = oppName(user);
   const rvLine = await rvStatus(user);
   const rv = gs?.length ? summarize(gs, await reviewCache(user)) : null;
-  view.innerHTML = `
+  view.innerHTML = `<div class="cols">
     <a class="back" href="#prep">◀ Opponents</a>
     <header class="head"><h1>${esc(displayName(user))}</h1><a class="eyebrow profile-link" href="https://www.chess.com/member/${encodeURIComponent(name)}" target="_blank" rel="noopener">chess.com/${esc(name)}</a></header>
     ${stats([...ratingStats(user), ...(h2h.n ? [[`${r[0]}–${r[1]}–${r[2]}`, 'Your record vs them (W–D–L)']] : [])])}
@@ -837,7 +837,7 @@ async function renderOpp(user) {
       ${progress('trap-progress')}
       <div id="trap-list">${trapsSection(user, trW, trB, { current, tooFew, checked, nW: tw.n, nB: tb.n })}</div></section>
     ${planStep(user, { saved: ai, canWrite: AI, hasGames: !!gs?.length, writing: aiWriting(user), error: aiErrors[user],
-      quick: ai ? '' : quickPlan(gs?.length ? gamePlan({ pr, tw, tb, trW, trB, myW, myB }) : null, user, trW, trB) })}`;
+      quick: ai ? '' : quickPlan(gs?.length ? gamePlan({ pr, tw, tb, trW, trB, myW, myB }) : null, user, trW, trB) })}}</div>`;
   if (ai) mountPlans(ai.plan.plans.map(aiPlan), 'ai');
   mountTraps(trW, trB);
   view.querySelectorAll('[data-plan]').forEach((host) => { const pl = PLAN_LINES[host.dataset.plan]; if (pl) lineViewer(host, pl.line, pl.flipped, pl.keyFrom); });
@@ -1106,13 +1106,13 @@ async function renderMe() {
   const [tw, tb] = await Promise.all([treeOf(user, 'white'), treeOf(user, 'black')]);
   const ph = s?.phases;
   const autoMe = reviewPending(user); // the automatic review of your newest games is running or waiting
-  view.innerHTML = `
+  view.innerHTML = `<div class="cols me">
     <header class="head"><h1>${esc(P.me.name || 'You')}</h1><a class="eyebrow profile-link" href="https://www.chess.com/member/${encodeURIComponent(P.me.username)}" target="_blank" rel="noopener">chess.com/${esc(P.me.username)}</a></header>
     ${stats(ratingStats(user))}
     <section class="card"><div class="row"><h2>Games</h2><button class="btn" id="sync">${gs ? 'Refresh' : 'Download games'}</button></div>
       <p class="small muted" id="sync-status" aria-live="polite" data-dl="${esc(user)}"${gs ? '' : ' data-empty'}>${pending(user) ? dlText(user) : gs ? gamesLine(gs, pr, synced) : 'Download your recent games to build your profile.'}</p></section>
     ${pr ? `<section class="card"><h2>Your game</h2>${list(describe(pr, true))}</section>` : ''}
-    <section class="card"><h2>Engine review</h2>
+    <section class="card" id="me-review"><h2>Engine review</h2>
       ${s?.reviewed ? `${stats([
         [`${ph.opening.blunders ?? '–'}`, 'Opening blunders per 100 moves'], [`${ph.middlegame.blunders ?? '–'}`, 'Middlegame blunders per 100 moves'],
         [`${ph.endgame.blunders ?? '–'}`, 'Endgame blunders per 100 moves'],
@@ -1125,7 +1125,7 @@ async function renderMe() {
       <p class="small muted">${s?.reviewed ? `${s.reviewed} games reviewed. ` : ''}${autoMe ? 'Your newest games are reviewed automatically after each download. ' : ''}About 10 seconds per game. Keep the app open. Reviewed games are saved if you stop.</p></section>
     <section class="card"><h2>Lines that go badly for you ${scoreInfo('si-mine')}</h2>${scoreNote('si-mine')}
       <h3>As White</h3>${weakHtml(weakLines(tw, { minN: 4 }), 'white', user)}
-      <h3>As Black</h3>${weakHtml(weakLines(tb, { minN: 4 }), 'black', user)}</section>`;
+      <h3>As Black</h3>${weakHtml(weakLines(tb, { minN: 4 }), 'black', user)}</section></div>`;
   $('#sync').onclick = async (e) => { if (await sync(user, e.currentTarget, $('#sync-status'))) renderMe(); };
   if (reviewing[user]) showMyReview(reviewing[user][0], reviewing[user][1], null);
   else if (autoMe) setProgress($('#review-progress'), 0, 0, 'Waiting to review your newest games…');
@@ -1186,6 +1186,7 @@ async function route() {
   const needSetup = !P?.me;
   track(screenOf(tab, arg, needSetup));
   document.body.classList.toggle('no-tabs', needSetup);
+  view.dataset.page = needSetup || arg ? '' : tab; // the list screens keep a readable width on wide screens
   document.querySelectorAll('.tabbar a').forEach((a) => a.setAttribute('aria-current', String(a.dataset.tab === (tab === 'add' ? 'prep' : tab))));
   try {
     if (needSetup) await (tab === 'start' ? renderSetup(true) : tab === 'signin' ? renderSignIn() : renderWelcome());

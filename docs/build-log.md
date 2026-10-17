@@ -847,3 +847,10 @@ On native iOS, Claude recommended against a Swift rewrite: the logic would exist
 > work on issue 100 (improve the description when sending a link via WhatsApp)
 
 **What Claude did:** rewrote the description, Open Graph title and Open Graph description in `app/index.html` to match the landing page: "Win your next chess game", and that Checkmate Prep studies how your chess.com opponents play and teaches you how to beat them (the owner then shortened it to: "Checkmate Prep studies how your opponents play and teaches you how to beat them. Free, no sign-up required."). The service worker cache name was re-stamped by hand because `python-chess` could not be installed in the cloud session. Not done: a 1200×630 share image (the preview still shows the knight icon) and a check in WhatsApp itself, which caches previews, so an old preview may show for a while.
+
+### 105. Wide screens: Prep file, You, lists
+> Yes, start #98 with the Prep file (two columns, tracker on top, plan board in view), then continue in your suggested order on this branch.
+
+**What Claude did:** from 1180px wide the Prep file puts the header, stats and steps tracker across the top, with games and game review on the left and the game plan on the right; plan boards stay stacked there and are never taller than the window. `#me` does the same with the engine review on the right. Stat tiles wrap (150px each) instead of a fixed two columns from 700px. The opponent list, settings and add-opponent screens keep a 720px width, set through a `data-page` attribute on the view. `privacy.html` and `delete-account.html` already sit in a 560px column and were left alone.
+
+**What changed along the way:** the `.split` and `.cols` wrappers had no spacing below their two-column breakpoints until a base grid rule was added. Checked at 375, 744 and 1280 wide (dark mode at 744 and 1280) with real downloaded games; not checked at 1920, with a real iPad or Surface, or the sign-in and add-opponent screens. Keyboard and drag-and-drop are still #99.

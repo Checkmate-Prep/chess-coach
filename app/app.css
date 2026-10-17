@@ -204,6 +204,7 @@ h2 .info-btn{font-size:1.05rem}
 #step-games,#step-stockfish,#ai{scroll-margin-top:calc(env(safe-area-inset-top,0px) + 64px)}
 .ai-offer{display:grid;gap:8px;padding:12px;margin:4px 0 6px;background:var(--bg);border:1px solid var(--line);border-radius:12px}
 .view,.card,.add-form,.opp-edit,.opp-edit li{grid-template-columns:minmax(0,1fr)}
+.split,.cols{display:grid;gap:18px;grid-template-columns:minmax(0,1fr)}
 .add-link{justify-self:start;color:var(--accent);font-weight:500;text-decoration:none;padding:4px 0}
 .head-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .btn-sm{min-height:36px;padding:6px 12px;font-size:.9rem;text-decoration:none;flex:none;display:inline-flex;align-items:center}
@@ -230,4 +231,24 @@ h2 .info-btn{font-size:1.05rem}
   .viewer{grid-template-columns:min(56%,max(280px,calc(100vh - 190px))) minmax(0,1fr);gap:10px 24px;grid-auto-rows:min-content;align-items:start}
   .viewer>*{grid-column:2}
   .viewer>.bd{grid-column:1;grid-row:1/span 4;max-width:none}
+}
+/* Prep file on a wide screen: header and steps across the top, games and review beside the plan */
+@media (min-width:1180px){
+  .cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px 24px;align-items:start;grid-auto-flow:row dense}
+  .cols>*{grid-column:1/-1}
+  .cols>#step-games,.cols>#step-stockfish{grid-column:1}
+  .cols>#ai{grid-column:2;grid-row:5/span 2}
+  .cols .viewer{grid-template-columns:minmax(0,1fr)}
+  .cols .viewer>*,.cols .viewer>.bd{grid-column:1;grid-row:auto}
+}
+/* Wide screens: stat tiles wrap instead of a fixed 2 columns; list screens keep a readable width */
+@media (min-width:700px){
+  .stats{display:flex;flex-wrap:wrap;gap:10px;background:none;border:0;overflow:visible}
+  .stat{flex:1 1 150px;border:1px solid var(--line);border-radius:10px}
+  .view:is([data-page="prep"],[data-page="setup"],[data-page="add"])>*{max-width:720px}
+}
+@media (min-width:1180px){
+  .cols.me>*{grid-column:1}
+  .cols.me>.head,.cols.me>.stats{grid-column:1/-1}
+  .cols.me>#me-review{grid-column:2;grid-row:3/span 3}
 }
