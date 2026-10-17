@@ -20,8 +20,8 @@
     "path": "./android.keystore",
     "alias": "android"
   },
-  "appVersionName": "3",
-  "appVersionCode": 3,
+  "appVersionName": "4",
+  "appVersionCode": 4,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://checkmateprep.com/manifest.webmanifest",
@@ -43,6 +43,6 @@
   "fileHandlers": [],
   "launchHandlerClientMode": "",
   "displayOverride": [],
-  "appVersion": "3",
+  "appVersion": "4",
   "monochromeIconUrl": "https://checkmateprep.com/icon-512-monochrome.png"
 }

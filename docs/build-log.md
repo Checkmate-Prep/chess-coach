@@ -880,3 +880,5 @@ On native iOS, Claude recommended against a Swift rewrite: the logic would exist
 **What Claude did:** bumped the Gradle wrapper in the local Bubblewrap project to 8.13, then explained that the versions come from Bubblewrap's template and are reset by `bubblewrap update`. Added `android/patch-project.sh`, which pins Android Gradle Plugin 8.13.2 and Gradle 8.13 after an update, and listed the known-good versions (with Bubblewrap 1.27.0) in `android/README.md`. Issue #108.
 
 **Checked:** the script ran on the local project and changed both files. Not checked: a Gradle sync or a build with the new versions.
+
+Also: `android/twa-manifest.json` now says version 4 (`appVersionCode` 4), matching the build made locally for the Play upload; the repo still had 3.
