@@ -207,3 +207,23 @@ h2 .info-btn{font-size:1.05rem}
 .add-link{justify-self:start;color:var(--accent);font-weight:500;text-decoration:none;padding:4px 0}
 .head-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .btn-sm{min-height:36px;padding:6px 12px;font-size:.9rem;text-decoration:none;flex:none;display:inline-flex;align-items:center}
+/* Wide screens (from 700px, like the welcome page): the tab bar becomes a sidebar and the board screens use two columns */
+@media (min-width:700px){
+  :root{--side:176px;--page:1276px}
+  .appbar-in{max-width:var(--page)}
+  body:not(.no-tabs) .view{max-width:var(--page);padding:24px 24px 48px calc(var(--side) + 24px)}
+  .tabbar{top:49px;bottom:0;left:max(0px,calc((100% - var(--page))/2));right:auto;width:var(--side);flex-direction:column;justify-content:flex-start;gap:4px;border-top:0;border-right:1px solid var(--line);padding:16px 10px;backdrop-filter:none;-webkit-backdrop-filter:none;background:var(--bg)}
+  .tabbar a{flex:none;max-width:none;grid-template-columns:auto 1fr;justify-items:start;align-items:center;gap:8px;padding:4px 10px 4px 4px;border-radius:999px;font-size:.95rem}
+  .tabbar a:hover{background:var(--surface);color:var(--ink)}
+  .tabbar a[aria-current="true"] span{background:none}
+  .tabbar a[aria-current="true"]{background:color-mix(in srgb,var(--accent) 16%,transparent)}
+  .tabbar a span{width:2rem}
+  .drills{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+}
+@media (min-width:960px){
+  .split{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,380px);gap:18px 32px;grid-auto-rows:min-content;align-items:start}
+  .split>*{grid-column:2}
+  .split>.back{grid-column:1/-1}
+  .split>.bd{grid-column:1;grid-row:1/span 12;position:sticky;top:73px;width:100%;max-width:max(320px,calc(100vh - 130px))}
+  .split.top>.bd{grid-row:2/span 12}
+}

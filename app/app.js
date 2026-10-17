@@ -962,7 +962,7 @@ async function renderExplore() {
   const total = rows.reduce((a, r) => a + r.n, 0);
   const theirTurn = game.turn() === (ex.color === 'white' ? 'w' : 'b');
   const noGames = !(await gamesOf(ex.user));
-  view.innerHTML = `
+  view.innerHTML = `<div class="split">
     <label class="picker" for="ex-who"><span class="eyebrow">Exploring</span>
       <select id="ex-who">${people.map(([u, l]) => `<option value="${esc(u)}"${u === ex.user ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></label>
     ${seg('color', [['white', `${who} as White`], ['black', `${who} as Black`]], ex.color)}
@@ -974,7 +974,7 @@ async function renderExplore() {
         <span class="bar"><span style="width:${Math.round((100 * r.n) / total)}%"></span></span>
         <span class="num">${r.n}</span><span class="num sc ${r.sc >= 55 ? 'hi' : r.sc <= 45 ? 'lo' : ''}">${r.sc}%</span></button></li>`).join('')}</ul>
       <p class="muted small">Bar: how often each move was played. %: ${isMe ? 'your' : 'their'} score after it. ${scoreInfo('si-ex')} Tap a move to follow it, or play any move on the board.</p>${scoreNote('si-ex')}`
-      : `<p class="muted">${noGames ? `No games downloaded for ${esc(who)} yet. Download them from the ${isMe ? 'You' : 'Prep'} tab.` : 'No games reach this position.'}</p>`}`;
+      : `<p class="muted">${noGames ? `No games downloaded for ${esc(who)} yet. Download them from the ${isMe ? 'You' : 'Prep'} tab.` : 'No games reach this position.'}</p>`}</div>`;
   $('#ex-who').onchange = (e) => { ex.user = e.target.value; ex.moves = []; saveEx(); renderExplore(); };
   const board = new Board($('.explore-bd'), {
     game, flipped: isMe ? ex.color === 'black' : ex.color === 'white',
@@ -1030,10 +1030,10 @@ async function renderDrill(id) {
   const mine = x.plan.flip ? 'b' : 'w';
   const game = new Chess();
   let misses = 0;
-  view.innerHTML = `<button class="back" data-go="drill">◀ All drills</button>
+  view.innerHTML = `<div class="split top"><button class="back" data-go="drill">◀ All drills</button>
     <header class="head"><p class="eyebrow">${esc(x.group)}</p><h1 class="h-sm">${fig(esc(x.title))}</h1></header>
     <div class="bd drill-bd"></div><p class="msg" id="msg" aria-live="polite"></p>
-    <div class="nav"><button id="restart">Restart</button><button id="hint">Hint</button></div>`;
+    <div class="nav"><button id="restart">Restart</button><button id="hint">Hint</button></div></div>`;
   const msg = $('#msg');
   const board = new Board($('.drill-bd'), { game, flipped: mine === 'b' });
   const step = () => {
@@ -1068,10 +1068,10 @@ async function renderDrill(id) {
 function renderPosDrill(x) {
   const game = new Chess(x.fen);
   const side = game.turn() === 'w' ? 'White' : 'Black';
-  view.innerHTML = `<button class="back" data-go="drill">◀ All drills</button>
+  view.innerHTML = `<div class="split top"><button class="back" data-go="drill">◀ All drills</button>
     <header class="head"><p class="eyebrow">${esc(x.sub)}</p><h1 class="h-sm">${side} to move. ${fig(esc(x.prompt))}</h1></header>
     <div class="bd drill-bd"></div><p class="msg" id="msg" aria-live="polite">Play your move on the board.</p>
-    <div class="nav"><button id="reveal">Show the answer</button><button id="retry">Reset</button></div>`;
+    <div class="nav"><button id="reveal">Show the answer</button><button id="retry">Reset</button></div></div>`;
   const msg = $('#msg');
   const board = new Board($('.drill-bd'), { game, flipped: game.turn() === 'b' });
   const answer = (solved, alt) => {

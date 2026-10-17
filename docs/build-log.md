@@ -831,3 +831,12 @@ On native iOS, Claude recommended against a Swift rewrite: the logic would exist
 **What Claude did:** reopened #77 (PR #93 had closed it on merge) and branched from `main`. From 700px wide the welcome screen is a two-column grid: the headline, button and facts on the left, the "How it works" card on the right (centred against the left block), and the four screenshots in one row underneath with no arrows or auto roll. The rook-and-king strip and "Welcome to Checkmate Prep" sit on top, left-aligned with the headline (centred on phones). It is a CSS grid with named areas on `.welcome-page`, so the phone order is the same as before. Checked at 1440, 1024, 912, 834, 768 and 744 wide.
 
 **What changed along the way:** a first version used a two-column layout with the carousel on the right up to 1100px; iPad and Surface widths showed it, so the breakpoint for the full layout moved down to 700px. A CSS rewrite also deleted the footer styles for a moment and they were put back. At 744px each screenshot is about 169px wide, so the text inside is small. Not done: dark mode at wide sizes, a real iPad or Surface, and the layout for the rest of the app (#81).
+
+### 104. Wide screens: sidebar, page width, Explore and Drill
+> is there an issue to improve screens for laptop / wide screens? I'd like to work on it now
+> landing page has already been optimized for laptop. learn from that how I'd like the wide screen to look. and plan how wide screen design could be improved for the other screens.
+> ok split and start with a
+
+**What Claude did:** found #81, read the homepage commit to learn the pattern (full layout from 700px so iPads and Surfaces get it, wider column, two columns, no phone-only widgets, phone unchanged), and split #81 into three issues: shell, Explore and Drill (#97), Prep, You and the lists (#98), keyboard and drag-and-drop (#99). For #97, from 700px the bottom tab bar is a sidebar and the page grows to 1276px; from 960px Explore and Drill put the board on the left (sticky, never taller than the window) and the controls and moves on the right; the drill list becomes a grid. Below 960px the board screens stay in one column.
+
+**What changed along the way:** the first version used two columns from 700px, which left a 130px board at 744px wide; the split moved to 960px. Checked at 375, 744, 1280 and 1920 wide in light mode; the Drill page was checked with a stand-in page, since the preview had no traps. Not done: dark mode at wide sizes, the other screens (#98) and the keyboard work (#99).
