@@ -8,6 +8,10 @@ The generated Android project and the upload keystore stay **outside the repo**,
 
 Web changes reach the app straight away. Rebuild only when the web manifest, icons or `twa-manifest.json` change.
 
+## Versions
+
+Known-good: Bubblewrap CLI 1.27.0, Android Gradle Plugin 8.13.2, Gradle 8.13. Bubblewrap's template sets older AGP and Gradle versions, and `bubblewrap update` resets any edit, so `patch-project.sh` holds the pinned versions. To upgrade, change `AGP` and `GRADLE` at the top of the script and rebuild.
+
 ## Rebuild
 
 1. Edit `android/twa-manifest.json` here and raise `appVersionCode` (and `appVersion` / `appVersionName` with it). Merge the change.
@@ -17,6 +21,7 @@ Web changes reach the app straight away. Rebuild only when the web manifest, ico
    cp ~/chess-coach/android/twa-manifest.json ~/checkmate-prep-android/twa-manifest.json
    cd ~/checkmate-prep-android
    bubblewrap update     # regenerates the project; say yes if it offers to refetch the web manifest
+   ~/chess-coach/android/patch-project.sh   # pins AGP and Gradle again (update resets them)
    bubblewrap build      # asks for the keystore and key passwords
    ```
 

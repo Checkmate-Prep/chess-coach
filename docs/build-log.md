@@ -873,3 +873,10 @@ On native iOS, Claude recommended against a Swift rewrite: the logic would exist
 **What Claude did:** the Game review card on an opponent's file now has a "Review 20 more games" button (shown once there are unreviewed games, hidden while the automatic review or trap scan runs), a Stop control and the progress bar. The You tab button and this one share `reviewMore`, which replaces the old `meReviewing` flag with a per-player `manual` state, so progress comes back if you leave the page and return. Automatic analysis waits for a manual review and picks up afterwards. A new test covers `reviewGames` taking the next games after already-reviewed ones.
 
 **Checked:** at 375×812 with 45 synthetic games and the real Stockfish: the button appears after the automatic 20, progress and Stop work, the stats update, and the button disappears when everything is reviewed; the You tab button still works. Not checked: 1280×800 with the button visible (only with all games reviewed), or while signed in.
+
+### 110. Android: Gradle versions pinned in the repo
+> android studio recommends: Upgrade Gradle version to 8.13 ... shouldn't this version be defined in the code on the repo?
+
+**What Claude did:** bumped the Gradle wrapper in the local Bubblewrap project to 8.13, then explained that the versions come from Bubblewrap's template and are reset by `bubblewrap update`. Added `android/patch-project.sh`, which pins Android Gradle Plugin 8.13.2 and Gradle 8.13 after an update, and listed the known-good versions (with Bubblewrap 1.27.0) in `android/README.md`. Issue #108.
+
+**Checked:** the script ran on the local project and changed both files. Not checked: a Gradle sync or a build with the new versions.
