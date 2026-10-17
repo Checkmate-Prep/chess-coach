@@ -146,7 +146,31 @@ h2 .info-btn{font-size:1.05rem}
 .facts{color:var(--muted);font-size:.9rem;margin:0}
 .facts li{display:grid;grid-template-columns:1.2em 1fr;padding:2px 0}
 .facts li::before{content:"✓";color:var(--accent);font-weight:600}
-@media (max-width:600px){.welcome,.example>h2{text-align:center}.hero{margin-inline:auto}}
+@media (max-width:699px){.welcome,.example>h2{text-align:center}.hero{margin-inline:auto}}
+.welcome-page{display:grid;gap:18px;grid-template-columns:minmax(0,1fr);grid-template-areas:"top" "head" "choices" "facts" "example" "steps" "foot"}
+.welcome-top{grid-area:top;display:grid;justify-items:center;gap:6px;text-align:center}
+.welcome-top .eyebrow,.welcome-top .hero{margin:0}
+.welcome-page>.welcome{grid-area:head}.welcome-page>.choices{grid-area:choices}.welcome-page>.facts{grid-area:facts}
+.welcome-page>.example{grid-area:example}.welcome-page>.steps-card{grid-area:steps}.welcome-page>.foot{grid-area:foot}
+@media (min-width:700px){
+  .view:has(.welcome-page){max-width:1040px;padding-top:40px}
+  body:has(.welcome-page) .appbar-in{max-width:1040px}
+  .welcome-page{grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:56px;align-items:start;
+    grid-template-areas:"top top" "head steps" "choices steps" "facts steps" "example example" "foot foot"}
+  .welcome-top{justify-items:start;text-align:left}
+  .welcome-page h1{font-size:2.8rem}
+  .welcome-page .lede{font-size:1.15rem}
+  .welcome-page .hero{max-width:300px}
+  .welcome-page .choices{max-width:360px}
+  .welcome-page .foot{margin-top:24px}
+  .welcome-page>.steps-card{align-self:center}
+  .welcome-page>.example{align-self:start;margin-top:12px}
+  .welcome-page>.example>h2{text-align:center}
+  .welcome-page .carousel{width:100%}
+  .welcome-page .shots{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));overflow:visible}
+  .welcome-page .shots img{width:100%}
+  .welcome-page .arrow{display:none}
+}
 .foot{margin:8px 0 0;text-align:center;font-size:.78rem;color:var(--muted)}
 .foot a{color:inherit}
 .example{display:grid;gap:8px}
