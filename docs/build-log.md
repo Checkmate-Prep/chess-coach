@@ -859,3 +859,10 @@ On native iOS, Claude recommended against a Swift rewrite: the logic would exist
 **What Claude did:** from 1180px wide the Prep file puts the header, stats and steps tracker across the top, with games and game review on the left and the game plan on the right; plan boards stay stacked there and are never taller than the window. `#me` does the same with the engine review on the right. Stat tiles wrap (150px each) instead of a fixed two columns from 700px. The opponent list, settings and add-opponent screens keep a 720px width, set through a `data-page` attribute on the view. `privacy.html` and `delete-account.html` already sit in a 560px column and were left alone.
 
 **What changed along the way:** the `.split` and `.cols` wrappers had no spacing below their two-column breakpoints until a base grid rule was added. Checked at 375, 744 and 1280 wide (dark mode at 744 and 1280) with real downloaded games; not checked at 1920, with a real iPad or Surface, or the sign-in and add-opponent screens. Keyboard and drag-and-drop are still #99.
+
+### 108. Gap between step 1 and step 2 on wide screens
+> on /prep when step 2 is analyzing opponent, there is a big gap between the step 1 box and step 2 box
+
+**What Claude did:** found that the plan card in the right column spanned two grid rows, so its extra height was added to the rows holding the Games and Game review cards on the left. Those two cards now sit in one `.steps-col` wrapper, and the plan card takes a single row.
+
+**Checked:** at 1300 wide the gap between the cards is about 19px. Not checked during a live review run (the review text was only simulated) or at 1180px exactly.

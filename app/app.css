@@ -204,6 +204,7 @@ h2 .info-btn{font-size:1.05rem}
 #step-games,#step-stockfish,#ai{scroll-margin-top:calc(env(safe-area-inset-top,0px) + 64px)}
 .ai-offer{display:grid;gap:8px;padding:12px;margin:4px 0 6px;background:var(--bg);border:1px solid var(--line);border-radius:12px}
 .view,.card,.add-form,.opp-edit,.opp-edit li{grid-template-columns:minmax(0,1fr)}
+.steps-col{display:grid;gap:18px;grid-template-columns:minmax(0,1fr)}
 .split,.cols{display:grid;gap:18px;grid-template-columns:minmax(0,1fr)}
 .add-link{justify-self:start;color:var(--accent);font-weight:500;text-decoration:none;padding:4px 0}
 .head-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
@@ -236,8 +237,8 @@ h2 .info-btn{font-size:1.05rem}
 @media (min-width:1180px){
   .cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px 24px;align-items:start;grid-auto-flow:row dense}
   .cols>*{grid-column:1/-1}
-  .cols>#step-games,.cols>#step-stockfish{grid-column:1}
-  .cols>#ai{grid-column:2;grid-row:5/span 2}
+  .cols>.steps-col{grid-column:1}
+  .cols>#ai{grid-column:2;grid-row:5}
   .cols .viewer{grid-template-columns:minmax(0,1fr)}
   .cols .viewer>*,.cols .viewer>.bd{grid-column:1;grid-row:auto}
 }
