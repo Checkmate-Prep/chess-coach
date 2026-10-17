@@ -832,7 +832,18 @@ On native iOS, Claude recommended against a Swift rewrite: the logic would exist
 
 **What changed along the way:** a first version used a two-column layout with the carousel on the right up to 1100px; iPad and Surface widths showed it, so the breakpoint for the full layout moved down to 700px. A CSS rewrite also deleted the footer styles for a moment and they were put back. At 744px each screenshot is about 169px wide, so the text inside is small. Not done: dark mode at wide sizes, a real iPad or Surface, and the layout for the rest of the app (#81).
 
-### 104. Better description when the link is shared
+### 104. Wide screens: sidebar, page width, Explore and Drill
+> is there an issue to improve screens for laptop / wide screens? I'd like to work on it now
+> landing page has already been optimized for laptop. learn from that how I'd like the wide screen to look. and plan how wide screen design could be improved for the other screens.
+> ok split and start with a
+
+**What Claude did:** found #81, read the homepage commit to learn the pattern (full layout from 700px so iPads and Surfaces get it, wider column, two columns, no phone-only widgets, phone unchanged), and split #81 into three issues: shell, Explore and Drill (#97), Prep, You and the lists (#98), keyboard and drag-and-drop (#99). For #97, from 700px the bottom tab bar is a sidebar and the page grows to 1276px; from 960px Explore and Drill put the board on the left (sticky, never taller than the window) and the controls and moves on the right; the drill list becomes a grid. Below 960px the board screens stay in one column.
+
+**What changed along the way:** the first version used two columns from 700px, which left a 130px board at 744px wide; the split moved to 960px. Checked at 375, 744, 1280 and 1920 wide in light mode; the Drill page was checked with a stand-in page, since the preview had no traps. Not done: dark mode at wide sizes, the other screens (#98) and the keyboard work (#99).
+
+**Follow-up:** the owner found the boards in the Prep file too tall for a laptop window (Explore and Drill were fine). Boards are now never taller than the window (100vh minus 190px) from 700px, and from 960px the plan viewers put the board on the left and the moves, buttons and caption on the right. Checked at 1280×650 with a stand-in viewer; not checked with a real Prep file.
+
+### 105. Better description when the link is shared
 > work on issue 100 (improve the description when sending a link via WhatsApp)
 
 **What Claude did:** rewrote the description, Open Graph title and Open Graph description in `app/index.html` to match the landing page: "Win your next chess game", and that Checkmate Prep studies how your chess.com opponents play and teaches you how to beat them (the owner then shortened it to: "Checkmate Prep studies how your opponents play and teaches you how to beat them. Free, no sign-up required."). The service worker cache name was re-stamped by hand because `python-chess` could not be installed in the cloud session. Not done: a 1200×630 share image (the preview still shows the knight icon) and a check in WhatsApp itself, which caches previews, so an old preview may show for a while.
