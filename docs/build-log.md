@@ -866,3 +866,10 @@ On native iOS, Claude recommended against a Swift rewrite: the logic would exist
 **What Claude did:** found that the plan card in the right column spanned two grid rows, so its extra height was added to the rows holding the Games and Game review cards on the left. Those two cards now sit in one `.steps-col` wrapper, and the plan card takes a single row.
 
 **Checked:** at 1300 wide the gap between the cards is about 19px. Not checked during a live review run (the review text was only simulated) or at 1180px exactly.
+
+### 109. Prep file: review more of an opponent's games
+> start working on 105
+
+**What Claude did:** the Game review card on an opponent's file now has a "Review 20 more games" button (shown once there are unreviewed games, hidden while the automatic review or trap scan runs), a Stop control and the progress bar. The You tab button and this one share `reviewMore`, which replaces the old `meReviewing` flag with a per-player `manual` state, so progress comes back if you leave the page and return. Automatic analysis waits for a manual review and picks up afterwards. A new test covers `reviewGames` taking the next games after already-reviewed ones.
+
+**Checked:** at 375×812 with 45 synthetic games and the real Stockfish: the button appears after the automatic 20, progress and Stop work, the stats update, and the button disappears when everything is reviewed; the You tab button still works. Not checked: 1280×800 with the button visible (only with all games reviewed), or while signed in.

@@ -113,7 +113,7 @@ const reviewQueue = [];                  // players waiting for the engine (you,
 const reviewFailed = new Set();          // games Stockfish couldn't review: not tried again until the next launch
 const trapFailed = new Set();            // trap scans that failed: not tried again automatically until the next launch
 let reviewDraining = false;
-let meReviewing = false;                 // a review started with the button on the You tab is running
+const manual = {};                       // user -> { signal, i, n, g } while a review started with a "Review 20 more" button runs
 /** You and your opponents: the players analyzed automatically. */
 const analyzed = (user) => !!P && (user === P.me.user || P.opps.some((o) => o.user === user));
 const reviewPending = (user) => !!reviewing[user] || reviewQueue.includes(user);
@@ -140,7 +140,7 @@ async function trapTodo(user) {
 }
 /** Analyze a player in the background, one after another (the engine runs one job at a time). */
 function queueAnalysis(user) {
-  if (!analyzed(user) || reviewPending(user) || trapRunning[user]) return;
+  if (!analyzed(user) || reviewPending(user) || trapRunning[user] || manual[user]) return;
   reviewQueue.push(user);
   if (!reviewDraining) runAnalysis();
 }
@@ -151,7 +151,7 @@ async function runAnalysis() {
     await resultsReady(); // signed in: another device may have done this already
     try {
       const isMe = user === P?.me.user;
-      if (analyzed(user) && !(isMe && meReviewing) && !reviewFailed.has(user) && (await reviewTodo(user)).length) {
+      if (analyzed(user) && !manual[user] && !reviewFailed.has(user) && (await reviewTodo(user)).length) {
         const gs = (await gamesOf(user)).slice(0, AUTO_REVIEW);
         await whileAwake(() => reviewGames(user, gs, AUTO_REVIEW, (i, n, g) => {
           reviewing[user] = [i, n];
@@ -205,10 +205,28 @@ function showMyReview(i, n, g) {
   $('#review').hidden = true;
   setProgress(bar, i, n, i >= n ? 'Done' : `Reviewing your newest games: ${i + 1} of ${n}${g ? `, vs ${g.opp} (${g.tc})` : ''}`);
 }
+/**
+ * Review 20 more of a player's games, started with a button (the automatic review only covers their newest games).
+ * `paint(run)` shows the progress; it is called as each game starts and again when the review is done.
+ */
+async function reviewMore(user, gs, paint) {
+  const run = manual[user] = { signal: { stop: false }, i: 0, n: 0, g: null };
+  try {
+    await whileAwake(() => reviewGames(user, gs, 20, (i, n, g) => { Object.assign(run, { i, n, g }); paint(run); }, run.signal));
+  } finally { delete manual[user]; }
+  queueAnalysis(user); // anything the review held back: new games, traps
+}
+/** Progress of a review started with a button on their file, if it's open. */
+function paintOppMore(user, run) {
+  if (location.hash !== `#prep/${user}`) return;
+  const bar = $('#rv-more-progress'); if (!bar) return;
+  $('#rv-more').hidden = true; $('#rv-stop').hidden = false;
+  setProgress(bar, run.i, run.n, run.g ? `Game ${run.i + 1} of ${run.n}: vs ${run.g.opp} (${run.g.tc})` : run.n ? 'Done' : 'Starting…');
+}
 /** A review finished: redraw the list, or update the line on their file. */
 async function reviewDone(user) {
   const [tab, arg] = (location.hash.slice(1) || 'me').split('/');
-  if (user === P?.me.user) { if (tab === 'me' && !meReviewing) renderMe(); return; } // show what the review found
+  if (user === P?.me.user) { if (tab === 'me' && !manual[user]) renderMe(); return; } // show what the review found
   if (tab === 'prep' && !arg && !document.activeElement?.matches('input, select, textarea')) renderOppList();
   else if (tab === 'prep' && arg === user && !trapRunning[user]) renderOpp(user); // show what the review found
   else showReview(user, await rvStatus(user));
@@ -540,7 +558,7 @@ function resultsArrived(players) {
   const [tab, arg] = (location.hash.slice(1) || 'me').split('/');
   if (document.activeElement?.matches('input, select, textarea')) return;
   if ((tab === 'prep' || tab === 'drill') && !arg) route();
-  else if (tab === 'prep' && players.includes(arg) && !reviewing[arg] && !trapRunning[arg] && !aiWriting(arg)) renderOpp(arg);
+  else if (tab === 'prep' && players.includes(arg) && !reviewing[arg] && !manual[arg] && !trapRunning[arg] && !aiWriting(arg)) renderOpp(arg);
 }
 
 // ---------- auto profile text ----------
@@ -814,7 +832,9 @@ async function renderOpp(user) {
   const r = h2h.rec; // your wins, draws, losses
   const name = oppName(user);
   const rvLine = await rvStatus(user);
-  const rv = gs?.length ? summarize(gs, await reviewCache(user)) : null;
+  const rvCache = await reviewCache(user);
+  const rv = gs?.length ? summarize(gs, rvCache) : null;
+  const unreviewed = !!gs?.some((g) => !rvCache[g.url] && g.sans.length >= 10); // games a button can still review
   view.innerHTML = `<div class="cols">
     <a class="back" href="#prep">◀ Opponents</a>
     <header class="head"><h1>${esc(displayName(user))}</h1><a class="eyebrow profile-link" href="https://www.chess.com/member/${encodeURIComponent(name)}" target="_blank" rel="noopener">chess.com/${esc(name)}</a></header>
@@ -830,6 +850,9 @@ async function renderOpp(user) {
     <section class="card" id="step-stockfish"><p class="eyebrow">${stepOf(2)} · Analyze opponent</p><h2>Game review</h2>
       <p class="small muted" data-rv="${esc(user)}"${rvLine ? '' : ' hidden'}>${rvLine}</p>
       ${reviewHtml(rv)}
+      ${unreviewed ? `<div class="row"><button class="btn" id="rv-more"${reviewPending(user) || trapRunning[user] || manual[user] ? ' hidden' : ''}>Review 20 ${rv?.reviewed ? 'more' : 'of their'} games</button><button class="btn" id="rv-stop" hidden>Stop</button></div>
+      ${progress('rv-more-progress')}
+      <p class="small muted">About 10 seconds per game. Keep the app open. Reviewed games are saved if you stop.</p>` : ''}
       <h3>Traps: moves they repeat that lose</h3>
       <p class="small muted">Stockfish checks the positions they reach most often and flags moves they keep playing that the engine refutes.</p>
       ${current || tooFew || trapRunning[user] ? '' : reviewPending(user)
@@ -852,6 +875,13 @@ async function renderOpp(user) {
   $('#sync').onclick = async (e) => { if (await sync(user, e.currentTarget, $('#sync-status'))) renderOpp(user); };
   $('#traps')?.addEventListener('click', () => { trapFailed.delete(user); queueAnalysis(user); renderOpp(user); });
   if (trapRunning[user]) showTraps(user);
+  $('#rv-more')?.addEventListener('click', async () => {
+    paintOppMore(user, { i: 0, n: 0, g: null });
+    await reviewMore(user, gs, (run) => paintOppMore(user, run));
+    if (location.hash === `#prep/${user}`) renderOpp(user);
+  });
+  $('#rv-stop')?.addEventListener('click', (e) => { if (manual[user]) manual[user].signal.stop = true; e.currentTarget.textContent = 'Stopping after this game…'; });
+  if (manual[user]) paintOppMore(user, manual[user]);
 }
 const PLAN_LINES = {};
 /** The quick plan: built on this device from their statistics, counted from real results. */
@@ -1122,7 +1152,7 @@ async function renderMe() {
         [s.save.games ? `${s.save.pct}%` : '–', `Losing positions saved (${s.save.games})`],
         [s.punish.chances ? `${s.punish.pct}%` : '–', `Opponent blunders punished (${s.punish.chances})`]])}
         ${list(insights(s))}` : '<p class="small muted">Stockfish goes through your games move by move and finds where you lose the most. Your worst moments become puzzles in Drill.</p>'}
-      <div class="row"><button class="btn primary" id="review" ${gs?.length ? '' : 'disabled'}${autoMe ? ' hidden' : ''}>Review ${s?.reviewed ? '20 more' : 'my last 20'} games</button><button class="btn" id="stop" hidden>Stop</button></div>
+      <div class="row"><button class="btn primary" id="review" ${gs?.length ? '' : 'disabled'}${autoMe || manual[user] ? ' hidden' : ''}>Review ${s?.reviewed ? '20 more' : 'my last 20'} games</button><button class="btn" id="stop" hidden>Stop</button></div>
       ${progress('review-progress')}
       <p class="small muted">${s?.reviewed ? `${s.reviewed} games reviewed. ` : ''}${autoMe ? 'Your newest games are reviewed automatically after each download. ' : ''}About 10 seconds per game. Keep the app open. Reviewed games are saved if you stop.</p></section>
     <section class="card"><h2>Lines that go badly for you ${scoreInfo('si-mine')}</h2>${scoreNote('si-mine')}
@@ -1131,17 +1161,20 @@ async function renderMe() {
   $('#sync').onclick = async (e) => { if (await sync(user, e.currentTarget, $('#sync-status'))) renderMe(); };
   if (reviewing[user]) showMyReview(reviewing[user][0], reviewing[user][1], null);
   else if (autoMe) setProgress($('#review-progress'), 0, 0, 'Waiting to review your newest games…');
-  const signal = { stop: false };
-  $('#review').onclick = async (e) => {
-    e.currentTarget.hidden = true; $('#stop').hidden = false;
-    const bar = $('#review-progress');
-    meReviewing = true;
-    try {
-      await whileAwake(() => reviewGames(user, gs, 20, (i, n, g) => setProgress(bar, i, n, g ? `Game ${i + 1} of ${n}: vs ${g.opp} (${g.tc})` : 'Done'), signal));
-    } finally { meReviewing = false; }
+  if (manual[user]) paintMyMore(manual[user]);
+  $('#review').onclick = async () => {
+    paintMyMore({ i: 0, n: 0, g: null });
+    await reviewMore(user, gs, paintMyMore);
     if (location.hash.slice(1) === 'me' || !location.hash.slice(1)) renderMe();
   };
-  $('#stop').onclick = (e) => { signal.stop = true; e.currentTarget.textContent = 'Stopping after this game…'; };
+  $('#stop').onclick = (e) => { if (manual[user]) manual[user].signal.stop = true; e.currentTarget.textContent = 'Stopping after this game…'; };
+}
+/** Progress of a review started with the button on the You tab, if it's open. */
+function paintMyMore(run) {
+  const bar = (location.hash.slice(1) === 'me' || !location.hash.slice(1)) && $('#review-progress');
+  if (!bar) return;
+  $('#review').hidden = true; $('#stop').hidden = false;
+  setProgress(bar, run.i, run.n, run.g ? `Game ${run.i + 1} of ${run.n}: vs ${run.g.opp} (${run.g.tc})` : run.n ? 'Done' : 'Starting…');
 }
 
 function insights(s) {
