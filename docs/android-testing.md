@@ -37,7 +37,7 @@ The app shares its data with the Chrome on that device, since it is the same add
 
 ## Installing a build that isn't in Play yet
 
-Use this to check a new `.aab` before uploading it. The Android project lives outside the repo (`~/checkmate-prep-android`).
+Use this to check a new `.aab` before uploading it. The Android project lives outside the repo (`~/checkmate-prep-android`); `android/twa-manifest.json` in the repo is its source, and `android/README.md` has the rebuild steps.
 
 ```bash
 # once: bundletool turns the .aab into installable files

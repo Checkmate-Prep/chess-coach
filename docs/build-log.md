@@ -848,7 +848,12 @@ On native iOS, Claude recommended against a Swift rewrite: the logic would exist
 
 **What Claude did:** rewrote the description, Open Graph title and Open Graph description in `app/index.html` to match the landing page: "Win your next chess game", and that Checkmate Prep studies how your chess.com opponents play and teaches you how to beat them (the owner then shortened it to: "Checkmate Prep studies how your opponents play and teaches you how to beat them. Free, no sign-up required."). The service worker cache name was re-stamped by hand because `python-chess` could not be installed in the cloud session. Not done: a 1200×630 share image (the preview still shows the knight icon) and a check in WhatsApp itself, which caches previews, so an old preview may show for a while.
 
-### 105. Wide screens: Prep file, You, lists
+### 106. The Android manifest moves into the repo
+> should we move the android project in the gh repo? or should we keep it separate?
+
+**What Claude did:** recommended keeping the generated project and the upload keystore out of the (public) repo, since Bubblewrap regenerates the project from `twa-manifest.json` and a keystore must never be committed, but versioning the manifest itself. `android/twa-manifest.json` is now the source of truth (keystore path made relative), with `monochromeIconUrl` set and the version raised to 3 for the themed icon (#67); `android/README.md` has the rebuild steps; `.gitignore` blocks keystores and the generated project. Not done: the Bubblewrap build, the Play upload and the check on a device (#67 stays open).
+
+### 107. Wide screens: Prep file, You, lists
 > Yes, start #98 with the Prep file (two columns, tracker on top, plan board in view), then continue in your suggested order on this branch.
 
 **What Claude did:** from 1180px wide the Prep file puts the header, stats and steps tracker across the top, with games and game review on the left and the game plan on the right; plan boards stay stacked there and are never taller than the window. `#me` does the same with the engine review on the right. Stat tiles wrap (150px each) instead of a fixed two columns from 700px. The opponent list, settings and add-opponent screens keep a 720px width, set through a `data-page` attribute on the view. `privacy.html` and `delete-account.html` already sit in a 560px column and were left alone.
