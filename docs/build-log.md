@@ -842,3 +842,8 @@ On native iOS, Claude recommended against a Swift rewrite: the logic would exist
 **What changed along the way:** the first version used two columns from 700px, which left a 130px board at 744px wide; the split moved to 960px. Checked at 375, 744, 1280 and 1920 wide in light mode; the Drill page was checked with a stand-in page, since the preview had no traps. Not done: dark mode at wide sizes, the other screens (#98) and the keyboard work (#99).
 
 **Follow-up:** the owner found the boards in the Prep file too tall for a laptop window (Explore and Drill were fine). Boards are now never taller than the window (100vh minus 190px) from 700px, and from 960px the plan viewers put the board on the left and the moves, buttons and caption on the right. Checked at 1280×650 with a stand-in viewer; not checked with a real Prep file.
+
+### 105. Better description when the link is shared
+> work on issue 100 (improve the description when sending a link via WhatsApp)
+
+**What Claude did:** rewrote the description, Open Graph title and Open Graph description in `app/index.html` to match the landing page: "Win your next chess game", and that Checkmate Prep studies how your chess.com opponents play and teaches you how to beat them (the owner then shortened it to: "Checkmate Prep studies how your opponents play and teaches you how to beat them. Free, no sign-up required."). The service worker cache name was re-stamped by hand because `python-chess` could not be installed in the cloud session. Not done: a 1200×630 share image (the preview still shows the knight icon) and a check in WhatsApp itself, which caches previews, so an old preview may show for a while.
