@@ -324,13 +324,14 @@ function rollShots(box) {
   new IntersectionObserver(([e]) => { visible = e.isIntersecting; }).observe(box);
   const timer = setInterval(() => {
     if (stopped || !box.isConnected) return clearInterval(timer);
-    if (!hovered && visible && !document.hidden) go(1);
+    if (!hovered && visible && !document.hidden && !matchMedia('(min-width: 700px)').matches) go(1);
   }, 3000);
 }
 
 function renderWelcome() {
-  view.innerHTML = `
-    <header class="head welcome">${heroSvg()}<p class="eyebrow">Welcome to Checkmate Prep</p><h1>Win your next chess game</h1>
+  view.innerHTML = `<div class="welcome-page">
+    <div class="welcome-top">${heroSvg()}<p class="eyebrow">Welcome to Checkmate Prep</p></div>
+    <header class="head welcome"><h1>Win your next chess game</h1>
       <p class="lede">Checkmate Prep studies how your opponents play and teaches you how to beat them.</p></header>
     <div class="choices"><a class="btn primary" href="#start">Prepare for an opponent</a><div id="account-slot" data-mode="welcome"></div></div>
     <ul class="plain facts"><li>Free, with no sign-up or password required</li><li>Automatically downloads chess.com games</li><li>Uses the world's strongest chess engine and frontier AI models</li></ul>
@@ -344,8 +345,8 @@ function renderWelcome() {
         ['5-game-plan-consent', 'The quick game plan, and the note you agree to before the AI writes a deeper one'],
       ].map(([f, alt]) => `<img src="shots/${f}.webp" alt="${alt}" width="540" height="960" loading="lazy">`).join('')}</div>
         <button type="button" class="arrow next" data-dir="1" aria-label="Next screen">›</button></div></section>
-    <section class="card"><h2>How it works</h2>${howItWorksHtml()}</section>
-    ${footerHtml}`;
+    <section class="card steps-card"><h2>How it works</h2>${howItWorksHtml()}</section>
+    ${footerHtml}</div>`;
   renderAccount();
   rollShots(view.querySelector('.carousel'));
 }
