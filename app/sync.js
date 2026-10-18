@@ -135,7 +135,8 @@ export async function token() {
 export function signIn() {
   // Native: Auth0's page opens in the system browser, and comes back through nativeCallback below.
   const openUrl = isNative() && plugin('Browser') ? (url) => plugin('Browser').open({ url }) : undefined;
-  return client?.loginWithRedirect({ appState: { hash: location.hash }, ...(openUrl && { openUrl }) });
+  // select_account: Google keeps its own session after an Auth0 sign-out and would otherwise sign the same account straight back in.
+  return client?.loginWithRedirect({ appState: { hash: location.hash }, authorizationParams: { prompt: 'select_account' }, ...(openUrl && { openUrl }) });
 }
 
 let listening = false, loggingOut = false, authDomain = '';
