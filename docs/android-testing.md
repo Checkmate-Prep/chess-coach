@@ -28,7 +28,7 @@ If Play says the item isn't found, wait a few minutes after opting in, close and
 ## What to check
 
 - **No address bar** at the top. If Chrome's URL bar shows, Android couldn't confirm the app belongs to the website: the fingerprint in `worker/assetlinks.js` doesn't match the key the build is signed with. A build installed from Play is signed with the **app signing** key (Console → Test and release → App integrity → App signing); a build from your own keystore uses the **upload** key. Both are listed there.
-- **Icon and name** on the launcher. On Android 13+ with *Themed icons* switched on (Settings → Wallpaper & style), the icon should be tinted and not clipped (the monochrome layer, `app/icon-512-monochrome.png`).
+- **Icon and name** on the launcher. On Android 13+ with *Themed icons* switched on (Settings → Wallpaper & style), the icon should be tinted and not clipped (the monochrome layer, `app/icon-512-monochrome.png`, added to the project by `android/patch-project.sh`). On an emulator, switch it on under Wallpaper & style → Home screen → Themed icons; the setting isn't picked up from adb. An APK built before the patch keeps its full-colour icon.
 - **Launch and sign-in:** the welcome screen, then sign in with Google and with an email code. A signed-in session should show the same opponents as the website.
 - **Offline and back:** turn on airplane mode in the emulator's extended controls and reopen the app. The app files are cached by the service worker, so it should still open and show saved opponents; only downloading new games needs the network.
 - **Phone size:** about 360×800. Look for text cut off or buttons off the screen.
