@@ -1,7 +1,7 @@
 import { test, describe, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { sansOf, syncGames, player, savePlayers, cachedGames } from '../app/chesscom.js';
+import { sansOf, syncGames, player, savePlayers, cachedGames, isComplete } from '../app/chesscom.js';
 import { ls } from '../app/store.js';
 import { installFakeIndexedDB, installFakeLocalStorage, installFakeFetch } from './helpers.mjs';
 
@@ -71,22 +71,55 @@ describe('syncGames', () => {
     assert.deepEqual(progress.at(-1), [12, 12]);
   });
 
-  test('skips months fetched after they ended, fetches again ones fetched before', async () => {
-    const list = ['2026/05', '2026/06', '2026/07', '2026/08'];
+  test('skips months fetched well after they ended, fetches again ones fetched before or just after', async () => {
+    const list = ['2026/04', '2026/05', '2026/06', '2026/07', '2026/08'];
     db.set('games:testplayer', {
       games: [],
       months: {
-        '2026/05': Date.UTC(2026, 5, 3),        // fetched in June: complete
-        '2026/06': true,                         // old cache format: fetch once more
-        '2026/07': Date.UTC(2026, 6, 31, 23),    // fetched on its last day: late games were missing
-        '2026/08': Date.UTC(2026, 8, 1, 0, 0, 1), // fetched just after it ended: complete
+        '2026/04': Date.UTC(2026, 4, 1, 2),       // fetched 2 hours after it ended: complete
+        '2026/05': Date.UTC(2026, 5, 3),          // fetched in June: complete
+        '2026/06': true,                          // old cache format: fetch once more
+        '2026/07': Date.UTC(2026, 6, 31, 23),     // fetched on its last day: late games were missing
+        '2026/08': Date.UTC(2026, 8, 1, 0, 0, 1), // fetched just after it ended: chess.com may not have all games yet
       },
     });
     const calls = account(list, (m) => [gameIn(m)]);
     const out = await syncGames('testplayer');
-    assert.deepEqual(calls.slice(1), [monthUrl('2026/07'), monthUrl('2026/06')]);
-    assert.ok(out.months['2026/07'] >= Date.UTC(2026, 7, 1), 'the refetched month is now marked complete');
-    assert.equal(out.games.length, 2);
+    assert.deepEqual(calls.slice(1), [monthUrl('2026/08'), monthUrl('2026/07'), monthUrl('2026/06')]);
+    assert.ok(isComplete('2026/07', out.months['2026/07']), 'the refetched month is now marked complete');
+    assert.equal(out.games.length, 3);
+  });
+
+  test('isComplete: only a copy fetched 2 hours or more after the month ended', () => {
+    const end = Date.UTC(2026, 7, 1);
+    assert.equal(isComplete('2026/07', end - 1), false);
+    assert.equal(isComplete('2026/07', end + 60e3), false);
+    assert.equal(isComplete('2026/07', end + 2 * 3600e3), true);
+    assert.equal(isComplete('2026/12', Date.UTC(2027, 0, 1, 3)), true, 'December ends in the next year');
+    assert.equal(isComplete('2026/07', undefined), false);
+    assert.equal(isComplete('2026/07', true), false);
+  });
+
+  test('a failed download keeps the months that arrived before it', async () => {
+    const list = ['2026/06', '2026/07', '2026/08'];
+    const routes = { [`${API}testplayer/games/archives`]: { archives: list.map(monthUrl) } };
+    routes[monthUrl('2026/08')] = { games: [gameIn('2026/08')] };
+    routes[monthUrl('2026/07')] = 500;
+    routes[monthUrl('2026/06')] = { games: [gameIn('2026/06')] };
+    installFakeFetch(routes);
+    db.set('games:testplayer', { months: {}, games: [], fetched: 123 });
+    await assert.rejects(syncGames('testplayer'), /chess\.com answered 500/);
+    const kept = await cachedGames('testplayer');
+    assert.deepEqual(kept.games.map((g) => g.url), [gameIn('2026/08').url]);
+    assert.deepEqual(Object.keys(kept.months), ['2026/08']);
+    assert.equal(kept.fetched, 123, 'not a full download: the next start tries again');
+
+    routes[monthUrl('2026/07')] = { games: [gameIn('2026/07')] };
+    const calls = installFakeFetch(routes);
+    const out = await syncGames('testplayer');
+    assert.equal(out.games.length, 3);
+    assert.ok(out.fetched > 123);
+    assert.ok(calls.includes(monthUrl('2026/07')) && calls.includes(monthUrl('2026/06')));
   });
 
   test('merges with cached games by URL', async () => {
