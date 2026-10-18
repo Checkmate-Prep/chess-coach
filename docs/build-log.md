@@ -886,6 +886,8 @@ Also: `android/twa-manifest.json` now says version 4 (`appVersionCode` 4), match
 ### 111. Keyboard and mouse on desktop
 > start on issue 99
 
-**What Claude did:** arrow keys (and Home/End) step through plan and trap line viewers (the one last pointed at or focused when several are on screen), and Left goes back in Explore. Buttons, rows and moves get a hover border where hover exists. On the board, dragging a piece with the mouse plays it next to tap-to-move; touch stays tap-only so scrolling still works.
+**What Claude did:** buttons, rows and moves get a hover border where hover exists. On the board, dragging a piece with the mouse plays it next to tap-to-move; touch stays tap-only so scrolling still works.
 
-**Checked:** in the browser at desktop width: drag e2 to e4 in Explore, click-to-select, ArrowLeft in Explore. Not checked: arrow keys in the plan and trap viewers, touch devices, promotion by drag. Drills have no arrow-key support yet, and game review has no step-through viewer of its own.
+Arrow keys were built first (plan and trap viewers, Explore) and dropped on request: the ◀ ▶ buttons already do the job and phones have no arrow keys.
+
+**Checked:** in the browser at desktop width: drag e2 to e4 in Explore and click-to-select. Not checked: touch devices, promotion by drag.
