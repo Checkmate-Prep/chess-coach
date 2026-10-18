@@ -938,3 +938,14 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 **What Claude did:** looked at the three pages at 375, 1280 and 1920 wide in light and dark. On desktop the text ran in a 560px phone column with boxed cards and no way between the pages. Moved the styles into one file, `app/legal.css`, replacing the three inline `<style>` copies: a centred column of about 65 characters, section blocks without boxes, a header with Privacy, Terms, Delete account and Open the app (the current page marked). Content and links are unchanged. Added `legal.css` to the service worker's shell cache (not the pages: Cloudflare redirects `/privacy.html` to `/privacy`, and a service worker can't answer a navigation with a cached redirect, which broke the pages on dev), then ran `build_app.py`.
 
 **Checked:** no sideways scrolling at 375, 1280 or 1920 in light and dark, and screenshots of all three pages at phone width and of the terms page at desktop widths. The node suite passes. **Not checked:** a real device, and offline mode (the built-in browser can't register service workers).
+
+### 119. Sign-out asks before discarding unsent changes
+> start 116
+>
+> what is the proper UX, displaying the picker everytime or the previous behavior?
+
+**What Claude did:** read `signOut` and found that a failed sync was swallowed, so changes made offline were cleared with the device. Added `hasUnsent()` (compares the local data with the last synced doc, and looks for results waiting to upload). `signOut` now stops and returns `{ unsent: true }` when something is unsent, and the account card asks "Sign out anyway?" before calling it again with `force`. A failed web `logout` redirect now falls back to the welcome screen, and the card says signing out removes data from this device while the account keeps its copy. Simon found on dev that Google signed the same account straight back in after sign-out (Google's own session survives), so `signIn` now sends `prompt=select_account`; Claude kept the picker on every sign-in because sign-in is rare and a wrong-account sign-in costs more than one tap. New `tests/signout.test.mjs`.
+
+**What Simon did:** confirmed the Allowed Logout URLs in Auth0 and tried sign-out on dev.
+
+**Checked:** the node suite, and on dev web: the Google account picker after sign-out, the confirm when offline with an unsent change, Cancel keeping the data, OK clearing it. **Not checked:** production, Android, iOS (waits for #55), the email one-time code, sign-out in a second tab, and Cancel followed by syncing once back online.
