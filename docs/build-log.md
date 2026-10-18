@@ -904,3 +904,14 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 **Checked:** the script on a throwaway copy of the project, run twice (one layer, well-formed XML, a bad path exits with an error). Then on the real project, with a debug-signed build: `aapt2` shows the monochrome layer, and on the API 35 emulator the knight is tinted, centred and not clipped.
 
 **Not checked:** a release build (it needs the keystore passwords, so that step stays with Simon), the Play upload, or a real phone. The icon has a lighter ring around its inner disc that other apps don't; it may be the template's background layer showing through, or just this emulator's launcher.
+
+### 113. Android: release 5 with the themed icon
+> help me build a release with the patch and new .aab
+>
+> suggest release name and notes
+>
+> add it to store-listing.md with the version bump in a PR
+
+**What Claude did:** ran `bubblewrap update` (which raised the version to 5 on its own, reset the Gradle pins and removed the monochrome layer), then `android/patch-project.sh` to put both back. Then Simon ran `bubblewrap build` and typed the keystore and key passwords. The new bundle and APK were checked with `aapt2` and `apksigner`: version 5, a `<monochrome>` layer in the launcher icon, signed with the same key as version 4. This PR brings the repo's `android/twa-manifest.json` to version 5, and `docs/store-listing.md` keeps the first build's release note and the one for version 5, with its release name.
+
+**Checked:** the version fields are the only differences between the repo's manifest and the project's. Simon then released version 5 to internal testing and open testing. Not checked: production, or the icon on a real phone (the lighter ring seen on the emulator is still unexplained).

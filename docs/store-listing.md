@@ -51,10 +51,24 @@ Checkmate Prep is an independent app. It isn't affiliated with or endorsed by Ch
 
 Keep the text in step with the privacy page (`app/privacy.html`): the AI line and the "no account" claims must match what the code does.
 
-## Release notes (internal testing)
+## Release notes
+
+Play shows these to testers and users: 500 characters per language, wrapped in language tags. The release name is only for the Console (50 characters; the default is `<code> (<name>)`).
+
+First build:
 
 ```
 <en-US>
 First Android build of Checkmate Prep: opening prep, traps and drills for your games against the people you play on chess.com.
 </en-US>
 ```
+
+Version 5, release name `5 - themed icon` (released to internal testing and open testing):
+
+```
+<en-US>
+Adds a themed icon. On Android 13 and newer, with Themed icons turned on, the Checkmate Prep icon now takes your wallpaper colours.
+</en-US>
+```
+
+This build changes only the icon: the app loads the website, so site updates need no release note.
