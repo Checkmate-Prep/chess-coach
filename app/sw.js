@@ -1,5 +1,5 @@
 // Offline support: app shell cache-first; chess.com, /api/ and sign-in always live.
-const CACHE = 'chess-prep-ac54a1cf82';
+const CACHE = 'chess-prep-7db14c8a4e';
 const SHELL = ['./', 'aiconsent.js', 'analysis.js', 'app.css', 'app.js', 'board.js', 'chesscom.js', 'delete-account.html',
   'engine.js', 'icon-180.png', 'icon-192.png', 'icon-512-maskable.png', 'icon-512-monochrome.png', 'icon-512-monochrome.svg', 'icon-512.png', 'icon.svg',
   'index.html', 'legal.css', 'manifest.webmanifest', 'native.js', 'pieces.js', 'plan.js', 'privacy.html', 'results.js',
