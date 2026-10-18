@@ -949,3 +949,12 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 **What Simon did:** confirmed the Allowed Logout URLs in Auth0 and tried sign-out on dev.
 
 **Checked:** the node suite, and on dev web: the Google account picker after sign-out, the confirm when offline with an unsent change, Cancel keeping the data, OK clearing it. **Not checked:** production, Android, iOS (waits for #55), the email one-time code, sign-out in a second tab, and Cancel followed by syncing once back online.
+
+### 122. Sign in straight from the welcome screen
+> open issue and start it
+>
+> from landing page, "I already have an account". Takes to a page signin, where I have to click sign in, and then to the login page. shouldn't we get rid of the page /signin?
+
+**What Claude did:** listed what the `#signin` page did (the "games are downloaded again" note, the terms line, a message when accounts aren't available, and the screen shown after coming back from Auth0). "I already have an account" now calls `signIn()` directly and the terms line sits under it. `signIn(hash)` takes the screen to return to, so after Auth0 the user still lands on `#signin`, which keeps the "Getting your data…" and "Nothing is saved on this account yet" states and the retry after a failed sign-in. Opening `#signin` signed out still shows that page.
+
+**Checked:** the welcome screen at 375 wide with accounts switched on from the console (one button, terms line, click stays put without a client); the node suite passes. **Not checked:** the real redirect to Auth0 and back (needs dev), native apps.
