@@ -313,7 +313,7 @@ function heroSvg() {
 }
 
 /** The one line at the foot of the welcome and settings screens: the privacy page and who runs the app. */
-const footerHtml = '<p class="foot"><a href="privacy.html">Privacy</a> · Artware Solutions</p>';
+const footerHtml = '<p class="foot"><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · Artware Solutions</p>';
 
 /** The three steps of getting started, shown on the welcome screen and as step 1 of setup (`now` marks the current one). */
 const howItWorksHtml = (now = 0) => `<ol class="steps">
@@ -374,7 +374,8 @@ function renderSignIn() {
     <a class="back" href="#">◀ Back</a>
     <header class="head"><p class="eyebrow">Existing account</p><h1>Welcome back</h1>
       <p class="lede">Sign in to bring your opponents, names, drill progress and analysis to this device. Your games are downloaded again.</p></header>
-    <div id="account-slot" data-mode="signin"></div>`;
+    <div id="account-slot" data-mode="signin"></div>
+    <p class="small muted">By signing in you agree to the <a href="terms.html">terms</a> and the <a href="privacy.html">privacy</a> page.</p>`;
   renderAccount();
 }
 
@@ -406,7 +407,7 @@ async function renderSetup(first = false) {
     ${youCard + oppCard}
     <div id="account-slot"${me ? '' : ' data-mode="setup"'}></div>
     ${me ? '<div id="stats-slot"></div>' : ''}
-    ${footerHtml}`;
+    ${me ? '' : footerHtml}`;
 
   renderAccount();
   renderStatsToggle();
@@ -1239,6 +1240,10 @@ async function route() {
   }
   window.scrollTo(0, 0);
 }
+// Every screen with the tab bar ends with the footer, even when a screen redraws itself without a route change.
+new MutationObserver(() => {
+  if (!document.body.classList.contains('no-tabs') && !view.querySelector(':scope > .foot')) view.insertAdjacentHTML('beforeend', footerHtml);
+}).observe(view, { childList: true });
 view.addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b) return;
   if (b.classList.contains('info-btn')) {

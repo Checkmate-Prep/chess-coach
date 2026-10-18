@@ -15,6 +15,7 @@ Text for the Play Console (and, later, App Store Connect). Written for the Play 
 | Trader email (shown publicly) | `info@artwaresolutions.org` (the Play developer profile; the listing contact above is separate) |
 | Website | `https://checkmateprep.com` |
 | Privacy policy | `https://checkmateprep.com/privacy` |
+| Terms of service | `https://checkmateprep.com/terms` |
 | Data deletion | `https://checkmateprep.com/delete-account` |
 
 ## Short description (79 characters)
