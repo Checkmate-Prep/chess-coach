@@ -21,7 +21,8 @@ export class Board {
     this.arrows = [];      // [[from, to, color]]
     this.flash = null;     // {square, kind: 'good'|'bad'}
     el.classList.add('board');
-    el.addEventListener('click', (e) => this.tap(e));
+    el.addEventListener('click', (e) => { if (this.dragged) { this.dragged = false; return; } this.tap(e); });
+    el.addEventListener('pointerdown', (e) => this.press(e));
     this.render();
   }
 
@@ -37,11 +38,51 @@ export class Board {
     return FILES[f] + (r + 1);
   }
 
+  /** The square under a pointer event, or null outside the board. */
+  at(e) {
+    const box = this.el.querySelector('svg').getBoundingClientRect();
+    return this.squareAt((e.clientX - box.left) * 360 / box.width, (e.clientY - box.top) * 360 / box.height);
+  }
+
+  /** Mouse drag-and-drop, next to tap-to-move: a plain click still selects, a drag moves the piece. Touch stays tap-only so scrolling works. */
+  press(e) {
+    if (!this.onMove || e.pointerType !== 'mouse' || e.button !== 0) return;
+    const from = this.at(e), piece = from && this.game.get(from);
+    if (!piece || piece.color !== this.game.turn()) return;
+    const x0 = e.clientX, y0 = e.clientY;
+    let ghost = null;
+    const move = (m) => {
+      if (!ghost) {
+        if (Math.hypot(m.clientX - x0, m.clientY - y0) < 5) return;
+        const size = this.el.querySelector('svg').getBoundingClientRect().width / 8;
+        const key = piece.color === 'w' ? piece.type.toUpperCase() : piece.type;
+        ghost = document.createElement('div');
+        ghost.className = 'drag-piece';
+        ghost.style.cssText = `position:fixed;left:0;top:0;width:${size}px;height:${size}px;pointer-events:none;z-index:50`;
+        ghost.innerHTML = `<svg viewBox="0 0 ${SQ} ${SQ}" width="100%" height="100%">${ART[key]}</svg>`;
+        document.body.appendChild(ghost);
+        this.selected = from; this.dragFrom = from; this.render();
+      }
+      ghost.style.transform = `translate(${m.clientX - ghost.offsetWidth / 2}px, ${m.clientY - ghost.offsetHeight / 2}px)`;
+    };
+    const up = (u) => {
+      removeEventListener('pointermove', move); removeEventListener('pointerup', up); removeEventListener('pointercancel', up);
+      if (!ghost) return;
+      ghost.remove();
+      this.dragged = true;                       // the click that follows the drop is not a tap
+      setTimeout(() => { this.dragged = false; });
+      this.dragFrom = null;
+      const to = u.type === 'pointerup' ? this.at(u) : null;
+      const legal = to && this.game.moves({ square: from, verbose: true }).find((m) => m.to === to);
+      if (legal) { this.selected = null; this.onMove({ from, to, promotion: legal.promotion ? 'q' : undefined }); } else this.render();
+    };
+    addEventListener('pointermove', move); addEventListener('pointerup', up); addEventListener('pointercancel', up);
+    e.preventDefault();
+  }
+
   tap(e) {
     if (!this.onMove) return;
-    const svg = this.el.querySelector('svg');
-    const box = svg.getBoundingClientRect();
-    const sq = this.squareAt((e.clientX - box.left) * 360 / box.width, (e.clientY - box.top) * 360 / box.height);
+    const sq = this.at(e);
     if (!sq) return;
     const piece = this.game.get(sq);
     if (this.selected) {
@@ -81,7 +122,7 @@ export class Board {
     const board = this.game.board();
     for (const row of board) {
       for (const p of row) {
-        if (!p) continue;
+        if (!p || p.square === this.dragFrom) continue;
         const [x, y] = this.xy(p.square);
         const key = p.color === 'w' ? p.type.toUpperCase() : p.type;
         parts.push(`<g transform="translate(${x} ${y})">${ART[key]}</g>`);
