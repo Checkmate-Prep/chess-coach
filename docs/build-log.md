@@ -965,3 +965,12 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 **What Claude did:** listed what the `#signin` page did (the "games are downloaded again" note, the terms line, a message when accounts aren't available, and the screen shown after coming back from Auth0). "I already have an account" now calls `signIn()` directly and the terms line sits under it. `signIn(hash)` takes the screen to return to, so after Auth0 the user still lands on `#signin`, which keeps the "Getting your data…" and "Nothing is saved on this account yet" states and the retry after a failed sign-in. Opening `#signin` signed out still shows that page.
 
 **Checked:** the welcome screen at 375 wide with accounts switched on from the console (one button, terms line, click stays put without a client); the node suite passes. **Not checked:** the real redirect to Auth0 and back (needs dev), native apps.
+
+### 144. The app starts offline after an update
+> Suggest 2 or 3 issues that can you handle yourself and that also high on the priority list. So that I get you to work on them in the next 30 min while I’m commuting.
+>
+> Do these 3 in parallel 124 125 126
+
+**What Claude did:** picked #124, #125 and #126 from sprint 1 of the backlog (none blocked, all testable in Node) and worked on them in parallel, one branch each. This PR is #125. The service worker's offline file list was written by hand and lacked `native.js`, so after an update the next offline start stayed on "Loading your prep…". `build_app.py` now writes the list from the files in `app/` (pages, styles, modules, manifest, icons, vendored code), leaving out `prep.json`, the landing screenshots and licence texts. A new test checks that the committed `sw.js` lists every module and matches what the build would write. It runs without python-chess.
+
+**Checked:** both Python suites (20 tests, in a virtualenv where python-chess builds) and the node suite (242 pass); the build gives the same output when run twice. **Not checked:** offline start on a real device (the built-in browser can't register service workers). [PR #144](https://github.com/Checkmate-Prep/chess-coach/pull/144)

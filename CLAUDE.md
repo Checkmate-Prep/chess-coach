@@ -16,7 +16,7 @@ See `README.md` for the user-facing description.
 | `coach.py` | `refresh` runs the pipeline for you + friends, then rebuilds the report and the app data |
 | `notes.py` | **Hand-written prep** (written by Claude from the analysis, not generated). Local only: gitignored, never committed or published. Without it, `build_report.py` skips the report |
 | `build_report.py` | Renders `report.html` (the prep-book artifact) from profiles + `notes.py` |
-| `build_app.py` | Writes an empty `app/prep.json` (hand-written prep never goes into `app/`) and stamps the service-worker cache name |
+| `build_app.py` | Writes an empty `app/prep.json` (hand-written prep never goes into `app/`), writes the service worker's offline file list from the files in `app/` and stamps its cache name |
 | `app/app.js` | UI: routing (`#me`, `#prep`, `#prep/<user>`, `#explore`, `#drill[/id]`, `#setup`) and all screens |
 | `app/chesscom.js`, `app/store.js` | chess.com API client; IndexedDB (games, analysis) + localStorage (profile, names, small settings) |
 | `app/stats.js`, `app/plan.js` | Opening trees, profile stats, weak lines; the automatic game plan |
@@ -49,7 +49,7 @@ python3 -m unittest discover -s tests  # pipeline tests
 
 ## Rules that matter
 
-- **`app/` changes need `python3 build_app.py`.** It hashes the app into the service worker's cache name; without a new name, installed apps keep serving the old files. A project hook runs it automatically after Claude edits a file in `app/`; run it yourself after edits made any other way.
+- **`app/` changes need `python3 build_app.py`.** It lists the app's files for offline use and hashes them into the service worker's cache name; without a new name, installed apps keep serving the old files. A project hook runs it automatically after Claude edits a file in `app/`; run it yourself after edits made any other way.
 - **Everything in `app/` is public**, including `prep.json` (the hand-written prep). Never put secrets or private data there.
 - **No build step or framework.** Plain ES modules; libraries are vendored. Keep it that way unless there's a strong reason. (The Worker is bundled by Wrangler; that doesn't touch `app/`.)
 - **The Anthropic key lives only in the Worker** (`ANTHROPIC_API_KEY` secret, per GitHub Environment). Never in `app/`, `wrangler.toml` or a commit. AI prep must stay optional: without `/api/health` answering `ai: true`, step 3 of an opponent's file is the quick plan built on the device.
