@@ -12,6 +12,8 @@ Web changes reach the app straight away. Rebuild only when the web manifest, ico
 
 Known-good: Bubblewrap CLI 1.27.0, Android Gradle Plugin 8.13.2, Gradle 8.13. Bubblewrap's template sets older AGP and Gradle versions, and `bubblewrap update` resets any edit, so `patch-project.sh` holds the pinned versions. To upgrade, change `AGP` and `GRADLE` at the top of the script and rebuild.
 
+**Themed icon.** Bubblewrap's `monochromeIconUrl` only feeds notification and shortcut icons, and its launcher icon has no monochrome layer. `patch-project.sh` adds one from `app/icon-512-monochrome.png` (the repo's copy, so it matches the site) and puts a `<monochrome>` element in `ic_launcher.xml`. Without that step Android 13+ can't tint the app icon.
+
 ## Rebuild
 
 Run the commands from this repo's folder (`REPO` below), on an up-to-date `main`.
@@ -24,7 +26,7 @@ Run the commands from this repo's folder (`REPO` below), on an up-to-date `main`
    cp "$REPO/android/twa-manifest.json" ~/checkmate-prep-android/twa-manifest.json
    cd ~/checkmate-prep-android
    bubblewrap update                    # regenerates the project; say yes if it offers to refetch the web manifest
-   "$REPO/android/patch-project.sh"     # pins AGP and Gradle again (update resets them)
+   "$REPO/android/patch-project.sh"     # pins AGP and Gradle and adds the themed icon again (update resets both)
    bubblewrap build                     # asks for the keystore and key passwords
    ```
 

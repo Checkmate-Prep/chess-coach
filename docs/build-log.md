@@ -891,3 +891,16 @@ Also: `android/twa-manifest.json` now says version 4 (`appVersionCode` 4), match
 Arrow keys were built first (plan and trap viewers, Explore) and dropped on request: the ◀ ▶ buttons already do the job and phones have no arrow keys.
 
 **Checked:** in the browser at desktop width: drag e2 to e4 in Explore and click-to-select. Not checked: touch devices, promotion by drag.
+
+### 112. Android: the themed icon
+> how do I check the monochrome icon
+>
+> yes, look at the rebuild steps and run them
+>
+> yes, patch-project.sh on a new branch
+
+**What Claude did:** turned on Themed icons in the Android emulator (it isn't picked up from adb; it's under Wallpaper & style → Home screen) and saw every app tint except Checkmate Prep. The installed APK's adaptive icon had a background and a foreground but no `<monochrome>` layer, although `twa-manifest.json` already had `monochromeIconUrl`. Reading Bubblewrap 1.27.0's template showed why: that field only feeds the notification and shortcut icons, so rebuilding with the README steps would have produced the same icon. `android/patch-project.sh` now also copies `app/icon-512-monochrome.png` into the project and adds a `<monochrome>` element to `ic_launcher.xml`, safe to run twice. The README and `docs/android-testing.md` say so.
+
+**Checked:** the script on a throwaway copy of the project, run twice (one layer, well-formed XML, a bad path exits with an error). Then on the real project, with a debug-signed build: `aapt2` shows the monochrome layer, and on the API 35 emulator the knight is tinted, centred and not clipped.
+
+**Not checked:** a release build (it needs the keystore passwords, so that step stays with Simon), the Play upload, or a real phone. The icon has a lighter ring around its inner disc that other apps don't; it may be the template's background layer showing through, or just this emulator's launcher.
