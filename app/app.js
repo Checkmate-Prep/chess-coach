@@ -565,7 +565,7 @@ function renderProfile() {
       <p><b>${esc(name)}</b>${account.signedIn && account.email ? `<br><span class="small muted">${esc(account.email)}</span>` : ''}</p>
       <hr><a href="#setup" role="menuitem">Settings</a>
       ${account.enabled ? (account.signedIn
-        ? `<button role="menuitem" data-prof="sync" ${account.busy ? 'disabled' : ''}>Sync now</button><p class="small muted" aria-live="polite">${when}</p><button role="menuitem" data-prof="signout">Sign out</button>`
+        ? `<button role="menuitem" data-prof="signout">Sign out</button><hr><button role="menuitem" data-prof="sync" ${account.busy ? 'disabled' : ''}>Sync now</button><p class="small muted" aria-live="polite">${when}</p>`
         : '<button role="menuitem" data-prof="signin">Sign in</button>') : ''}</div>`;
   }
   slot.innerHTML = `<button class="profile-btn" aria-label="Profile and settings" aria-haspopup="menu" aria-expanded="${profileOpen}" title="${esc(name)}">${initial || icon}</button>${menu}`;

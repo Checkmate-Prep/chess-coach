@@ -953,6 +953,6 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 ### 120. Profile menu at the top right on desktop
 > start 120
 
-**What Claude did:** added a round profile button at the right of the app bar (the account's initial when signed in, a person icon otherwise). It opens a menu with the name, Settings and, when `/api` is there, Sync now with the last sync time, Sign out (with the unsent-changes confirm) or Sign in. Escape or a click outside closes it. On wide screens the Settings entry leaves the side tabs; on a phone nothing changes. The menu redraws on every sync status change.
+**What Claude did:** added a round profile button at the right of the app bar (the account's initial when signed in, a person icon otherwise). It opens a menu with the name, Settings and, when `/api` is there, Sign out (with the unsent-changes confirm) right below it, then Sync now with the last sync time; or Sign in when signed out. Escape or a click outside closes it. On wide screens the Settings entry leaves the side tabs; on a phone nothing changes. The menu redraws on every sync status change.
 
 **Checked:** at 1200 wide the button, the menu, the Settings link and that the menu closes; at 375×812 the button is hidden and the Settings tab is still there; the node suite passes. **Not checked:** the signed-in menu (needs `npm run dev` with Auth0 keys), the sign-out confirm from the menu, a keyboard-only pass, light mode.
