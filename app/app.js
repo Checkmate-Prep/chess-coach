@@ -407,7 +407,7 @@ async function renderSetup(first = false) {
     ${youCard + oppCard}
     <div id="account-slot"${me ? '' : ' data-mode="setup"'}></div>
     ${me ? '<div id="stats-slot"></div>' : ''}
-    ${footerHtml}`;
+    ${me ? '' : footerHtml}`;
 
   renderAccount();
   renderStatsToggle();
@@ -1240,6 +1240,10 @@ async function route() {
   }
   window.scrollTo(0, 0);
 }
+// Every screen with the tab bar ends with the footer, even when a screen redraws itself without a route change.
+new MutationObserver(() => {
+  if (!document.body.classList.contains('no-tabs') && !view.querySelector(':scope > .foot')) view.insertAdjacentHTML('beforeend', footerHtml);
+}).observe(view, { childList: true });
 view.addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b) return;
   if (b.classList.contains('info-btn')) {
