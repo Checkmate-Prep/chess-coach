@@ -1,0 +1,28 @@
+/* Shared styles for the public pages: privacy.html, terms.html, delete-account.html (loaded after app.css) */
+.legal .appbar-in,.legal .view{max-width:44rem}
+.legal .appbar-in{flex-wrap:wrap;justify-content:space-between;gap:4px 16px}
+.legal .brand span{white-space:nowrap}
+.legal .appbar{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.legal-nav{display:flex;flex-wrap:wrap;flex:1 1 100%;justify-content:flex-start;gap:2px 16px;font:500 .9rem/1.3 var(--sans);letter-spacing:0}
+.legal-nav a{color:var(--muted);text-decoration:none;padding:6px 0}
+.legal-nav a:hover{color:var(--ink)}
+.legal-nav a[aria-current="page"]{color:var(--accent);font-weight:600}
+.legal-nav .open{color:var(--accent);font-weight:600}
+.legal .view{padding:24px 16px calc(env(safe-area-inset-bottom,0px) + 56px);gap:0}
+.legal .head{gap:8px;padding-bottom:20px;margin-bottom:8px;border-bottom:1px solid var(--line)}
+.legal h1{font-size:clamp(2rem,1.6rem + 1.6vw,2.7rem)}
+.legal .lede{font-size:1.08rem;line-height:1.6;color:var(--muted);max-width:65ch}
+.legal .card{background:none;border:0;border-radius:0;padding:20px 0 0;gap:10px;max-width:65ch}
+.legal .card h2{font-size:1.3rem;margin:6px 0 0}
+.legal .card p,.legal .card li{max-width:65ch;line-height:1.65}
+.legal ul,.legal ol{margin:0;padding-left:1.3em;display:grid;gap:6px}
+.legal p{margin:0}
+.legal a{color:var(--accent);text-underline-offset:2px}
+.legal .small{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+@media (min-width:700px){
+  .legal .appbar{padding-left:24px;padding-right:24px}
+  .legal .appbar-in{flex-wrap:nowrap;max-width:calc(44rem - 48px)}
+  .legal-nav{flex:0 1 auto;justify-content:flex-end}
+  .legal .view{padding:48px 24px 80px}
+  .legal .card{padding-top:28px}
+}
