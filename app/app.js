@@ -527,6 +527,7 @@ function renderAccount() {
         <p class="small">Signed in${account.email ? ` as <b>${esc(account.email)}</b>` : ''}. Your opponents, names, drill progress and analysis sync to your other devices.</p>
         <p class="small muted" aria-live="polite">${when}</p>${err}
         <div class="row"><button class="btn" data-acct="sync" ${account.busy ? 'disabled' : ''}>Sync now</button><button class="btn" data-acct="signout">Sign out</button></div>
+        <p class="small muted">Signing out removes your data from this device. Your account keeps its copy.</p>
         <details><summary class="small">Delete account</summary><div class="details-body">
           <p class="small muted">Deletes your opponents, names, drill progress and analysis from the server, and your sign-in, then removes everything from this device. It can't be undone.</p>
           <button class="btn" data-acct="delete">Delete account</button></div></details></section>`;
@@ -537,7 +538,10 @@ function renderAccount() {
       const act = b.dataset.acct;
       if (act === 'signin') await signIn();
       if (act === 'sync') await syncNow();
-      if (act === 'signout') await signOut();
+      if (act === 'signout') {
+        const out = await signOut();
+        if (out.unsent && confirm(`Some recent changes haven't reached your account yet.${account.error ? ` ${account.error}` : ''}\n\nIf you sign out now, they are lost. Sign out anyway?`)) await signOut({ force: true });
+      }
       if (act === 'delete') await deleteSynced();
       if (act === 'forget') await forgetDevice();
       renderAccount();

@@ -135,7 +135,8 @@ export async function token() {
 export function signIn() {
   // Native: Auth0's page opens in the system browser, and comes back through nativeCallback below.
   const openUrl = isNative() && plugin('Browser') ? (url) => plugin('Browser').open({ url }) : undefined;
-  return client?.loginWithRedirect({ appState: { hash: location.hash }, ...(openUrl && { openUrl }) });
+  // select_account: Google keeps its own session after an Auth0 sign-out and would otherwise sign the same account straight back in.
+  return client?.loginWithRedirect({ appState: { hash: location.hash }, authorizationParams: { prompt: 'select_account' }, ...(openUrl && { openUrl }) });
 }
 
 let listening = false, loggingOut = false, authDomain = '';
@@ -175,13 +176,29 @@ export async function nativeCallback(url) {
   }
 }
 
+/** True when this device holds changes the account hasn't received (opponents, names, drill progress, analysis results). */
+export function hasUnsent() {
+  if (Object.values(ls.get('results-dirty', {})).some((items) => Object.keys(items || {}).length)) return true;
+  const prev = ls.get('sync-doc', null), profile = ls.get('profile', null), done = ls.get('done', {});
+  if (!prev) return !!profile?.me || Object.keys(done).length > 0;      // never synced: all of it is unsent
+  const doc = fromLocal(profile, done, prev, 1);
+  // fromLocal reuses prev's own entries when nothing changed, so a different object means a change.
+  return doc.me !== prev.me || Object.keys(doc.done).length !== Object.keys(prev.done).length
+    || Object.entries(doc.opps).some(([u, o]) => o !== prev.opps[u]);
+}
+
 /**
  * Sign out and remove everything this app stored on this device, so the next visit starts like a new one
  * (welcome screen). The account keeps its copy; recent changes are sent first when the server is reachable,
  * unless `send` is false (after deleting the account's data, sending would bring it back).
+ * If changes couldn't be sent, nothing is cleared and it returns `{ unsent: true }`: ask the user, then call again
+ * with `force: true` to sign out and lose them.
  */
-export async function signOut({ send = true } = {}) {
-  if (send) await syncNow().catch(() => {});
+export async function signOut({ send = true, force = false } = {}) {
+  if (send) {
+    await syncNow().catch(() => {});
+    if (!force && hasUnsent()) return { unsent: true };
+  }
   clearTimeout(timer);
   Object.assign(account, { signedIn: false, email: '', at: 0, error: '' });
   await idb.clear(); ls.clear();
@@ -192,8 +209,12 @@ export async function signOut({ send = true } = {}) {
     try {
       await client.logout({ logoutParams: { returnTo: callbackUrl(authDomain) }, openUrl: (url) => plugin('Browser').open({ url }) });
     } catch (e) { console.error(e); loggingOut = false; location.replace(location.pathname); }
-  } else if (client) await client.logout({ logoutParams: { returnTo: location.origin + location.pathname } });
-  else location.replace(location.pathname);
+  } else if (client) {
+    // A failed redirect must not leave the app half signed out on a page that still looks signed in.
+    try { await client.logout({ logoutParams: { returnTo: location.origin + location.pathname } }); }
+    catch (e) { console.error(e); location.replace(location.pathname); }
+  } else location.replace(location.pathname);
+  return { unsent: false };
 }
 
 /** Delete this account's synced data on the server, then sign out (which also clears this device). */
