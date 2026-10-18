@@ -956,3 +956,12 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 **What Claude did:** added a round profile button at the right of the app bar, on every screen size (the account's initial when signed in, a person icon otherwise). It opens a menu with the name, Settings and, when `/api` is there, Sign in or (when signed in) Sign out right below it, with the unsent-changes confirm. Sync now stays on the Settings page. Escape or a click outside closes it. Settings is no longer a tab: it leaves the side tabs on desktop and the bottom bar on a phone (four tabs left). Simon asked for this to cover mobile too. The menu redraws on every sync status change.
 
 **Checked:** at 1200 wide the button, the menu, the Settings link and that the menu closes; at 375×812 the button, the menu fitting the screen, no sideways scroll and the four tabs; the node suite passes. **Not checked:** the signed-in menu (needs `npm run dev` with Auth0 keys), the sign-out confirm from the menu, a keyboard-only pass, light mode.
+
+### 122. Sign in straight from the welcome screen
+> open issue and start it
+>
+> from landing page, "I already have an account". Takes to a page signin, where I have to click sign in, and then to the login page. shouldn't we get rid of the page /signin?
+
+**What Claude did:** listed what the `#signin` page did (the "games are downloaded again" note, the terms line, a message when accounts aren't available, and the screen shown after coming back from Auth0). "I already have an account" now calls `signIn()` directly and the terms line sits under it. `signIn(hash)` takes the screen to return to, so after Auth0 the user still lands on `#signin`, which keeps the "Getting your data…" and "Nothing is saved on this account yet" states and the retry after a failed sign-in. Opening `#signin` signed out still shows that page.
+
+**Checked:** the welcome screen at 375 wide with accounts switched on from the console (one button, terms line, click stays put without a client); the node suite passes. **Not checked:** the real redirect to Auth0 and back (needs dev), native apps.

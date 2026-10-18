@@ -506,7 +506,7 @@ function renderAccount() {
   const err = account.error ? `<p class="small warn" role="alert">${esc(account.error)}</p>` : '';
   // Signed in, but not set up on this device yet: say whose account it is, and offer a way out.
   const who = `<p class="small">Signed in${account.email ? ` as <b>${esc(account.email)}</b>` : ''}. <button class="link-btn" data-acct="signout">Sign out</button></p>`;
-  if (mode === 'welcome') slot.innerHTML = !account.enabled ? '' : account.signedIn ? who : '<a class="btn" href="#signin">I already have an account</a>';
+  if (mode === 'welcome') slot.innerHTML = !account.enabled ? '' : account.signedIn ? who : `<button class="btn" data-acct="signin">I already have an account</button>${err}<p class="small muted">By signing in you agree to the <a href="terms.html">terms</a> and the <a href="privacy.html">privacy</a> page.</p>`;
   else if (mode === 'setup') slot.innerHTML = account.enabled && account.signedIn ? `<section class="card">${who}<p class="small muted">Once you're set up, your opponents, names, drill progress and analysis sync to this account.</p>${err}</section>` : '';
   else if (mode === 'signin') {
     if (!account.enabled) slot.innerHTML = '<p class="muted">Sign-in isn\'t available here. <a href="#">Set up without an account</a>.</p>';
@@ -536,7 +536,7 @@ function renderAccount() {
     b.onclick = async () => {
       b.disabled = true;
       const act = b.dataset.acct;
-      if (act === 'signin') await signIn();
+      if (act === 'signin') await signIn(mode === 'welcome' ? '#signin' : undefined); // coming back, the sign-in screen shows the account's data
       if (act === 'sync') await syncNow();
       if (act === 'signout') {
         const out = await signOut();
