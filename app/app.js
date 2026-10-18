@@ -296,8 +296,20 @@ function lineViewer(host, sans, flipped, keyFrom) {
     if (b.dataset.ply) go(+b.dataset.ply);
     if (b.dataset.nav) go({ first: 0, prev: ply - 1, next: ply + 1, last: sans.length }[b.dataset.nav]);
   });
+  viewers.set(host, (key) => go({ ArrowLeft: ply - 1, ArrowRight: ply + 1, Home: 0, End: sans.length }[key]));
+  ['pointerdown', 'focusin', 'pointerenter'].forEach((t) => host.addEventListener(t, () => { activeViewer = host; }));
   go(sans.length);
 }
+const viewers = new Map();     // line viewers on screen -> function that handles a key
+let activeViewer = null;       // the one last pointed at or focused: arrow keys step through it
+document.addEventListener('keydown', (e) => {
+  if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+  if (e.target.closest?.('input, select, textarea, [contenteditable]')) return;
+  for (const h of viewers.keys()) if (!h.isConnected) viewers.delete(h);
+  const host = viewers.size === 1 ? [...viewers.keys()][0] : viewers.has(activeViewer) ? activeViewer : null;
+  if (host) { e.preventDefault(); viewers.get(host)(e.key); return; }
+  if (!viewers.size && e.key === 'ArrowLeft' && $('#ex-back') && !$('#ex-back').disabled) { e.preventDefault(); $('#ex-back').click(); }
+});
 const viewerHtml = (cap) => `<div class="viewer"><div class="bd"></div><div class="mvs"></div>
   <div class="nav"><button data-nav="first" aria-label="Start">⏮</button><button data-nav="prev" aria-label="Back">◀</button><button data-nav="next" aria-label="Forward">▶</button><button data-nav="last" aria-label="End">⏭</button></div>
   ${cap ? `<p class="cap">${fig(cap)}</p>` : ''}</div>`;

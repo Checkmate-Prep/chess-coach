@@ -32,6 +32,11 @@ li::marker{color:var(--accent)}
 .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);justify-self:start}
 .btn:disabled,.nav button:disabled{opacity:.5}
 button{cursor:pointer}
+@media (hover:hover){
+  .btn:hover:not(:disabled),.nav button:hover:not(:disabled),.moves button:hover,.drills button:hover,.lines button:hover{border-color:var(--accent)}
+  .mv:hover:not([aria-current="true"]){background:var(--surface)}
+  .opps a:hover{background:var(--bg)}
+}
 button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .plan{display:grid;gap:12px;padding-top:18px;border-top:1px solid var(--line)}
 .watch{font-size:.9rem;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
