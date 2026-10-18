@@ -966,6 +966,15 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 
 **Checked:** the welcome screen at 375 wide with accounts switched on from the console (one button, terms line, click stays put without a client); the node suite passes. **Not checked:** the real redirect to Auth0 and back (needs dev), native apps.
 
+### 144. The app starts offline after an update
+> Suggest 2 or 3 issues that can you handle yourself and that also high on the priority list. So that I get you to work on them in the next 30 min while I’m commuting.
+>
+> Do these 3 in parallel 124 125 126
+
+**What Claude did:** picked #124, #125 and #126 from sprint 1 of the backlog (none blocked, all testable in Node) and worked on them in parallel, one branch each. This PR is #125. The service worker's offline file list was written by hand and lacked `native.js`, so after an update the next offline start stayed on "Loading your prep…". `build_app.py` now writes the list from the files in `app/` (pages, styles, modules, manifest, icons, vendored code), leaving out `prep.json`, the landing screenshots and licence texts. A new test checks that the committed `sw.js` lists every module and matches what the build would write. It runs without python-chess.
+
+**Checked:** both Python suites (20 tests, in a virtualenv where python-chess builds) and the node suite (242 pass); the build gives the same output when run twice. **Not checked:** offline start on a real device (the built-in browser can't register service workers). [PR #144](https://github.com/Checkmate-Prep/chess-coach/pull/144)
+
 ### 142. Opponent file: no stray "}" under the plan, and an honest caption for a bare first move
 > Suggest 2 or 3 issues that can you handle yourself and that also high on the priority list. So that I get you to work on them in the next 30 min while I’m commuting.
 >
@@ -973,4 +982,4 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 
 **What Claude did:** proposed #124, #125 and #126, the first three fixes in sprint 1 of the backlog, then worked on them in parallel, one branch and PR each. For #124: the `planStep(...)` call at the end of the `renderOpp` template closed one brace too many, which left a lone `}` on every opponent file. When the quick plan has no trap and no weak line for a colour, its line is just your opening move, but the board still said "Gold moves: where they go wrong". `side()` in `plan.js` now says what kind of line it returns (trap, weak line or opening), and `lineCaption()` picks the caption: "Gold moves: the opening to play." for the fallback.
 
-**Checked:** the node suite passes (244), with new tests for the line kinds and captions. **Not checked:** the opponent file in a browser, and the phone-size preview.
+**Checked:** the node suite passes (244), with new tests for the line kinds and captions. **Not checked:** the opponent file in a browser, and the phone-size preview. [PR #142](https://github.com/Checkmate-Prep/chess-coach/pull/142)
