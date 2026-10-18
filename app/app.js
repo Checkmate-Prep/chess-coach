@@ -540,7 +540,7 @@ function renderAccount() {
       if (act === 'sync') await syncNow();
       if (act === 'signout') {
         const out = await signOut();
-        if (out.unsent && confirm("Some recent changes couldn't be sent to your account" + (account.error ? ` (${account.error})` : '') + '. If you sign out now they are lost. Sign out anyway?')) await signOut({ force: true });
+        if (out.unsent && confirm(`Some recent changes haven't reached your account yet.${account.error ? ` ${account.error}` : ''}\n\nIf you sign out now, they are lost. Sign out anyway?`)) await signOut({ force: true });
       }
       if (act === 'delete') await deleteSynced();
       if (act === 'forget') await forgetDevice();
