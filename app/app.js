@@ -5,7 +5,7 @@ import { idb, ls } from './store.js';
 import { player, savePlayers, syncGames, cachedGames, useGameStore } from './chesscom.js';
 import { buildTree, walk, profile, weakLines, pct, headToHead } from './stats.js';
 import { reviewGames, reviewCache, reviewedCount, summarize, findTraps, cachedTraps, trapScan, trapCandidates, TRAP_MIN_N, isGoodMove } from './analysis.js';
-import { gamePlan } from './plan.js';
+import { gamePlan, lineCaption } from './plan.js';
 import { whileAwake } from './engine.js';
 import { markDirty, resultsReady } from './results.js';
 import { apiUrl, isNative } from './native.js';
@@ -904,7 +904,7 @@ async function renderOpp(user) {
       <div id="trap-list">${trapsSection(user, trW, trB, { current, tooFew, checked, nW: tw.n, nB: tb.n })}</div></section>
     </div>
     ${planStep(user, { saved: ai, canWrite: AI, hasGames: !!gs?.length, writing: aiWriting(user), error: aiErrors[user],
-      quick: ai ? '' : quickPlan(gs?.length ? gamePlan({ pr, tw, tb, trW, trB, myW, myB }) : null, user, trW, trB) })}}</div>`;
+      quick: ai ? '' : quickPlan(gs?.length ? gamePlan({ pr, tw, tb, trW, trB, myW, myB }) : null, user, trW, trB) })}</div>`;
   if (ai) mountPlans(ai.plan.plans.map(aiPlan), 'ai');
   mountTraps(trW, trB);
   view.querySelectorAll('[data-plan]').forEach((host) => { const pl = PLAN_LINES[host.dataset.plan]; if (pl) lineViewer(host, pl.line, pl.flipped, pl.keyFrom); });
@@ -934,7 +934,7 @@ function quickPlan(plan, user, trW, trB) {
     PLAN_LINES[key] = sidePlan.line ? { line: sidePlan.line, flipped, keyFrom: sidePlan.keyFrom } : null;
     const ti = sidePlan.trap ? (trapList || []).indexOf(sidePlan.trap) : -1;
     return `<h3>${title}</h3>${list(sidePlan.points)}
-      ${sidePlan.line ? `<div data-plan="${key}">${viewerHtml(sidePlan.trap ? 'Gold moves: their repeated mistake and the punishment.' : 'Gold moves: where they go wrong.')}</div>` : ''}
+      ${sidePlan.line ? `<div data-plan="${key}">${viewerHtml(lineCaption(sidePlan))}</div>` : ''}
       ${ti >= 0 ? `<button class="btn primary" data-drill="trap:${esc(user)}:${trapColor}:${ti}">Drill the trap</button>` : ''}`;
   };
   const body = [

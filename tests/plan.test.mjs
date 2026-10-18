@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { gamePlan, numbered } from '../app/plan.js';
+import { gamePlan, lineCaption, numbered } from '../app/plan.js';
 import { node } from './helpers.mjs';
 
 const empty = () => ({ n: 0, p: 0, c: {} });
@@ -16,8 +16,8 @@ describe('numbered', () => {
 describe('gamePlan: no games', () => {
   test('gives an empty plan without throwing', () => {
     const p = plan({});
-    assert.deepEqual(p.white, { points: [], line: null, keyFrom: null, trap: null });
-    assert.deepEqual(p.black, { points: [], line: null, keyFrom: null, trap: null });
+    assert.deepEqual(p.white, { points: [], line: null, keyFrom: null, trap: null, kind: null });
+    assert.deepEqual(p.black, { points: [], line: null, keyFrom: null, trap: null, kind: null });
     assert.deepEqual(p.manage, []);
     assert.equal(p.trapsChecked, false);
   });
@@ -38,6 +38,12 @@ describe('gamePlan: your first move as White', () => {
     assert.equal(w.points[1], 'Expect 1…c5: they play it in 60% of those games.');
     assert.deepEqual(w.line, ['e4']);
     assert.equal(w.keyFrom, 0);
+  });
+
+  test('a line that is only your first move is not called "where they go wrong"', () => {
+    const w = plan({ tb: tb() }).white;
+    assert.equal(w.kind, 'opening');
+    assert.equal(lineCaption(w), 'Gold moves: the opening to play.');
   });
 
   test('a move you don\'t play needs 40 games before it is recommended', () => {
@@ -65,6 +71,7 @@ describe('gamePlan: your first move as White', () => {
     assert.deepEqual(w.line, ['d4', 'd5', 'Bf5', 'c4', 'e6', 'Qb3']);
     assert.equal(w.keyFrom, 2);
     assert.equal(w.trap, trap);
+    assert.equal(w.kind, 'trap');
   });
 
   test('a trap after a move you play is preferred over one you don\'t', () => {
@@ -85,6 +92,7 @@ describe('gamePlan: your first move as White', () => {
     assert.ok(w2.points.includes('They struggle after 1.e4 c5 2.Nf3: 20% in 100 games.'));
     assert.deepEqual(w2.line, ['e4', 'c5', 'Nf3']);
     assert.equal(w2.keyFrom, 1);
+    assert.equal(w2.kind, 'weak');
   });
 });
 
@@ -108,6 +116,14 @@ describe('gamePlan: your reply as Black', () => {
     const b = plan({ tw: tw(), trW: [off, on] }).black;
     assert.equal(b.trap, on);
     assert.equal(b.points[1], 'Answer 1…e5. It leads to their repeated mistake below. They score 60% against it (100 games).');
+  });
+});
+
+describe('lineCaption', () => {
+  test('says what the gold moves show', () => {
+    assert.equal(lineCaption({ kind: 'trap' }), 'Gold moves: their repeated mistake and the punishment.');
+    assert.equal(lineCaption({ kind: 'weak' }), 'Gold moves: where they go wrong.');
+    assert.equal(lineCaption({ kind: 'opening' }), 'Gold moves: the opening to play.');
   });
 });
 
