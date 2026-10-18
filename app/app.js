@@ -560,12 +560,11 @@ function renderProfile() {
   const icon = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg>';
   let menu = '';
   if (profileOpen) {
-    const when = account.busy ? 'Syncing…' : account.at ? `Synced ${ago(account.at)}` : 'Not synced yet';
     menu = `<div class="profile-menu" role="menu">
       <p><b>${esc(name)}</b>${account.signedIn && account.email ? `<br><span class="small muted">${esc(account.email)}</span>` : ''}</p>
       <hr><a href="#setup" role="menuitem">Settings</a>
       ${account.enabled ? (account.signedIn
-        ? `<button role="menuitem" data-prof="signout">Sign out</button><hr><button role="menuitem" data-prof="sync" ${account.busy ? 'disabled' : ''}>Sync now</button><p class="small muted" aria-live="polite">${when}</p>`
+        ? `<button role="menuitem" data-prof="signout">Sign out</button>`
         : '<button role="menuitem" data-prof="signin">Sign in</button>') : ''}</div>`;
   }
   slot.innerHTML = `<button class="profile-btn" aria-label="Profile and settings" aria-haspopup="menu" aria-expanded="${profileOpen}" title="${esc(name)}">${initial || icon}</button>${menu}`;
@@ -574,7 +573,6 @@ function renderProfile() {
   slot.querySelectorAll('[data-prof]').forEach((b) => {
     b.onclick = async () => {
       const act = b.dataset.prof;
-      if (act === 'sync') { await syncNow(); return renderProfile(); }
       profileOpen = false; renderProfile();
       if (act === 'signin') await signIn();
       if (act === 'signout') {
