@@ -965,3 +965,12 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 **What Claude did:** listed what the `#signin` page did (the "games are downloaded again" note, the terms line, a message when accounts aren't available, and the screen shown after coming back from Auth0). "I already have an account" now calls `signIn()` directly and the terms line sits under it. `signIn(hash)` takes the screen to return to, so after Auth0 the user still lands on `#signin`, which keeps the "Getting your data…" and "Nothing is saved on this account yet" states and the retry after a failed sign-in. Opening `#signin` signed out still shows that page.
 
 **Checked:** the welcome screen at 375 wide with accounts switched on from the console (one button, terms line, click stays put without a client); the node suite passes. **Not checked:** the real redirect to Auth0 and back (needs dev), native apps.
+
+### 142. Opponent file: no stray "}" under the plan, and an honest caption for a bare first move
+> Suggest 2 or 3 issues that can you handle yourself and that also high on the priority list. So that I get you to work on them in the next 30 min while I’m commuting.
+>
+> Do these 3 in parallel 124 125 126
+
+**What Claude did:** proposed #124, #125 and #126, the first three fixes in sprint 1 of the backlog, then worked on them in parallel, one branch and PR each. For #124: the `planStep(...)` call at the end of the `renderOpp` template closed one brace too many, which left a lone `}` on every opponent file. When the quick plan has no trap and no weak line for a colour, its line is just your opening move, but the board still said "Gold moves: where they go wrong". `side()` in `plan.js` now says what kind of line it returns (trap, weak line or opening), and `lineCaption()` picks the caption: "Gold moves: the opening to play." for the fallback.
+
+**Checked:** the node suite passes (244), with new tests for the line kinds and captions. **Not checked:** the opponent file in a browser, and the phone-size preview.
