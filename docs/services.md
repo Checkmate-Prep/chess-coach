@@ -83,7 +83,7 @@ Cloudflare Email Routing forwards these to the project mailbox (which one is in 
 
 | Address | Use |
 | --- | --- |
-| `privacy@checkmateprep.com` | Data and deletion requests. On the privacy, terms and delete-account pages. Also the DMARC `rua` address |
+| `privacy@checkmateprep.com` | Data and deletion requests. On the privacy and delete-account pages. Also the DMARC `rua` address |
 | `contact@checkmateprep.com` | Public contact: Google Play and App Store listings, GitHub billing contact |
 | `support@checkmateprep.com` | Auth0 tenant support email |
 | `no-reply@checkmateprep.com` | Sender of sign-in code emails (Resend, via Auth0). Nobody reads replies |
