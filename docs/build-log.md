@@ -922,3 +922,12 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 **What Claude did:** wrote `app/terms.html` (use of the service, accounts and deletion, AI plans, chess.com data, no warranty, liability capped at US$100, New York law, contact) in the style of the privacy page, and linked it from the privacy and delete-account pages, the footer and the sign-in screen. Updated `store-listing.md`, `app-stores.md`, `services.md` and `CLAUDE.md`.
 
 **Checked:** the node test suite. **Not checked:** the wording by a lawyer (the liability cap and governing law are drafts for the owner to confirm), and the Google consent screen link, which is set by hand after the page is live.
+
+### 115. Google sign-in with our own OAuth credentials
+> start with issue 60
+
+**What Claude did:** read the issue and found it was dashboard work only, so it gave Simon the steps for Google Cloud (project, consent screen with the app name, logo `icon-512.png`, domain and privacy page, publish to production, Web client with both Auth0 callback URLs) and for the Auth0 Google connection. It also explained why Google asks for brand verification (the logo) and what to submit, and that the terms link is optional (opened #113 for the terms page). Updated the Google entry in `services.md`.
+
+**What Simon did:** created the project and client, verified `checkmateprep.com` in Search Console, submitted the app for verification, pasted the client id and secret into Auth0 and stored them in the password manager.
+
+**Checked:** Google sign-in works through Auth0 and the "Dev Keys" warning no longer shows. **Not checked:** the consent screen on production and dev, that an existing Google user keeps the same `sub`, and the logo, which waits for Google's verification.
