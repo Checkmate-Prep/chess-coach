@@ -965,3 +965,20 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 **What Claude did:** listed what the `#signin` page did (the "games are downloaded again" note, the terms line, a message when accounts aren't available, and the screen shown after coming back from Auth0). "I already have an account" now calls `signIn()` directly and the terms line sits under it. `signIn(hash)` takes the screen to return to, so after Auth0 the user still lands on `#signin`, which keeps the "Getting your data…" and "Nothing is saved on this account yet" states and the retry after a failed sign-in. Opening `#signin` signed out still shows that page.
 
 **Checked:** the welcome screen at 375 wide with accounts switched on from the console (one button, terms line, click stays put without a client); the node suite passes. **Not checked:** the real redirect to Auth0 and back (needs dev), native apps.
+
+### 141. Code review, and a backlog to work through it
+> take a long time to perform a deep review of the entire codebase for:
+>
+> * bugs, in particular on edge cases
+> * potential for code refactor (it been built iteratively)
+> * UX design improvements
+> * improvement on the quality of chess advice: find additional ways to help coach the user to beat their opponents, make it easier to prepare and practice
+>
+> if we open issues for each of these, I'm afraid it will make it difficult to prioritize.
+> act as a scrum master, and plan a way to organize efficiently these items.
+>
+> agreed. ok for docs/backlog.md. try creating the new milestone.
+
+**What Claude did:** read every module of the app, the Worker and the pipeline, ran the node suite (242 pass), and loaded the app in headless Chromium with 200 synthetic games and chess.com mocked. That confirmed a stray `}` under every opponent's game plan and a plan telling a blitz player to "ask for a daily game". Other findings came from reading the code: a month of games can be lost when the game store serves a copy fetched just before the month ended, the offline file list misses `native.js`, drill ticks follow list positions, and trap scans count as current when only the game count matches. Then Claude grouped about 40 findings into 17 PR-sized issues instead of one each: 7 fixes under "Before real users" (#124–#130), one enabling refactor and 9 coaching features under a new milestone, "Better coaching" (#131–#140), with "Blocked by" lines in order. The smaller ideas went into a parking lot in the new `docs/backlog.md`, next to the sprint plan, and CLAUDE.md now sends mid-task ideas there instead of to new issues.
+
+**Checked:** the milestone and issues on GitHub. **Not checked:** the Python suite (python-chess wouldn't build in the cloud container).

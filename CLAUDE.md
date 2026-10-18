@@ -85,9 +85,10 @@ python3 -m unittest discover -s tests  # pipeline tests
 
 - **One issue = one PR-sized change.** A bigger job is split into flat issues, not parents and sub-issues. Each issue has a short "Done when" checklist, and the PR says `Closes #N`. Blockers are a "Blocked by: #N" line above "Done when".
 - **Labels say where it belongs, not how urgent it is:** "Android App", "iOS App", "Account Management", "Operations", plus `bug` and `documentation`. No priority labels.
-- **Milestones are the goals** ("Google Play launch", "Before real users", "iOS launch"). Every open issue has one.
+- **Milestones are the goals** ("Google Play launch", "Before real users", "iOS launch", "Better coaching"). Every open issue has one.
 - **Priority is the order of work:** first what is blocked by nothing, then what unblocks other work, then small steps toward users. Keep at most two issues in progress.
-- **Before creating an issue**, search the open ones for a duplicate. New ideas that come up mid-task become an issue, and the current task carries on.
+- **Before creating an issue**, search the open ones for a duplicate. New ideas that come up mid-task go to the parking lot in `docs/backlog.md`, and the current task carries on.
+- **`docs/backlog.md`** holds the order of work by sprint and the parking lot: ideas not scheduled yet. At each sprint review, promote at most two of them to issues.
 - **Tools:** the GitHub MCP tools can create and edit issues and set a milestone, but not create milestones or touch Projects. `gh api repos/checkmate-prep/chess-coach/...` (REST) can create milestones. GraphQL (`gh pr view`, `gh issue list`) is blocked.
 - `docs/app-stores.md` keeps the store plan and what is done; open work lives in the issues.
 
