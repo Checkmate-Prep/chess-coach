@@ -74,6 +74,13 @@ export async function savePlayers(users) {
 
 /** Start of the month after 'YYYY/MM', in UTC milliseconds. */
 export const monthEnd = (month) => { const [y, m] = month.split('/'); return Date.UTC(+y, +m, 1); };
+/** How long after a month ends its archive may still change (chess.com's archives can lag). */
+export const GRACE = 2 * 3600_000;
+/**
+ * Whether a copy of `month` fetched at `fetched` (ms) holds all its games: fetched some time after the month ended.
+ * Old caches store `true`, which compares as 1, so those months count as not complete.
+ */
+export const isComplete = (month, fetched) => fetched >= monthEnd(month) + GRACE;
 
 // The Worker's shared game store (worker/games.js), used when the app is served by the Worker: it answers
 // like chess.com, from a copy shared by every user. Any failure falls back to chess.com itself.
@@ -90,39 +97,47 @@ async function archivesOf(user) {
   const { archives } = await getJSON(`${API}${user}/games/archives`);
   return { months: archives.map((u) => u.split('/').slice(-2).join('/')), store: false };
 }
-/** One month of games, as stored games (neutral). */
+/**
+ * One month of games, as stored games (neutral), and when that copy was fetched from chess.com: the game store's
+ * copy can be up to an hour old, so its own time counts, not this device's clock.
+ */
 async function monthOf(user, month, store) {
   if (store) {
-    try { return (await getJSON(`${storeApi()}${encodeURIComponent(user)}&month=${month}`)).games; } catch { /* chess.com below */ }
+    try {
+      const { games, fetched } = await getJSON(`${storeApi()}${encodeURIComponent(user)}&month=${month}`);
+      return { games, fetched: +fetched || 0 };
+    } catch { /* chess.com below */ }
   }
   const { games } = await getJSON(`${API}${user}/games/${month}`);
-  return games.map(neutral).filter(Boolean);
+  return { games: games.map(neutral).filter(Boolean), fetched: Date.now() };
 }
 
 /**
  * Download games newest-first (up to MAX_MONTHS / MAX_GAMES), merging with what is cached.
- * Months already complete in the cache are not fetched again.
+ * Months already complete in the cache are not fetched again. Each month is saved as it arrives, so a failed
+ * download keeps the months before it; `fetched` (the last full download) only moves once all of them are in.
  */
 export async function syncGames(user, onProgress = () => {}) {
   user = user.toLowerCase();
   const cached = (await idb.get(`games:${user}`)) || { months: {}, games: [] };
   const { months, store } = await archivesOf(user);
   const recent = months.slice(-MAX_MONTHS).reverse();
-  let byUrl = new Map(cached.games.map((g) => [g.url, g]));
+  const byUrl = new Map(cached.games.map((g) => [g.url, g]));
+  const save = (fetched) => {
+    const out = { months: cached.months, games: [...byUrl.values()].sort((a, b) => b.t - a.t).slice(0, MAX_GAMES), fetched };
+    return idb.set(`games:${user}`, out).then(() => out);
+  };
   let i = 0;
   for (const month of recent) {
     onProgress(++i, recent.length);
-    // A month is complete once it was fetched after it ended (UTC, like chess.com's archives).
-    // Old caches store `true`, which compares as 1, so those months are fetched once more.
-    if (cached.months[month] >= monthEnd(month)) continue;
-    for (const n of await monthOf(user, month, store)) byUrl.set(n.url, side(n, user));
-    cached.months[month] = Date.now();
+    if (isComplete(month, cached.months[month])) continue;
+    const { games, fetched } = await monthOf(user, month, store);
+    for (const n of games) byUrl.set(n.url, side(n, user));
+    cached.months[month] = fetched;
     if (byUrl.size >= MAX_GAMES) break;
+    await save(cached.fetched);
   }
-  const games = [...byUrl.values()].sort((a, b) => b.t - a.t).slice(0, MAX_GAMES);
-  const out = { months: cached.months, games, fetched: Date.now() };
-  await idb.set(`games:${user}`, out);
-  return out;
+  return save(Date.now());
 }
 
 export const cachedGames = (user) => idb.get(`games:${user.toLowerCase()}`);

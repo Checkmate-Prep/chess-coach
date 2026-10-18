@@ -983,3 +983,12 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 **What Claude did:** proposed #124, #125 and #126, the first three fixes in sprint 1 of the backlog, then worked on them in parallel, one branch and PR each. For #124: the `planStep(...)` call at the end of the `renderOpp` template closed one brace too many, which left a lone `}` on every opponent file. When the quick plan has no trap and no weak line for a colour, its line is just your opening move, but the board still said "Gold moves: where they go wrong". `side()` in `plan.js` now says what kind of line it returns (trap, weak line or opening), and `lineCaption()` picks the caption: "Gold moves: the opening to play." for the fallback.
 
 **Checked:** the node suite passes (244), with new tests for the line kinds and captions. **Not checked:** the opponent file in a browser, and the phone-size preview. [PR #142](https://github.com/Checkmate-Prep/chess-coach/pull/142)
+
+### 143. No more missing games at the end of a month, and a failed download keeps what it got
+> Suggest 2 or 3 issues that can you handle yourself and that also high on the priority list. So that I get you to work on them in the next 30 min while I’m commuting.
+>
+> Do these 3 in parallel 124 125 126
+
+**What Claude did:** suggested #124, #125 and #126 from Sprint 1 of the backlog and worked on them in parallel, one branch and PR each. This PR is #126. A month now counts as complete only when its copy was fetched at least 2 hours after it ended (`isComplete` in `chesscom.js`, used by the app and the Worker). When the game store answers, the app keeps the store's fetch time for that month instead of the device clock, so a shared copy fetched just after midnight is asked for again later. The Worker also re-checks copies it saved as complete under the old rule. `syncGames` saves after each month, so a failure on month 7 keeps months 1–6; `fetched` only moves once the whole download is in.
+
+**Checked:** the node suite (248 pass), with new tests for the boundary, the store's fetch time and a mid-download failure in both `chesscom.test.mjs` and `games.test.mjs`. **Not checked:** the real Worker and R2 on dev, the app in a browser.

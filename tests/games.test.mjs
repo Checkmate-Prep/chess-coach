@@ -3,7 +3,7 @@ import { test, describe, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { games, forget, keyOf } from '../worker/games.js';
-import { neutral, side, syncGames, useGameStore } from '../app/chesscom.js';
+import { neutral, side, syncGames, useGameStore, cachedGames } from '../app/chesscom.js';
 import { installFakeIndexedDB, installFakeLocalStorage } from './helpers.mjs';
 
 const GAMES = JSON.parse(readFileSync(new URL('fixtures/games.json', import.meta.url)));
@@ -60,6 +60,27 @@ describe('/api/games', () => {
     assert.equal(calls.length, 4);
     assert.equal(again.complete, false);
     assert.deepEqual(list.archives, ['2026/07']);
+  });
+
+  test('a month fetched just after it ended is not complete until 2 hours have passed', async () => {
+    const end = Date.UTC(2026, 7, 1);
+    const [, early] = await askJSON('player=testplayer&month=2026/07', end + 60e3);
+    assert.equal(early.complete, false, 'chess.com may not have the last games of the month yet');
+    await askJSON('player=testplayer&month=2026/07', end + 30 * 60e3);
+    assert.equal(calls.length, 1, 'reused for an hour, like the current month');
+    const [, late] = await askJSON('player=testplayer&month=2026/07', end + 2 * 3600e3);
+    assert.equal(calls.length, 2);
+    assert.equal(late.complete, true);
+    await askJSON('player=testplayer&month=2026/07', end + 365 * 86400e3);
+    assert.equal(calls.length, 2, 'then never fetched again');
+  });
+
+  test('a copy saved as complete right after the month ended (before the grace period) is fetched again', async () => {
+    const end = Date.UTC(2026, 7, 1);
+    env.GAMES.data.set(keyOf('testplayer', '2026/07'), JSON.stringify({ fetched: end + 60e3, complete: true, games: [] }));
+    const [, out] = await askJSON('player=testplayer&month=2026/07', AUGUST);
+    assert.equal(calls.length, 1);
+    assert.deepEqual([out.complete, out.games.length], [true, 4]);
   });
 
   test('chess.com busy: an old copy is served, else 503 so the app goes to chess.com itself', async () => {
@@ -138,6 +159,36 @@ describe('chesscom.js with the game store', () => {
       const stored = await syncGames('testplayer');
       assert.deepEqual(seen.filter((u) => !u.startsWith('api/')), [], 'the app itself never called chess.com');
       assert.deepEqual(stored.games, direct.games);
+    } finally { useGameStore(false); }
+  });
+
+  test("a month counts as complete from the store's fetch time, not the device clock", async () => {
+    // the store fetched July 30 minutes after it ended; this device asks much later (its clock is the real one)
+    const end = Date.UTC(2026, 7, 1);
+    useGameStore(true);
+    try {
+      const chesscom = globalThis.fetch;
+      let now = end + 30 * 60e3;
+      globalThis.fetch = async (url, init) => (url.startsWith('api/games') ? games(new Request(`https://x/${url}`), env, now) : chesscom(url, init));
+      const first = await syncGames('testplayer');
+      assert.equal(first.months['2026/07'], end + 30 * 60e3);
+      now = end + 3 * 3600e3;
+      const second = await syncGames('testplayer');
+      assert.equal(second.months['2026/07'], now, 'asked again, and the new copy is complete');
+      assert.equal(calls.filter(([u]) => u.endsWith('/games/2026/07')).length, 2);
+    } finally { useGameStore(false); }
+  });
+
+  test('store and chess.com both fail on one month: the months before it are kept', async () => {
+    upstream[`${API}testplayer/games/archives`] = { archives: [`${API}testplayer/games/2026/06`, `${API}testplayer/games/2026/07`] };
+    upstream[`${API}testplayer/games/2026/06`] = 500;
+    useGameStore(true);
+    try {
+      viaWorker();
+      await assert.rejects(syncGames('testplayer'));
+      const kept = await cachedGames('testplayer');
+      assert.equal(kept.games.length, 4);
+      assert.deepEqual(Object.keys(kept.months), ['2026/07']);
     } finally { useGameStore(false); }
   });
 
