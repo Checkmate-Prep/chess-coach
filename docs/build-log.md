@@ -965,3 +965,12 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 **What Claude did:** listed what the `#signin` page did (the "games are downloaded again" note, the terms line, a message when accounts aren't available, and the screen shown after coming back from Auth0). "I already have an account" now calls `signIn()` directly and the terms line sits under it. `signIn(hash)` takes the screen to return to, so after Auth0 the user still lands on `#signin`, which keeps the "Getting your data…" and "Nothing is saved on this account yet" states and the retry after a failed sign-in. Opening `#signin` signed out still shows that page.
 
 **Checked:** the welcome screen at 375 wide with accounts switched on from the console (one button, terms line, click stays put without a client); the node suite passes. **Not checked:** the real redirect to Auth0 and back (needs dev), native apps.
+
+### 143. No more missing games at the end of a month, and a failed download keeps what it got
+> Suggest 2 or 3 issues that can you handle yourself and that also high on the priority list. So that I get you to work on them in the next 30 min while I’m commuting.
+>
+> Do these 3 in parallel 124 125 126
+
+**What Claude did:** suggested #124, #125 and #126 from Sprint 1 of the backlog and worked on them in parallel, one branch and PR each. This PR is #126. A month now counts as complete only when its copy was fetched at least 2 hours after it ended (`isComplete` in `chesscom.js`, used by the app and the Worker). When the game store answers, the app keeps the store's fetch time for that month instead of the device clock, so a shared copy fetched just after midnight is asked for again later. The Worker also re-checks copies it saved as complete under the old rule. `syncGames` saves after each month, so a failure on month 7 keeps months 1–6; `fetched` only moves once the whole download is in.
+
+**Checked:** the node suite (248 pass), with new tests for the boundary, the store's fetch time and a mid-download failure in both `chesscom.test.mjs` and `games.test.mjs`. **Not checked:** the real Worker and R2 on dev, the app in a browser.
