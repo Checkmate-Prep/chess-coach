@@ -63,7 +63,7 @@ First Android build of Checkmate Prep: opening prep, traps and drills for your g
 </en-US>
 ```
 
-Version 5, release name `5 - themed icon` (released to internal testing and open testing):
+Version 5, release name `5 - themed icon` (released to the internal and Alpha closed testing tracks):
 
 ```
 <en-US>
