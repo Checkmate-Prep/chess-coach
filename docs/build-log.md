@@ -949,3 +949,10 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 **What Simon did:** confirmed the Allowed Logout URLs in Auth0 and tried sign-out on dev.
 
 **Checked:** the node suite, and on dev web: the Google account picker after sign-out, the confirm when offline with an unsent change, Cancel keeping the data, OK clearing it. **Not checked:** production, Android, iOS (waits for #55), the email one-time code, sign-out in a second tab, and Cancel followed by syncing once back online.
+
+### 120. Profile menu at the top right
+> start 120
+
+**What Claude did:** added a round profile button at the right of the app bar, on every screen size (the account's initial when signed in, a person icon otherwise). It opens a menu with the name, Settings and, when `/api` is there, Sign in or (when signed in) Sign out right below it, with the unsent-changes confirm. Sync now stays on the Settings page. Escape or a click outside closes it. Settings is no longer a tab: it leaves the side tabs on desktop and the bottom bar on a phone (four tabs left). Simon asked for this to cover mobile too. The menu redraws on every sync status change.
+
+**Checked:** at 1200 wide the button, the menu, the Settings link and that the menu closes; at 375×812 the button, the menu fitting the screen, no sideways scroll and the four tabs; the node suite passes. **Not checked:** the signed-in menu (needs `npm run dev` with Auth0 keys), the sign-out confirm from the menu, a keyboard-only pass, light mode.
