@@ -915,3 +915,10 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 **What Claude did:** ran `bubblewrap update` (which raised the version to 5 on its own, reset the Gradle pins and removed the monochrome layer), then `android/patch-project.sh` to put both back. Then Simon ran `bubblewrap build` and typed the keystore and key passwords. The new bundle and APK were checked with `aapt2` and `apksigner`: version 5, a `<monochrome>` layer in the launcher icon, signed with the same key as version 4. This PR brings the repo's `android/twa-manifest.json` to version 5, and `docs/store-listing.md` keeps the first build's release note and the one for version 5, with its release name.
 
 **Checked:** the version fields are the only differences between the repo's manifest and the project's. Simon then released version 5 to internal testing and closed testing (Alpha). Not checked: production, or the icon on a real phone (the lighter ring seen on the emulator is still unexplained).
+
+### 114. Terms of service page
+> work on issue 113 - terms
+
+**What Claude did:** wrote `app/terms.html` (use of the service, accounts and deletion, AI plans, chess.com data, no warranty, liability capped at US$100, New York law, contact) in the style of the privacy page, and linked it from the privacy and delete-account pages, the footer and the sign-in screen. Updated `store-listing.md`, `app-stores.md`, `services.md` and `CLAUDE.md`.
+
+**Checked:** the node test suite. **Not checked:** the wording by a lawyer (the liability cap and governing law are drafts for the owner to confirm), and the Google consent screen link, which is set by hand after the page is live.
