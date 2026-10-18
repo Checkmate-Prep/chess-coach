@@ -34,6 +34,8 @@ def stamp():
         if f.is_file() and f.name != "sw.js":
             digest.update(f.read_bytes())
     sw = APP / "sw.js"
+    # The worker itself counts too (minus the name line), so a changed file list gets a new cache.
+    digest.update(re.sub(r"const CACHE = '[^']*';", "", sw.read_text()).encode())
     sw.write_text(re.sub(r"const CACHE = '[^']*';", f"const CACHE = 'chess-prep-{digest.hexdigest()[:10]}';", sw.read_text()))
     print("prep.json", (APP / "prep.json").stat().st_size // 1024, "KB", "cache", digest.hexdigest()[:10])
 
