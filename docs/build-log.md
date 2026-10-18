@@ -931,3 +931,10 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 **What Simon did:** created the project and client, verified `checkmateprep.com` in Search Console, submitted the app for verification, pasted the client id and secret into Auth0 and stored them in the password manager.
 
 **Checked:** Google sign-in works through Auth0 and the "Dev Keys" warning no longer shows. **Not checked:** the consent screen on production and dev, that an existing Google user keeps the same `sub`, and the logo, which waits for Google's verification.
+
+### 117. Terms, privacy and delete-account pages on desktop
+> work on issue 117
+
+**What Claude did:** looked at the three pages at 375, 1280 and 1920 wide in light and dark. On desktop the text ran in a 560px phone column with boxed cards and no way between the pages. Moved the styles into one file, `app/legal.css`, replacing the three inline `<style>` copies: a centred column of about 65 characters, section blocks without boxes, a header with Privacy, Terms, Delete account and Open the app (the current page marked). Content and links are unchanged. Added `legal.css` and the three pages to the service worker's shell cache, then ran `build_app.py`.
+
+**Checked:** no sideways scrolling at 375, 1280 or 1920 in light and dark, and screenshots of all three pages at phone width and of the terms page at desktop widths. The node suite passes. **Not checked:** a real device, and offline mode (the built-in browser can't register service workers).
