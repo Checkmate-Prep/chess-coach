@@ -883,7 +883,16 @@ On native iOS, Claude recommended against a Swift rewrite: the logic would exist
 
 Also: `android/twa-manifest.json` now says version 4 (`appVersionCode` 4), matching the build made locally for the Play upload; the repo still had 3.
 
-### 111. Android: the themed icon
+### 111. Keyboard and mouse on desktop
+> start on issue 99
+
+**What Claude did:** buttons, rows and moves get a hover border where hover exists. On the board, dragging a piece with the mouse plays it next to tap-to-move; touch stays tap-only so scrolling still works.
+
+Arrow keys were built first (plan and trap viewers, Explore) and dropped on request: the ◀ ▶ buttons already do the job and phones have no arrow keys.
+
+**Checked:** in the browser at desktop width: drag e2 to e4 in Explore and click-to-select. Not checked: touch devices, promotion by drag.
+
+### 112. Android: the themed icon
 > how do I check the monochrome icon
 >
 > yes, look at the rebuild steps and run them
