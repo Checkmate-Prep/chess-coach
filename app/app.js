@@ -548,6 +548,45 @@ function renderAccount() {
     };
   });
 }
+// ---------- profile button (top right on desktop): settings and the account ----------
+let profileOpen = false;
+function renderProfile() {
+  const slot = $('#profile');
+  if (!slot) return;
+  slot.hidden = !P?.me;
+  if (!P?.me) return;
+  const name = P.me.name || displayName(P.me.user);
+  const initial = account.signedIn ? (account.email || name || '?').trim().charAt(0).toUpperCase() : '';
+  const icon = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg>';
+  let menu = '';
+  if (profileOpen) {
+    const when = account.busy ? 'Syncing…' : account.at ? `Synced ${ago(account.at)}` : 'Not synced yet';
+    menu = `<div class="profile-menu" role="menu">
+      <p><b>${esc(name)}</b>${account.signedIn && account.email ? `<br><span class="small muted">${esc(account.email)}</span>` : ''}</p>
+      <hr><a href="#setup" role="menuitem">Settings</a>
+      ${account.enabled ? (account.signedIn
+        ? `<button role="menuitem" data-prof="sync" ${account.busy ? 'disabled' : ''}>Sync now</button><p class="small muted" aria-live="polite">${when}</p><button role="menuitem" data-prof="signout">Sign out</button>`
+        : '<button role="menuitem" data-prof="signin">Sign in</button>') : ''}</div>`;
+  }
+  slot.innerHTML = `<button class="profile-btn" aria-label="Profile and settings" aria-haspopup="menu" aria-expanded="${profileOpen}" title="${esc(name)}">${initial || icon}</button>${menu}`;
+  slot.querySelector('.profile-btn').onclick = () => { profileOpen = !profileOpen; renderProfile(); };
+  slot.querySelectorAll('a').forEach((a) => { a.onclick = () => { profileOpen = false; renderProfile(); }; });
+  slot.querySelectorAll('[data-prof]').forEach((b) => {
+    b.onclick = async () => {
+      const act = b.dataset.prof;
+      if (act === 'sync') { await syncNow(); return renderProfile(); }
+      profileOpen = false; renderProfile();
+      if (act === 'signin') await signIn();
+      if (act === 'signout') {
+        const out = await signOut();
+        if (out.unsent && confirm(`Some recent changes haven't reached your account yet.${account.error ? ` ${account.error}` : ''}\n\nIf you sign out now, they are lost. Sign out anyway?`)) await signOut({ force: true });
+      }
+      renderAccount(); renderProfile();
+    };
+  });
+}
+document.addEventListener('click', (e) => { if (profileOpen && e.target.isConnected && !e.target.closest('#profile')) { profileOpen = false; renderProfile(); } });
+document.addEventListener('keydown', (e) => { if (profileOpen && e.key === 'Escape') { profileOpen = false; renderProfile(); $('#profile .profile-btn')?.focus(); } });
 /** Synced data arrived from another device: pick it up, and redraw lists (not a board or a job in progress). */
 function syncedDataArrived() {
   const was = P;
@@ -1226,6 +1265,7 @@ async function route() {
   const needSetup = !P?.me;
   track(screenOf(tab, arg, needSetup));
   document.body.classList.toggle('no-tabs', needSetup);
+  renderProfile();
   view.dataset.page = needSetup || arg ? '' : tab; // the list screens keep a readable width on wide screens
   document.querySelectorAll('.tabbar a').forEach((a) => a.setAttribute('aria-current', String(a.dataset.tab === (tab === 'add' ? 'prep' : tab))));
   try {
@@ -1273,7 +1313,7 @@ window.addEventListener('hashchange', route);
   // only the Worker (wrangler.toml) answers api/health; on GitHub Pages or live-server this 404s and AI stays off
   await fetch(apiUrl('api/health')).then((r) => r.json()).then((j) => { AI = !!j.ai; }).catch(() => {});
   // Back from Auth0's sign-in page: finish signing in and sync before the first screen, so it shows the synced data.
-  const accounts = { data: syncedDataArrived, status: renderAccount, results: resultsArrived };
+  const accounts = { data: syncedDataArrived, status: () => { renderAccount(); renderProfile(); }, results: resultsArrived };
   // once /api answered (or didn't): games through the shared game store, usage stats
   const stats = () => { useGameStore(hasApi); startTracking({ api: hasApi, token }); renderStatsToggle(); };
   if (returningFromSignIn()) { await startSync(accounts); route(); stats(); } else { route(); startSync(accounts).finally(stats); }
