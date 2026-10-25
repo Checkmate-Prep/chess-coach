@@ -23,7 +23,7 @@ const dateOf = (t) => new Date(t * 1000).toLocaleDateString(undefined, { day: 'n
 const TC = { bullet: 'Bullet', blitz: 'Blitz', rapid: 'Rapid', daily: 'Daily' };
 const plyOf = (fen) => 2 * (+fen.split(' ')[5] - 1) + (fen.split(' ')[1] === 'b' ? 1 : 0);
 
-let AI = false;                          // AI prep available (the app is served by the Worker with a key set)
+let AI = ls.get('ai', false);            // AI prep available (the app is served by the Worker with a key set); last answer of checkAi
 let P = ls.get('profile', null);         // {me:{user,username}, opps:[{user,username}]}
 const view = $('#view');
 const games = {};                        // user -> compact games (memory cache)
@@ -818,6 +818,22 @@ function paintAi(user) {
 }
 /** At start: pick up plans that were still being written when the app closed. */
 function resumeAi() { Object.keys(aiJobs()).forEach(waitAi); }
+const HEALTH_MS = 3000;
+/**
+ * Ask whether AI prep is on. Only the Worker answers api/health (GitHub Pages and live-server don't, so AI stays off).
+ * The first screen never waits for it: it draws with the last answer, and an open opponent file is redrawn if the
+ * answer changes. Asked again when the device comes back online or the app comes back while AI is off.
+ */
+async function checkAi() {
+  let on;
+  try { on = !!(await (await fetch(apiUrl('api/health'), { signal: AbortSignal.timeout?.(HEALTH_MS) })).json()).ai; } catch { return; }
+  ls.set('ai', on);
+  if (on === AI) return;
+  AI = on;
+  if (AI) resumeAi();
+  const [tab, arg] = (location.hash.slice(1) || 'me').split('/');
+  if (tab === 'prep' && arg && P?.opps.some((o) => o.user === arg) && !document.activeElement?.matches('input, select, textarea')) renderOpp(arg);
+}
 
 // ---------- the three steps that build an opponent's file: games (chess.com), Stockfish, Claude ----------
 const trapRunning = {};                  // user -> true while a trap scan runs on their file
@@ -1316,8 +1332,8 @@ view.addEventListener('click', (e) => {
 window.addEventListener('hashchange', route);
 
 (async () => {
-  // only the Worker (wrangler.toml) answers api/health; on GitHub Pages or live-server this 404s and AI stays off
-  await fetch(apiUrl('api/health')).then((r) => r.json()).then((j) => { AI = !!j.ai; }).catch(() => {});
+  checkAi(); // not awaited: the first screen draws with the last answer
+  window.addEventListener('online', checkAi);
   // Back from Auth0's sign-in page: finish signing in and sync before the first screen, so it shows the synced data.
   const accounts = { data: syncedDataArrived, status: () => { renderAccount(); renderProfile(); }, results: resultsArrived };
   // once /api answered (or didn't): games through the shared game store, usage stats
@@ -1326,7 +1342,7 @@ window.addEventListener('hashchange', route);
   // keep everyone's games fresh: missing or more than a day old, downloaded in the background
   dailyDownloads();
   if (AI) resumeAi();
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') dailyDownloads(); });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { dailyDownloads(); if (!AI) checkAi(); } });
   // Offline mode only on the real site: on localhost it would serve stale files during development,
   // so remove any worker and cache an earlier local run installed.
   const local = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);

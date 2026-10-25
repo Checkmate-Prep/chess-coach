@@ -1011,6 +1011,12 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 **What Claude did:** third issue of the night (#129). The plan now suggests the next slower time control (rapid for a blitz player, not daily), counts wins where the opponent ran out of time apart from losses where they did (the advice differs: keep time in hand, or make them think), measures "king in the centre" against games past move 15 instead of all games, and keeps quiet about clock and castling habits until 10 games back them, saying how many games each figure rests on. Copy fixes: "and score 30%" in trap text, subjects on profile lines, and opponents named by their app name in progress lines and puzzle captions.
 
 **Checked:** node suite 255 pass; the profile and plan lines in headless Chromium. **Not checked:** an AI plan from the new payload field. [PR #149](https://github.com/Checkmate-Prep/chess-coach/pull/149)
+### 150. The first screen draws at once
+> now that project exists, address these issues overnight.
+
+**What Claude did:** last fix of the night (#130). Start-up awaited `api/health` with no timeout before drawing anything. `checkAi()` now runs in the background with a 3 s timeout; the first screen uses the last answer (kept in `localStorage`), an open opponent file redraws if the answer changes, and AI is asked again when the device comes back online or the app comes back while AI is off.
+
+**Checked:** in headless Chromium against a local server whose `/api/health` never answers (file drawn in about 200 ms) and one that answers `ai: true` after 1.5 s (step 3 appears). **Not checked:** a real phone on a bad connection, the iOS shell. [PR #150](https://github.com/Checkmate-Prep/chess-coach/pull/150)
 ### 175. The project board follows pull requests
 > gh project kaban board shows 0 PR in progress or review, but in gh there are 5 pr open.
 > fix board automation
