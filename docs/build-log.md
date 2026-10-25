@@ -1013,6 +1013,12 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 **Changed along the way:** checking every stored game by replaying it with chess.js was measured at about 1 ms per game (seconds on a phone for 1,500 games), so old copies are refreshed through the version instead.
 
 **Checked:** node suite 260 pass, Python suite passes, the opponent file in headless Chromium. **Not checked:** the Worker and R2 on dev, a real set-up game from chess.com. [PR #147](https://github.com/Checkmate-Prep/chess-coach/pull/147)
+### 150. The first screen draws at once
+> now that project exists, address these issues overnight.
+
+**What Claude did:** last fix of the night (#130). Start-up awaited `api/health` with no timeout before drawing anything. `checkAi()` now runs in the background with a 3 s timeout; the first screen uses the last answer (kept in `localStorage`), an open opponent file redraws if the answer changes, and AI is asked again when the device comes back online or the app comes back while AI is off.
+
+**Checked:** in headless Chromium against a local server whose `/api/health` never answers (file drawn in about 200 ms) and one that answers `ai: true` after 1.5 s (step 3 appears). **Not checked:** a real phone on a bad connection, the iOS shell. [PR #150](https://github.com/Checkmate-Prep/chess-coach/pull/150)
 ### 175. The project board follows pull requests
 > gh project kaban board shows 0 PR in progress or review, but in gh there are 5 pr open.
 > fix board automation
