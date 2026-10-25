@@ -1,0 +1,33 @@
+name: Project board
+
+# Moves the issues a pull request closes on the org project "Checkmate Prep roadmap" (scripts/project-status.mjs).
+# Needs the PROJECT_TOKEN secret (the workflow's GITHUB_TOKEN can't reach organization projects); without it the
+# job only says so. "Run workflow" (manual) repairs the board from the open pull requests.
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, converted_to_draft, synchronize, closed]
+  pull_request_review:
+    types: [submitted]
+  create:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: project-board
+  cancel-in-progress: false
+
+jobs:
+  board:
+    name: Update the project board
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Move linked issues
+        env:
+          PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+        run: node scripts/project-status.mjs ${{ github.event_name == 'workflow_dispatch' && '--sync' || '' }}
