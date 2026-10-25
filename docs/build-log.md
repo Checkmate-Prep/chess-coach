@@ -1011,6 +1011,12 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 **What Claude did:** second issue of the night (#128). Drill ids were list positions, so a rescan or a rewritten AI plan moved the "done" tick onto another drill; they're now built from a short hash of the trap's moves or the line (`drills.js`), and old ticks move once to the drill at their place. Trap scans counted as current when the number of games matched, which past 1,500 games often stays the same after a refresh; trees now keep the newest game's time, scans store it, and result sync ranks scans by it. Scans saved before compare the count only, so no one gets a wave of rescans.
 
 **Checked:** node suite 259 pass; in headless Chromium, the opponent file's Drill button and the Drill list share the new id and an old tick moved over. **Not checked:** two devices syncing the migrated ticks. [PR #148](https://github.com/Checkmate-Prep/chess-coach/pull/148)
+### 150. The first screen draws at once
+> now that project exists, address these issues overnight.
+
+**What Claude did:** last fix of the night (#130). Start-up awaited `api/health` with no timeout before drawing anything. `checkAi()` now runs in the background with a 3 s timeout; the first screen uses the last answer (kept in `localStorage`), an open opponent file redraws if the answer changes, and AI is asked again when the device comes back online or the app comes back while AI is off.
+
+**Checked:** in headless Chromium against a local server whose `/api/health` never answers (file drawn in about 200 ms) and one that answers `ai: true` after 1.5 s (step 3 appears). **Not checked:** a real phone on a bad connection, the iOS shell. [PR #150](https://github.com/Checkmate-Prep/chess-coach/pull/150)
 ### 175. The project board follows pull requests
 > gh project kaban board shows 0 PR in progress or review, but in gh there are 5 pr open.
 > fix board automation
