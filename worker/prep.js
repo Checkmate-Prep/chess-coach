@@ -12,6 +12,7 @@ import { json } from './http.js';
 import { allowedOrigin } from './cors.js';
 import { SYSTEM, SCHEMA } from './prompt.js';
 import { lastSentences } from './thought.js';
+import { aiFailure } from './aierror.js';
 
 const MAX_BODY = 80_000;                 // bytes of statistics accepted per request
 const CACHE_TTL = 30 * 24 * 3600;        // a plan for identical statistics is reused for 30 days
@@ -98,9 +99,10 @@ export class PrepWorkflow extends WorkflowEntrypoint {
       try {
         msg = await write(this.env, data, job);
       } catch (e) {
-        console.error('anthropic', e?.status, e?.message);
-        if (e?.status === 400 || e?.status === 401 || e?.status === 403) return { error: 'The AI service failed. Try again later.' };
-        throw e;
+        const f = aiFailure(e);
+        console.error('anthropic', f.detail);
+        if (f.retry) throw e;
+        return { error: f.error, detail: f.detail };
       }
       if (msg.stop_reason === 'refusal') return { error: 'The AI declined to write this plan.' };
       if (msg.stop_reason === 'max_tokens') {
