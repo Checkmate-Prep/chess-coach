@@ -1,6 +1,6 @@
 // /api/games: a shared copy of chess.com's public game archives, in R2 (binding GAMES), used by every user.
 //   GET ?player=<user>                -> { fetched, archives: ['YYYY/MM', …] }   (kept 1 hour)
-//   GET ?player=<user>&month=YYYY/MM  -> { fetched, complete, games: [stored game, …] }
+//   GET ?player=<user>&month=YYYY/MM  -> { v, fetched, complete, games: [stored game, …] }   (v: app/chesscom.js VERSION)
 // Stored games are neutral (app/chesscom.js `neutral`): from neither player's side, without the PGN.
 // A month fetched more than GRACE (2 hours) after it ended never changes; the current month is fetched again once its copy is an hour old.
 // Nothing here records who asked: no account, no address, no log of which player was looked up. So deleting an
@@ -8,7 +8,7 @@
 // (KV `deny:<user>`, see scripts/forget-player.mjs); a player chess.com no longer knows is deleted.
 // An R2 lifecycle rule (deploy.yml) deletes files 180 days after they were written.
 import { json } from './http.js';
-import { neutral, isComplete } from '../app/chesscom.js';
+import { neutral, isComplete, VERSION } from '../app/chesscom.js';
 
 const API = 'https://api.chess.com/pub/player/';
 const USER = /^[a-z0-9_-]{2,30}$/;
@@ -31,7 +31,9 @@ export async function games(request, env, now = Date.now()) {
   const key = keyOf(user, month);
   const saved = await env.GAMES.get(key).then((o) => o?.json()).catch(() => null);
   // `complete` is checked again: copies written before the grace period existed say complete right after the month.
-  if (saved && ((saved.complete && isComplete(month, saved.fetched)) || now - saved.fetched < FRESH)) return json(saved);
+  // A month copy from before VERSION (it may hold games from set-up positions) is fetched again once.
+  const current = !month || saved?.v === VERSION;
+  if (saved && current && ((saved.complete && isComplete(month, saved.fetched)) || now - saved.fetched < FRESH)) return json(saved);
 
   let r;
   try { r = await fetch(`${API}${user}/games/${month || 'archives'}`, { headers: { 'user-agent': UA } }); } catch { r = null; }
@@ -40,7 +42,7 @@ export async function games(request, env, now = Date.now()) {
   let body;
   try { body = await r.json(); } catch { return saved ? json(saved) : json({ error: 'chess.com answered badly.' }, 502); }
   const out = month
-    ? { fetched: now, complete: isComplete(month, now), games: (body.games || []).map(neutral).filter(Boolean) }
+    ? { v: VERSION, fetched: now, complete: isComplete(month, now), games: (body.games || []).map(neutral).filter(Boolean) }
     : { fetched: now, archives: (body.archives || []).map((u) => String(u).split('/').slice(-2).join('/')).filter((m) => MONTH.test(m)) };
   await env.GAMES.put(key, JSON.stringify(out), { httpMetadata: { contentType: 'application/json' } });
   return json(out);

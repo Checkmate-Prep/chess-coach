@@ -49,6 +49,9 @@ describe('clean', () => {
       ['aiprep', plan(5, { plan: { ...plan(5).plan, plans: [{ ...plan(5).plan.plans[0], you_play: 'red' }] } })],
       ['aiprep', plan(5, { plan: { ...plan(5).plan, summary: 'x'.repeat(5000) } })],
       ['aiprep', plan(5, { plan: { ...plan(5).plan, weak: Array(12).fill('x'.repeat(4000)), checklist: Array(12).fill('x'.repeat(4000)) } })], // too big
+      [`review:${URL1}`, review({ bad: [{ ...review().bad[0], played: '<img' }] })],   // moves that aren't moves
+      ['traps:white', traps(3, { traps: [{ ...traps(1).traps[0], path: ['e4', '<b>'] }] })],
+      ['traps:white', traps(3, { traps: [{ ...traps(1).traps[0], punish: ['Nf3', 'onerror='] }] })],
       ['aiprep', null], ['aiprep', []], ['nothing', {}],
     ];
     for (const [item, data] of bad) assert.throws(() => clean(item, data), /Invalid result/, `${item} ${JSON.stringify(data)?.slice(0, 60)}`);

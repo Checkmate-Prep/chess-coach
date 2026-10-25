@@ -1,11 +1,14 @@
 // chess.com public API (CORS-enabled, no login needed).
 import { idb, ls } from './store.js';
 import { apiUrl } from './native.js';
+import { isSan, START } from './san.js';
 
 const API = 'https://api.chess.com/pub/player/';
 const DRAWS = new Set(['agreed', 'repetition', 'stalemate', 'insufficient', '50move', 'timevsinsufficient']);
 const MAX_GAMES = 1500;   // newest games kept per player
 const MAX_MONTHS = 12;
+/** Version of stored games: 2 drops games from a set-up position and stops moves at anything that isn't one. */
+export const VERSION = 2;
 
 async function getJSON(url) {
   const r = await fetch(url);
@@ -23,18 +26,29 @@ function clocksOf(pgn) {
   return [...pgn.matchAll(/\[%clk (\d+):(\d+):(\d+(?:\.\d+)?)\]/g)].map((m) => +m[1] * 3600 + +m[2] * 60 + +m[3]);
 }
 
+/** Whether a chess.com game starts from the usual position (not a position set up by the players). */
+function fromStart(g) {
+  if (g.initial_setup && g.initial_setup !== START) return false;
+  const fen = /\[FEN "([^"]*)"\]/.exec(g.pgn)?.[1];
+  return !fen || fen === START;
+}
+
 /**
  * A chess.com game as stored (here and in the Worker's shared game store): from neither player's side, no PGN.
- * null for games the app doesn't use (variants, no moves).
+ * null for games the app doesn't use (variants, games from a set-up position, no moves). Moves stop at the
+ * first token that isn't a move, so nothing else reaches the trees or the screen.
  */
 export function neutral(g) {
-  if (g.rules !== 'chess' || !g.pgn) return null;
+  if (g.rules !== 'chess' || !g.pgn || !fromStart(g)) return null;
+  const sans = sansOf(g.pgn);
+  const bad = sans.findIndex((t) => !isSan(t));
+  if (bad >= 0) sans.length = bad;
   const eco = (g.eco || '').split('/').pop().replace(/-\d.*$/, '').replace(/-/g, ' ');
   const side = (s) => ({ u: s.username, r: s.rating, res: s.result });
   return {
     url: g.url, t: g.end_time, tc: g.time_class, base: +(String(g.time_control).split('+')[0]) || null,
     eco: eco.split(' ').slice(0, 3).join(' '), white: side(g.white), black: side(g.black),
-    sans: sansOf(g.pgn), clk: clocksOf(g.pgn),
+    sans, clk: clocksOf(g.pgn),
   };
 }
 
@@ -119,12 +133,14 @@ async function monthOf(user, month, store) {
  */
 export async function syncGames(user, onProgress = () => {}) {
   user = user.toLowerCase();
-  const cached = (await idb.get(`games:${user}`)) || { months: {}, games: [] };
+  // Caches from before VERSION may hold games from set-up positions (see `neutral`): download those again.
+  const old = await idb.get(`games:${user}`);
+  const cached = old?.v === VERSION ? old : { v: VERSION, months: {}, games: [] };
   const { months, store } = await archivesOf(user);
   const recent = months.slice(-MAX_MONTHS).reverse();
   const byUrl = new Map(cached.games.map((g) => [g.url, g]));
   const save = (fetched) => {
-    const out = { months: cached.months, games: [...byUrl.values()].sort((a, b) => b.t - a.t).slice(0, MAX_GAMES), fetched };
+    const out = { v: VERSION, months: cached.months, games: [...byUrl.values()].sort((a, b) => b.t - a.t).slice(0, MAX_GAMES), fetched };
     return idb.set(`games:${user}`, out).then(() => out);
   };
   let i = 0;
