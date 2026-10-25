@@ -6,6 +6,7 @@ import { player, savePlayers, syncGames, cachedGames, useGameStore } from './che
 import { buildTree, walk, profile, weakLines, pct, headToHead } from './stats.js';
 import { reviewGames, reviewCache, reviewedCount, summarize, findTraps, cachedTraps, trapScan, trapCandidates, TRAP_MIN_N, isGoodMove } from './analysis.js';
 import { gamePlan, lineCaption } from './plan.js';
+import { trapDrillId, lineDrillId, migrateDone } from './drills.js';
 import { whileAwake } from './engine.js';
 import { markDirty, resultsReady } from './results.js';
 import { apiUrl, isNative } from './native.js';
@@ -638,7 +639,7 @@ function trapHtml(t, key, user, color) {
     <p><b class="mono">${fig(numbered([...t.path, t.played]))}</b></p>
     <p class="small">They play ${fig(t.played)} here in <b>${t.times} of ${t.of}</b> games and scores ${t.score}%. Stockfish: ${t.bestForHim ? `${fig(t.bestForHim)} was better. ` : ''}After ${fig(t.played)} their winning chances drop by about ${t.drop} points.</p>
     <div data-trap="${key}">${viewerHtml(`Punish with ${fig(t.punish[0] || '?')}. Gold moves are the engine's line.`)}</div>
-    <button class="btn primary" data-drill="trap:${esc(user)}:${color}:${key.split(':')[1]}">Drill it</button></article>`;
+    <button class="btn primary" data-drill="${esc(trapDrillId(user, color, t))}">Drill it</button></article>`;
 }
 
 // ---------- AI-written prep (worker/prep.js writes it; only when the app is served by the Worker) ----------
@@ -695,7 +696,7 @@ async function aiPayload(user) {
 function plansHtml(plans, prefix, user) {
   return plans.map((p, i) => `<details${i === 0 ? ' open' : ''}><summary><span class="eyebrow">${esc(p.eyebrow)}</span><br><b>${rich(p.title)}</b></summary>
     <div class="details-body">${p.line ? `<div data-line="${prefix}${i}">${viewerHtml(p.caption && rich(p.caption))}</div>` : ''}${p.body.map((b) => `<p>${rich(b)}</p>`).join('')}
-    ${p.line ? `<button class="btn primary" data-drill="${prefix}line:${esc(user)}:${i}">Drill this line</button>` : ''}</div></details>`).join('');
+    ${p.line ? `<button class="btn primary" data-drill="${esc(lineDrillId(user, p.line))}">Drill this line</button>` : ''}</div></details>`).join('');
 }
 function mountPlans(plans, prefix) {
   plans.forEach((p, i) => { const host = $(`[data-line="${prefix}${i}"]`, view); if (host) lineViewer(host, p.line.split(' '), !!p.flip, p.key_from); });
@@ -951,7 +952,7 @@ function quickPlan(plan, user, trW, trB) {
     const ti = sidePlan.trap ? (trapList || []).indexOf(sidePlan.trap) : -1;
     return `<h3>${title}</h3>${list(sidePlan.points)}
       ${sidePlan.line ? `<div data-plan="${key}">${viewerHtml(lineCaption(sidePlan))}</div>` : ''}
-      ${ti >= 0 ? `<button class="btn primary" data-drill="trap:${esc(user)}:${trapColor}:${ti}">Drill the trap</button>` : ''}`;
+      ${ti >= 0 ? `<button class="btn primary" data-drill="${esc(trapDrillId(user, trapColor, sidePlan.trap))}">Drill the trap</button>` : ''}`;
   };
   const body = [
     part('white', 'When you have White', plan.white, false, 'black', trB),
@@ -1075,11 +1076,12 @@ async function renderExplore() {
 
 // ---------- Drill ----------
 async function drills() {
-  const out = [];
+  const out = [], trapsOf = {}, linesOf = {};
   for (const o of P.opps) {
     for (const color of ['white', 'black']) {
-      ((await cachedTraps(o.user, color)) || []).forEach((t, i) => out.push({
-        id: `trap:${o.user}:${color}:${i}`, group: `Traps vs ${displayName(o.user)}`, kind: 'pos',
+      const list = trapsOf[`${o.user}:${color}`] = (await cachedTraps(o.user, color)) || [];
+      list.forEach((t) => out.push({
+        id: trapDrillId(o.user, color, t), group: `Traps vs ${displayName(o.user)}`, kind: 'pos',
         title: `${numbered([...t.path, t.played])}. Punish it.`, sub: `They play this in ${t.times} of ${t.of} games`,
         fen: t.afterFen, best: t.punish[0],
         prompt: `They just played ${t.played}, as they do in ${t.times} of ${t.of} games. Punish it.`,
@@ -1088,7 +1090,9 @@ async function drills() {
     }
     const ai = await aiCached(o.user);
     const plain = (t) => String(t || '').replace(/<\/?b>/g, '');
-    ai?.plan.plans.map(aiPlan).forEach((p, i) => p.line && out.push({ id: `ailine:${o.user}:${i}`, group: `Prepared lines vs ${displayName(o.user)}`, kind: 'line',
+    const plans = ai?.plan.plans.map(aiPlan) || [];
+    linesOf[o.user] = plans.map((p) => p.line);
+    plans.forEach((p) => p.line && out.push({ id: lineDrillId(o.user, p.line), group: `Prepared lines vs ${displayName(o.user)}`, kind: 'line',
       title: plain(p.title), sub: `${p.eyebrow} · AI-written`, plan: { ...p, caption: plain(p.caption) } }));
   }
   const s = summarize((await gamesOf(P.me.user)) || [], await reviewCache(P.me.user));
@@ -1097,6 +1101,12 @@ async function drills() {
     fen: pz.fen, best: pz.best, prompt: pz.winning ? 'You were winning here. Find the move that keeps it.' : 'Find the best move.',
     why: `In the game you played ${pz.played} (−${pz.loss} win-chance points). Stockfish's line: ${numbered(pz.line || [], plyOf(pz.fen))}`,
   }));
+  // Ticks saved before drills had content ids: moved once to the drills now at those places (drills.js).
+  if (ls.get('done-ids', 1) < 2) {
+    const add = migrateDone(done(), P.opps.map((o) => o.user), (u, c) => trapsOf[`${u}:${c}`], (u) => linesOf[u]);
+    if (Object.keys(add).length) ls.set('done', { ...done(), ...add });
+    ls.set('done-ids', 2);
+  }
   return out;
 }
 const done = () => ls.get('done', {});

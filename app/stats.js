@@ -2,13 +2,17 @@
 export const DEPTH = 16;
 export const pct = (p, n) => (n ? Math.round((50 * p) / n) : 0); // p = points x2
 
-/** Opening tree {n, p, c:{san: node}} of games where the player had `color`. */
+/**
+ * Opening tree {n, p, c:{san: node}} of games where the player had `color`. The root also keeps `t`, the end time
+ * of the newest game, so a saved scan of the tree can tell when its games changed (see analysis.js `sameGames`).
+ */
 export function buildTree(games, color, depth = DEPTH) {
   const root = { n: 0, p: 0, c: {} };
   for (const g of games) {
     if (g.color !== color) continue;
     let node = root;
     node.n++; node.p += g.pts;
+    if (g.t > (root.t || 0)) root.t = g.t;
     for (const san of g.sans.slice(0, depth)) {
       node = (node.c[san] ||= { n: 0, p: 0, c: {} });
       node.n++; node.p += g.pts;
