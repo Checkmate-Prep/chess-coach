@@ -1004,3 +1004,11 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 **Changed along the way:** the first plan included retrying without `fallbacks` in case prod's fallback option was the problem. Once the tail showed the real cause, that was dropped.
 
 **Checked:** 5 new tests, node suite 255 pass, production dry-run build. **Not checked:** the new messages end to end (dev has credit), logs in the dashboard (after deploy). Credit still has to be added in the Anthropic Console. [PR #146](https://github.com/Checkmate-Prep/chess-coach/pull/146)
+
+### 151. The project board follows pull requests
+> gh project kaban board shows 0 PR in progress or review, but in gh there are 5 pr open.
+> fix board automation
+
+**What Claude did:** found the gap: the board's auto-add takes issues only, and none of GitHub's built-in project workflows moves an issue when a PR that closes it opens, so #127–#130 sat in *Next* while their PRs waited for review. Cloud sessions can't reach Projects, so the fix runs in GitHub Actions: `.github/workflows/project.yml` calls `scripts/project-status.mjs` on pull request, review and branch events, and moves the issues a PR closes (its "Closes #N" links, or the number in a `claude/issue-N-…` branch) to *In progress*, *In review*, *Done*, or back to *Next* when a PR is closed unmerged. A manual run repairs the board from the open PRs. It needs a `PROJECT_TOKEN` secret, since the workflow's own token can't reach organization projects.
+
+**Checked:** unit tests for the status rules and the linked issues; the GitHub calls against a fake GraphQL endpoint. **Not checked:** a real run (needs the secret). [PR #152](https://github.com/Checkmate-Prep/chess-coach/pull/152)
