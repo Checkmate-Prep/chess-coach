@@ -130,9 +130,9 @@ describe('lineCaption', () => {
 describe('gamePlan: managing the game', () => {
   const pr = (o = {}) => ({
     byTc: { blitz: { n: 60, score: 50 }, rapid: { n: 40, score: 50 } },
-    onTimePct: 0,
+    onTime: { wins: { k: 0, n: 30, pct: 0 }, losses: { k: 0, n: 30, pct: 0 } },
     lengthScore: { short: { n: 20, score: 50 }, long: { n: 20, score: 50 } },
-    castling: { queensidePct: 0, neverPct: 0 },
+    castling: { queensidePct: 0, neverPct: 0, castled: 40, longer: 40 },
     ...o,
   });
   const manage = (o) => plan({ pr: pr(o) }).manage;
@@ -142,9 +142,12 @@ describe('gamePlan: managing the game', () => {
   test('suggests a slower time control when they mostly play one', () => {
     const m = manage({ byTc: { blitz: { n: 90, score: 50 }, rapid: { n: 10, score: 50 } } });
     assert.equal(m.length, 1);
-    assert.match(m[0], /^They play mostly blitz \(90% of their games\)\. Ask for a (daily|rapid) game/);
+    assert.match(m[0], /^They play mostly blitz \(90% of their games\)\. Ask for a rapid game/);
     assert.deepEqual(manage({ byTc: { blitz: { n: 69, score: 50 }, rapid: { n: 31, score: 50 } } }), []);
     assert.deepEqual(manage({ byTc: { daily: { n: 100, score: 50 } } }), []); // nothing slower than daily
+    assert.match(manage({ byTc: { bullet: { n: 95, score: 50 }, rapid: { n: 5, score: 50 } } })[0], /Ask for a blitz game/, 'the next slower one first');
+    assert.deepEqual(manage({ byTc: { rapid: { n: 95, score: 50 }, blitz: { n: 5, score: 50 } } }), [], 'daily only if they play it');
+    assert.match(manage({ byTc: { rapid: { n: 95, score: 50 }, daily: { n: 5, score: 50 } } })[0], /Ask for a daily game/);
   });
 
   test('weakest time control needs 20 games and 45% or less', () => {
@@ -154,15 +157,20 @@ describe('gamePlan: managing the game', () => {
   });
 
   test('clock, game length and king safety thresholds', () => {
-    assert.equal(manage({ onTimePct: 29 }).length, 0);
-    assert.match(manage({ onTimePct: 30 })[0], /^30% of their decisive games end on the clock/);
+    const onTime = (wins, losses) => manage({ onTime: { wins, losses } });
+    assert.deepEqual(onTime({ k: 8, n: 30, pct: 27 }, { k: 0, n: 30, pct: 0 }), []);
+    assert.match(onTime({ k: 9, n: 30, pct: 30 }, { k: 0, n: 30, pct: 0 })[0], /^In 9 of their 30 wins \(30%\), the opponent ran out of time\. .*play for your flag/);
+    assert.match(onTime({ k: 0, n: 30, pct: 0 }, { k: 12, n: 30, pct: 40 })[0], /^They ran out of time in 12 of their 30 losses \(40%\)\. Make them think/);
+    assert.deepEqual(onTime({ k: 5, n: 9, pct: 56 }, { k: 5, n: 9, pct: 56 }), [], 'fewer than 10 games: no claim');
     assert.match(manage({ lengthScore: { short: { n: 10, score: 40 }, long: { n: 10, score: 48 } } })[0], /stronger as games go on \(48%/);
     assert.match(manage({ lengthScore: { short: { n: 10, score: 48 }, long: { n: 10, score: 40 } } })[0], /fade in long games \(40%/);
     assert.deepEqual(manage({ lengthScore: { short: { n: 9, score: 0 }, long: { n: 10, score: 100 } } }), []);
     assert.deepEqual(manage({ lengthScore: { short: { n: 10, score: 50 }, long: { n: 10, score: 57 } } }), []);
-    assert.match(manage({ castling: { queensidePct: 25, neverPct: 0 } })[0], /castle queenside in 25%/);
-    assert.match(manage({ castling: { queensidePct: 0, neverPct: 15 } })[0], /king in the centre in 15%/);
-    assert.deepEqual(manage({ castling: { queensidePct: 24, neverPct: 14 } }), []);
+    const castling = (o) => manage({ castling: { queensidePct: 0, neverPct: 0, castled: 40, longer: 40, ...o } });
+    assert.match(castling({ queensidePct: 25 })[0], /castle queenside in 25% of the 40 games where they castle/);
+    assert.match(castling({ neverPct: 15 })[0], /king in the centre in 15% of their 40 games longer than 15 moves/);
+    assert.deepEqual(castling({ queensidePct: 24, neverPct: 14 }), []);
+    assert.deepEqual(castling({ queensidePct: 50, neverPct: 50, castled: 9, longer: 9 }), [], 'fewer than 10 games: no claim');
   });
 
   test('trapsChecked is true once either colour was scanned', () => {

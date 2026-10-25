@@ -75,8 +75,8 @@ export const reviewCache = (user) => idb.get(`review:${user}`).then((c) => c || 
 /** How many of `games` have been reviewed. */
 export const reviewedCount = (games, cache) => games.filter((g) => cache[g.url]).length;
 
-/** Aggregate reviewed games into phase accuracy, conversion, clock and puzzle candidates. */
-export function summarize(games, cache) {
+/** Aggregate reviewed games into phase accuracy, conversion, clock and puzzle candidates. `nameOf` names the opponent in puzzle captions. */
+export function summarize(games, cache, nameOf = (u) => u) {
   const ph = { opening: [0, 0, 0], middlegame: [0, 0, 0], endgame: [0, 0, 0] }; // moves, loss, blunders
   const clock = { low: [0, 0], normal: [0, 0] };
   let convert = [0, 0], save = [0, 0], punish = [0, 0], reviewed = 0;
@@ -103,7 +103,7 @@ export function summarize(games, cache) {
     for (const b of r.bad) {
       if ((b.ply - 1) % 2 === mine && b.loss >= 25 && b.best && b.best !== b.played) {
         puzzles.push({ id: `${g.url}#${b.ply}`, fen: b.fen, best: b.best, played: b.played, loss: b.loss, line: b.line,
-          game: `vs ${g.opp} · ${g.tc} · ${new Date(g.t * 1000).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })} · move ${Math.ceil(b.ply / 2)}`,
+          game: `vs ${nameOf(g.opp)} · ${g.tc} · ${new Date(g.t * 1000).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })} · move ${Math.ceil(b.ply / 2)}`,
           winning: b.before >= 200, url: g.url });
       }
     }

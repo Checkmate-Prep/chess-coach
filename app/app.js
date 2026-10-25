@@ -5,7 +5,7 @@ import { idb, ls } from './store.js';
 import { player, savePlayers, syncGames, cachedGames, useGameStore } from './chesscom.js';
 import { buildTree, walk, profile, weakLines, pct, headToHead } from './stats.js';
 import { reviewGames, reviewCache, reviewedCount, summarize, findTraps, cachedTraps, trapScan, trapCandidates, TRAP_MIN_N, isGoodMove } from './analysis.js';
-import { gamePlan, lineCaption } from './plan.js';
+import { gamePlan, lineCaption, MIN_SAMPLE } from './plan.js';
 import { whileAwake } from './engine.js';
 import { markDirty, resultsReady } from './results.js';
 import { apiUrl, isNative } from './native.js';
@@ -48,6 +48,8 @@ const displayName = (user) => {
   if (o && 'name' in o) return o.name || o.username;
   return o?.username || user;
 };
+/** A player met in someone's games: their name if they're one of your opponents, else their username. */
+const nameOf = (username) => (P?.opps.some((o) => o.user === username.toLowerCase()) ? displayName(username.toLowerCase()) : username);
 const hasAlias = (user) => displayName(user).toLowerCase() !== oppName(user).toLowerCase();
 function invalidate(user) { delete games[user]; delete trees[`${user}:white`]; delete trees[`${user}:black`]; }
 
@@ -203,7 +205,7 @@ function showMyReview(i, n, g) {
   const bar = location.hash.slice(1) === 'me' || !location.hash.slice(1) ? $('#review-progress') : null;
   if (!bar) return;
   $('#review').hidden = true;
-  setProgress(bar, i, n, i >= n ? 'Done' : `Reviewing your newest games: ${i + 1} of ${n}${g ? `, vs ${g.opp} (${g.tc})` : ''}`);
+  setProgress(bar, i, n, i >= n ? 'Done' : `Reviewing your newest games: ${i + 1} of ${n}${g ? `, vs ${nameOf(g.opp)} (${g.tc})` : ''}`);
 }
 /**
  * Review 20 more of a player's games, started with a button (the automatic review only covers their newest games).
@@ -221,7 +223,7 @@ function paintOppMore(user, run) {
   if (location.hash !== `#prep/${user}`) return;
   const bar = $('#rv-more-progress'); if (!bar) return;
   $('#rv-more').hidden = true; $('#rv-stop').hidden = false;
-  setProgress(bar, run.i, run.n, run.g ? `Game ${run.i + 1} of ${run.n}: vs ${run.g.opp} (${run.g.tc})` : run.n ? 'Done' : 'Starting…');
+  setProgress(bar, run.i, run.n, run.g ? `Game ${run.i + 1} of ${run.n}: vs ${nameOf(run.g.opp)} (${run.g.tc})` : run.n ? 'Done' : 'Starting…');
 }
 /** A review finished: redraw the list, or update the line on their file. */
 async function reviewDone(user) {
@@ -613,11 +615,17 @@ function describe(pr, you) {
   if (fm) out.push(`As White: ${pr.firstMove.slice(0, 3).map((m) => `1.${m.san} in ${Math.round((100 * m.n) / fm)}% (scores ${m.score}%)`).join(', ')}.`);
   if (pr.vsE4.length) out.push(`Against 1.e4: ${pr.vsE4.map((m) => `1…${m.san} ×${m.n} (${m.score}%)`).join(', ')}.`);
   if (pr.vsD4.length) out.push(`Against 1.d4: ${pr.vsD4.map((m) => `1…${m.san} ×${m.n} (${m.score}%)`).join(', ')}.`);
-  if (pr.onTimePct >= 25) out.push(`${pr.onTimePct}% of ${their} decisive games end on the clock, so the clock is a big part of ${their} game.`);
-  if (pr.castling.pct) out.push(`Castles in ${pr.castling.pct}% of games, around move ${pr.castling.avgMove}${pr.castling.queensidePct >= 20 ? `, queenside ${pr.castling.queensidePct}% of the time` : ''}.${pr.castling.neverPct >= 15 ? ` Leaves the king in the centre in ${pr.castling.neverPct}% of longer games.` : ''}`);
-  if (pr.lengthScore.long.n >= 10 && pr.lengthScore.short.n >= 10) {
-    const d = pr.lengthScore.long.score - pr.lengthScore.short.score;
-    if (Math.abs(d) >= 8) out.push(`${d > 0 ? 'Stronger' : 'Weaker'} in long games: ${pr.lengthScore.long.score}% in games of 45+ moves vs ${pr.lengthScore.short.score}% in games under 25.`);
+  const { wins, losses } = pr.onTime;
+  if (wins.n >= MIN_SAMPLE && wins.pct >= 25) out.push(`In ${wins.k} of ${their} ${wins.n} wins (${wins.pct}%), the opponent ran out of time.`);
+  if (losses.n >= MIN_SAMPLE && losses.pct >= 25) out.push(`${they} ran out of time in ${losses.k} of ${their} ${losses.n} losses (${losses.pct}%).`);
+  const c = pr.castling;
+  if (c.pct) {
+    out.push(`${they} castle in ${c.pct}% of games, around move ${c.avgMove}${c.castled >= MIN_SAMPLE && c.queensidePct >= 20 ? `, queenside ${c.queensidePct}% of the time` : ''}.${
+      c.longer >= MIN_SAMPLE && c.neverPct >= 15 ? ` ${they} leave the king in the centre in ${c.neverPct}% of ${their} ${c.longer} games longer than 15 moves.` : ''}`);
+  }
+  const { long, short } = pr.lengthScore;
+  if (long.n >= 10 && short.n >= 10 && Math.abs(long.score - short.score) >= 8) {
+    out.push(`${they} score ${long.score}% in games of 45+ moves (${long.n} games) and ${short.score}% in games under 25 moves (${short.n}).`);
   }
   return out;
 }
@@ -636,7 +644,7 @@ function trapHtml(t, key, user, color) {
   return `<article class="trap">
     <p class="eyebrow">They have ${color === 'white' ? 'White' : 'Black'}</p>
     <p><b class="mono">${fig(numbered([...t.path, t.played]))}</b></p>
-    <p class="small">They play ${fig(t.played)} here in <b>${t.times} of ${t.of}</b> games and scores ${t.score}%. Stockfish: ${t.bestForHim ? `${fig(t.bestForHim)} was better. ` : ''}After ${fig(t.played)} their winning chances drop by about ${t.drop} points.</p>
+    <p class="small">They play ${fig(t.played)} here in <b>${t.times} of ${t.of}</b> games and score ${t.score}%. Stockfish: ${t.bestForHim ? `${fig(t.bestForHim)} was better. ` : ''}After ${fig(t.played)} their winning chances drop by about ${t.drop} points.</p>
     <div data-trap="${key}">${viewerHtml(`Punish with ${fig(t.punish[0] || '?')}. Gold moves are the engine's line.`)}</div>
     <button class="btn primary" data-drill="trap:${esc(user)}:${color}:${key.split(':')[1]}">Drill it</button></article>`;
 }
@@ -668,7 +676,7 @@ function treeLines(tree, { depth = 10, max = 40 } = {}) {
 /** The statistics sent to the Worker. Deterministic for the same data, so the Worker can cache the plan. */
 async function aiPayload(user) {
   const brief = (pr) => pr && ({ games: pr.n, byTimeControl: pr.byTc, asWhiteFirstMove: pr.firstMove, vs1e4: pr.vsE4, vs1d4: pr.vsD4,
-    openingsByName: pr.openings, howDecisiveGamesEnd: pr.ends, decisiveGamesLostOrWonOnTimePct: pr.onTimePct, scoreByGameLength: pr.lengthScore, castling: pr.castling });
+    openingsByName: pr.openings, howDecisiveGamesEnd: pr.ends, winsAndLossesOnTime: pr.onTime, scoreByGameLength: pr.lengthScore, castling: pr.castling });
   const bad = (tree, minN) => weakLines(tree, { minN }).map((l) => ({ line: numbered(l.moves), games: l.n, score: l.score }));
   const trap = (t) => ({ line: numbered([...t.path, t.played]), theyPlayIt: `${t.times} of ${t.of} games`, theirScoreAfter: t.score,
     engineBetterMove: t.bestForHim, winChanceDrop: t.drop, punishingLine: numbered(t.punish, t.path.length + 1) });
@@ -1075,7 +1083,7 @@ async function drills() {
     ai?.plan.plans.map(aiPlan).forEach((p, i) => p.line && out.push({ id: `ailine:${o.user}:${i}`, group: `Prepared lines vs ${displayName(o.user)}`, kind: 'line',
       title: plain(p.title), sub: `${p.eyebrow} · AI-written`, plan: { ...p, caption: plain(p.caption) } }));
   }
-  const s = summarize((await gamesOf(P.me.user)) || [], await reviewCache(P.me.user));
+  const s = summarize((await gamesOf(P.me.user)) || [], await reviewCache(P.me.user), nameOf);
   s.puzzles.forEach((pz) => out.push({
     id: `mine:${pz.id}`, group: 'Your mistakes', kind: 'pos', title: pz.winning ? 'You were winning. Keep it.' : 'Find the best move.', sub: pz.game,
     fen: pz.fen, best: pz.best, prompt: pz.winning ? 'You were winning here. Find the move that keeps it.' : 'Find the best move.',
@@ -1216,7 +1224,7 @@ function paintMyMore(run) {
   const bar = (location.hash.slice(1) === 'me' || !location.hash.slice(1)) && $('#review-progress');
   if (!bar) return;
   $('#review').hidden = true; $('#stop').hidden = false;
-  setProgress(bar, run.i, run.n, run.g ? `Game ${run.i + 1} of ${run.n}: vs ${run.g.opp} (${run.g.tc})` : run.n ? 'Done' : 'Starting…');
+  setProgress(bar, run.i, run.n, run.g ? `Game ${run.i + 1} of ${run.n}: vs ${nameOf(run.g.opp)} (${run.g.tc})` : run.n ? 'Done' : 'Starting…');
 }
 
 function insights(s) {

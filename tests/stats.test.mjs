@@ -76,8 +76,8 @@ describe('profile', () => {
   test('empty input does not throw and has no NaN', () => {
     const p = profile([]);
     assert.equal(p.n, 0);
-    assert.equal(p.onTimePct, 0);
-    assert.deepEqual(p.castling, { pct: 0, queensidePct: 0, avgMove: null, neverPct: 0 });
+    assert.deepEqual(p.onTime, { wins: { k: 0, n: 0, pct: 0 }, losses: { k: 0, n: 0, pct: 0 } });
+    assert.deepEqual(p.castling, { pct: 0, queensidePct: 0, avgMove: null, neverPct: 0, castled: 0, longer: 0 });
     assert.equal(p.since, null);
   });
 
@@ -101,17 +101,19 @@ describe('profile', () => {
     assert.equal(p.castling.pct, 50);
     assert.equal(p.castling.queensidePct, 50);
     assert.equal(p.castling.avgMove, 5); // (4 + 6) / 2
-    assert.equal(p.castling.neverPct, 25); // short uncastled games don't count as "never"
+    assert.equal(p.castling.neverPct, 100); // the one game past move 15; short uncastled games don't count
+    assert.deepEqual([p.castling.castled, p.castling.longer], [2, 1]);
   });
 
-  test('how games end, and the share lost or won on time', () => {
+  test('how games end, and wins and losses on time counted apart', () => {
     const p = profile([
       game({ pts: 2, how: 'timeout' }), game({ pts: 2, how: 'resigned' }),
       game({ pts: 0, how: 'checkmated' }), game({ pts: 0, how: 'timeout' }),
       game({ pts: 1, how: 'agreed' }),
     ]);
     assert.deepEqual(p.ends, { win: { timeout: 1, resigned: 1 }, loss: { checkmated: 1, timeout: 1 } });
-    assert.equal(p.onTimePct, 50); // 2 of 4 decisive games
+    assert.deepEqual(p.onTime.wins, { k: 1, n: 2, pct: 50 });
+    assert.deepEqual(p.onTime.losses, { k: 1, n: 2, pct: 50 });
   });
 
   test('short (< 50 plies) and long (>= 90 plies) buckets', () => {

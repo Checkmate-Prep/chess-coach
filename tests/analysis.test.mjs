@@ -73,6 +73,8 @@ describe('summarize', () => {
     assert.deepEqual(s.puzzles.map((p) => p.id), ['w#1', 'w#23']);
     assert.equal(s.puzzles[1].winning, true);
     assert.match(s.puzzles[0].game, /^vs OppOne · blitz · .* · move 1$/);
+    const named = summarize([w, b], cache, (u) => (u === 'OppOne' ? 'Sam' : u));
+    assert.match(named.puzzles[0].game, /^vs Sam · /, 'an opponent with a name is shown by it');
     assert.equal(s.givenBack, 1);
   });
   test('no games gives nulls, not NaN', () => {
