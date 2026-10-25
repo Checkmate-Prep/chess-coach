@@ -1018,3 +1018,17 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 **What Claude did:** found the gap: the board's auto-add takes issues only, and none of GitHub's built-in project workflows moves an issue when a PR that closes it opens, so #127–#130 sat in *Next* while their PRs waited for review. Cloud sessions can't reach Projects, so the fix runs in GitHub Actions: `.github/workflows/project.yml` calls `scripts/project-status.mjs` on pull request, review and branch events, and moves the issues a PR closes (its "Closes #N" links, or the number in a `claude/issue-N-…` branch) to *In progress*, *In review*, *Done*, or back to *Next* when a PR is closed unmerged. A manual run repairs the board from the open PRs. It needs a `PROJECT_TOKEN` secret, since the workflow's own token can't reach organization projects.
 
 **Checked:** unit tests for the status rules and the linked issues; the GitHub calls against a fake GraphQL endpoint. **Not checked:** a real run (needs the secret). [PR #175](https://github.com/Checkmate-Prep/chess-coach/pull/175)
+
+### 176. Board repair moves each issue once and says why
+> seems ok, check
+>
+> Run node scripts/project-status.mjs --sync
+> #130 -> In review
+> #129 -> In review
+> #129 -> In review
+> #128 -> In review
+> #127: closed, left in place
+
+**What Claude did:** #127 had been closed by mistake: PR #175's description quoted a closing keyword with #127 as an example of the test it ran, and GitHub closed the issue when #175 merged. Claude reopened it with a comment (the fix is still in #147). #129 appeared twice because two pull requests linked it; the repair run now collects every issue first, moves each once (a ready PR wins over a draft), and every line names the PR behind the move.
+
+**Checked:** the repair run against a fake GitHub with an issue linked from a ready and a draft PR; the node tests for the board script. **Not checked:** a real run (after merge). [PR #176](https://github.com/Checkmate-Prep/chess-coach/pull/176)
