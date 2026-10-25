@@ -992,3 +992,15 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 **What Claude did:** suggested #124, #125 and #126 from Sprint 1 of the backlog and worked on them in parallel, one branch and PR each. This PR is #126. A month now counts as complete only when its copy was fetched at least 2 hours after it ended (`isComplete` in `chesscom.js`, used by the app and the Worker). When the game store answers, the app keeps the store's fetch time for that month instead of the device clock, so a shared copy fetched just after midnight is asked for again later. The Worker also re-checks copies it saved as complete under the old rule. `syncGames` saves after each month, so a failure on month 7 keeps months 1–6; `fetched` only moves once the whole download is in.
 
 **Checked:** the node suite (248 pass), with new tests for the boundary, the store's fetch time and a mid-download failure in both `chesscom.test.mjs` and `games.test.mjs`. **Not checked:** the real Worker and R2 on dev, the app in a browser.
+
+### 146. AI plans say why they failed, and Worker logs are kept
+> I get a bug "The AI service failed. Try again later." When I click "use ai to enhance a game plan" in prod
+> Plan a fix, create issue and open pr
+>
+> can I sign you on cloudflare for checkmate
+
+**What Claude did:** traced the message to `worker/prep.js`, which used it for any 400, 401 or 403 from Anthropic and for crashed jobs. Production logs weren't kept, and the Cloudflare connector was on another account, so it opened issue #145 and asked for `npx wrangler login`. The production Workflow's two earlier jobs had ended within a second with the generic error. A `wrangler tail` during a real tap showed Anthropic's answer: 400, "Your credit balance is too low". The code was fine, and the prod key's organization was out of credit. The fix makes this visible: `worker/aierror.js` sorts failures (retry, budget used up, key not set up, other rejection) into a message the app shows, the job's output keeps Anthropic's status and message for the Workflows dashboard, and `[observability]` keeps Worker logs in every environment.
+
+**Changed along the way:** the first plan included retrying without `fallbacks` in case prod's fallback option was the problem. Once the tail showed the real cause, that was dropped.
+
+**Checked:** 5 new tests, node suite 255 pass, production dry-run build. **Not checked:** the new messages end to end (dev has credit), logs in the dashboard (after deploy). Credit still has to be added in the Anthropic Console. [PR #146](https://github.com/Checkmate-Prep/chess-coach/pull/146)
