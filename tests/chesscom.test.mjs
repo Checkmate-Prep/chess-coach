@@ -1,7 +1,7 @@
 import { test, describe, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { sansOf, syncGames, player, savePlayers, cachedGames, isComplete } from '../app/chesscom.js';
+import { sansOf, syncGames, player, savePlayers, cachedGames, isComplete, VERSION } from '../app/chesscom.js';
 import { ls } from '../app/store.js';
 import { installFakeIndexedDB, installFakeLocalStorage, installFakeFetch } from './helpers.mjs';
 
@@ -73,7 +73,7 @@ describe('syncGames', () => {
 
   test('skips months fetched well after they ended, fetches again ones fetched before or just after', async () => {
     const list = ['2026/04', '2026/05', '2026/06', '2026/07', '2026/08'];
-    db.set('games:testplayer', {
+    db.set('games:testplayer', { v: VERSION,
       games: [],
       months: {
         '2026/04': Date.UTC(2026, 4, 1, 2),       // fetched 2 hours after it ended: complete
@@ -107,7 +107,7 @@ describe('syncGames', () => {
     routes[monthUrl('2026/07')] = 500;
     routes[monthUrl('2026/06')] = { games: [gameIn('2026/06')] };
     installFakeFetch(routes);
-    db.set('games:testplayer', { months: {}, games: [], fetched: 123 });
+    db.set('games:testplayer', { v: VERSION, months: {}, games: [], fetched: 123 });
     await assert.rejects(syncGames('testplayer'), /chess\.com answered 500/);
     const kept = await cachedGames('testplayer');
     assert.deepEqual(kept.games.map((g) => g.url), [gameIn('2026/08').url]);
@@ -122,10 +122,20 @@ describe('syncGames', () => {
     assert.ok(calls.includes(monthUrl('2026/07')) && calls.includes(monthUrl('2026/06')));
   });
 
+  test('a cache from before VERSION is downloaded again from scratch', async () => {
+    const setUp = { url: 'https://www.chess.com/game/live/setup', t: 2, sans: ['Ke2'] };
+    db.set('games:testplayer', { months: { '2026/08': Date.UTC(2026, 9, 1) }, games: [setUp] });
+    const calls = account(['2026/08'], (m) => [gameIn(m)]);
+    const out = await syncGames('testplayer');
+    assert.ok(calls.includes(monthUrl('2026/08')), 'a month complete in the old cache is fetched again');
+    assert.deepEqual(out.games.map((g) => g.url), [gameIn('2026/08').url], 'games only the old cache had are gone');
+    assert.equal(out.v, VERSION);
+  });
+
   test('merges with cached games by URL', async () => {
     const old = { url: gameIn('2026/08').url, t: 1, sans: [], stale: true };
     const other = { url: 'https://www.chess.com/game/live/older', t: 0, sans: [] };
-    db.set('games:testplayer', { months: {}, games: [old, other] });
+    db.set('games:testplayer', { v: VERSION, months: {}, games: [old, other] });
     account(['2026/08'], (m) => [gameIn(m)]);
     const { games } = await syncGames('testplayer');
     assert.equal(games.length, 2);

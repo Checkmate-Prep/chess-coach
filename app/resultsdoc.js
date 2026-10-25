@@ -9,6 +9,8 @@
 // `rankOf` says which of two copies wins: a review never changes (the first copy stays), the trap scan of more
 // games wins, the newest plan wins.
 
+import { isSan } from './san.js';
+
 export const USER = /^[a-z0-9_-]{2,30}$/;
 const GAME = /^https:\/\/www\.chess\.com\/game\/(live|daily)\/[a-z0-9]{1,24}$/;
 const ITEM = /^(review:.+|traps:(white|black)|aiprep)$/;
@@ -34,7 +36,9 @@ export function clean(item, data) {
   const num = (x) => (Number.isFinite(x) ? x : bad('number'));
   const int = (x) => (Number.isInteger(x) && x >= 0 ? x : bad('count'));
   const str = (s, max = 100) => (typeof s === 'string' && s.length <= max ? s : bad('text'));
-  const opt = (s, max) => (s == null ? null : str(s, max));
+  // moves reach the screen as HTML (app.js `fig`), so only real moves are accepted
+  const move = (m) => (isSan(m) ? m : bad('move'));
+  const optMove = (m) => (m == null ? null : move(m));
   const list = (a, max, fn) => (Array.isArray(a) && a.length <= max ? a.map(fn) : bad('list'));
   let out;
   if (item.startsWith('review:')) {
@@ -43,17 +47,17 @@ export function clean(item, data) {
     out = {
       loss: nums(data.loss), pieces: nums(data.pieces), evals: nums(data.evals),
       bad: list(data.bad, 150, (b) => ({
-        ply: int(b?.ply), fen: str(b.fen), played: str(b.played, 10), loss: num(b.loss), before: num(b.before), after: num(b.after),
-        best: opt(b.best, 10), line: list(b.line || [], 6, (m) => str(m, 10)), bestUci: null,
+        ply: int(b?.ply), fen: str(b.fen), played: move(b.played), loss: num(b.loss), before: num(b.before), after: num(b.after),
+        best: optMove(b.best), line: list(b.line || [], 6, move), bestUci: null,
       })),
     };
   } else if (item.startsWith('traps:')) {
     out = {
       n: int(data.n), ...(data.checked != null ? { checked: int(data.checked) } : {}),
       traps: list(data.traps, 8, (t) => ({
-        path: list(t?.path, 30, (m) => str(m, 10)), san: str(t.san, 10), times: int(t.times), of: int(t.of), score: num(t.score),
-        fen: str(t.fen), afterFen: str(t.afterFen), played: str(t.played, 10), bestForHim: opt(t.bestForHim, 10),
-        before: num(t.before), after: num(t.after), drop: num(t.drop), punish: list(t.punish || [], 6, (m) => str(m, 10)),
+        path: list(t?.path, 30, move), san: move(t.san), times: int(t.times), of: int(t.of), score: num(t.score),
+        fen: str(t.fen), afterFen: str(t.afterFen), played: move(t.played), bestForHim: optMove(t.bestForHim),
+        before: num(t.before), after: num(t.after), drop: num(t.drop), punish: list(t.punish || [], 6, move),
       })),
     };
   } else {

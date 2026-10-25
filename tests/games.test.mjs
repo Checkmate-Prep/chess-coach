@@ -3,7 +3,8 @@ import { test, describe, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { games, forget, keyOf } from '../worker/games.js';
-import { neutral, side, syncGames, useGameStore, cachedGames } from '../app/chesscom.js';
+import { neutral, side, syncGames, useGameStore, cachedGames, VERSION } from '../app/chesscom.js';
+import { START } from '../app/san.js';
 import { installFakeIndexedDB, installFakeLocalStorage } from './helpers.mjs';
 
 const GAMES = JSON.parse(readFileSync(new URL('fixtures/games.json', import.meta.url)));
@@ -36,6 +37,22 @@ beforeEach(() => {
 const ask = (q, now = JULY) => games(new Request(`https://x/api/games?${q}`), env, now);
 const askJSON = async (q, now) => { const r = await ask(q, now); return [r.status, await r.json()]; };
 
+describe('neutral', () => {
+  const base = GAMES[0];
+  test('drops games from a position the players set up', () => {
+    assert.ok(neutral(base));
+    assert.equal(neutral({ ...base, initial_setup: '4k3/8/8/8/8/8/4P3/4K3 w - - 0 1' }), null);
+    assert.ok(neutral({ ...base, initial_setup: START }), 'the usual start is fine');
+    const withFen = (fen) => ({ ...base, pgn: base.pgn.replace('[Result', `[SetUp "1"]\n[FEN "${fen}"]\n[Result`) });
+    assert.equal(neutral(withFen('4k3/8/8/8/8/8/4P3/4K3 w - - 0 1')), null);
+    assert.ok(neutral(withFen(START)));
+  });
+  test('stops the moves at the first token that is not a move', () => {
+    const n = neutral({ ...base, pgn: base.pgn.replace(/2\. Nf3/, '2. <img') });
+    assert.deepEqual(n.sans, neutral(base).sans.slice(0, 2));
+  });
+});
+
 describe('/api/games', () => {
   test('fetches a month from chess.com once, stores it neutral, then serves the copy', async () => {
     const [status, out] = await askJSON('player=TestPlayer&month=2026/07', AUGUST);
@@ -47,6 +64,16 @@ describe('/api/games', () => {
     assert.ok(env.GAMES.data.has('games/testplayer/2026-07.json'));
     await askJSON('player=testplayer&month=2026/07', AUGUST + 365 * 86400e3);
     assert.equal(calls.length, 1, 'a complete month is never fetched again');
+  });
+
+  test('a month copy from before VERSION is fetched again once, then served', async () => {
+    env.GAMES.data.set('games/testplayer/2026-07.json', JSON.stringify({ fetched: AUGUST, complete: true, games: [] }));
+    const [, out] = await askJSON('player=testplayer&month=2026/07', AUGUST + 86400e3);
+    assert.equal(calls.length, 1, 'fetched again from chess.com');
+    assert.equal(out.v, VERSION);
+    assert.equal(out.games.length, 4);
+    await askJSON('player=testplayer&month=2026/07', AUGUST + 2 * 86400e3);
+    assert.equal(calls.length, 1, 'the new copy is kept');
   });
 
   test('the current month and the archive list are fetched again after an hour', async () => {
