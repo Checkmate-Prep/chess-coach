@@ -1011,3 +1011,10 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 **What Claude did:** second issue of the night (#128). Drill ids were list positions, so a rescan or a rewritten AI plan moved the "done" tick onto another drill; they're now built from a short hash of the trap's moves or the line (`drills.js`), and old ticks move once to the drill at their place. Trap scans counted as current when the number of games matched, which past 1,500 games often stays the same after a refresh; trees now keep the newest game's time, scans store it, and result sync ranks scans by it. Scans saved before compare the count only, so no one gets a wave of rescans.
 
 **Checked:** node suite 259 pass; in headless Chromium, the opponent file's Drill button and the Drill list share the new id and an old tick moved over. **Not checked:** two devices syncing the migrated ticks. [PR #148](https://github.com/Checkmate-Prep/chess-coach/pull/148)
+### 175. The project board follows pull requests
+> gh project kaban board shows 0 PR in progress or review, but in gh there are 5 pr open.
+> fix board automation
+
+**What Claude did:** found the gap: the board's auto-add takes issues only, and none of GitHub's built-in project workflows moves an issue when a PR that closes it opens, so #127–#130 sat in *Next* while their PRs waited for review. Cloud sessions can't reach Projects, so the fix runs in GitHub Actions: `.github/workflows/project.yml` calls `scripts/project-status.mjs` on pull request, review and branch events, and moves the issues a PR closes (its "Closes #N" links, or the number in a `claude/issue-N-…` branch) to *In progress*, *In review*, *Done*, or back to *Next* when a PR is closed unmerged. A manual run repairs the board from the open PRs. It needs a `PROJECT_TOKEN` secret, since the workflow's own token can't reach organization projects.
+
+**Checked:** unit tests for the status rules and the linked issues; the GitHub calls against a fake GraphQL endpoint. **Not checked:** a real run (needs the secret). [PR #175](https://github.com/Checkmate-Prep/chess-coach/pull/175)
