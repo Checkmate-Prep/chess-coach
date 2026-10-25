@@ -1004,3 +1004,10 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 **Changed along the way:** the first plan included retrying without `fallbacks` in case prod's fallback option was the problem. Once the tail showed the real cause, that was dropped.
 
 **Checked:** 5 new tests, node suite 255 pass, production dry-run build. **Not checked:** the new messages end to end (dev has credit), logs in the dashboard (after deploy). Credit still has to be added in the Anthropic Console. [PR #146](https://github.com/Checkmate-Prep/chess-coach/pull/146)
+
+### 150. The first screen draws at once
+> now that project exists, address these issues overnight.
+
+**What Claude did:** last fix of the night (#130). Start-up awaited `api/health` with no timeout before drawing anything. `checkAi()` now runs in the background with a 3 s timeout; the first screen uses the last answer (kept in `localStorage`), an open opponent file redraws if the answer changes, and AI is asked again when the device comes back online or the app comes back while AI is off.
+
+**Checked:** in headless Chromium against a local server whose `/api/health` never answers (file drawn in about 200 ms) and one that answers `ai: true` after 1.5 s (step 3 appears). **Not checked:** a real phone on a bad connection, the iOS shell. [PR #150](https://github.com/Checkmate-Prep/chess-coach/pull/150)
