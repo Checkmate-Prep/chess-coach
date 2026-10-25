@@ -50,7 +50,7 @@ async function board(token) {
   return { id: p.id, field: p.field.id, options: Object.fromEntries(p.field.options.map((o) => [o.name, o.id])) };
 }
 
-async function move(token, b, repo, number, status) {
+async function move(token, b, repo, number, status, why = '') {
   const [owner, name] = repo.split('/');
   const d = await gql(token, `query($o: String!, $n: String!, $i: Int!) { repository(owner: $o, name: $n) { issue(number: $i) { id state
     projectItems(first: 20) { nodes { id project { id } } } } } }`, { o: owner, n: name, i: number });
@@ -62,7 +62,7 @@ async function move(token, b, repo, number, status) {
   if (!b.options[status]) throw new Error(`The Status field has no option "${status}".`);
   await gql(token, `mutation($p: ID!, $i: ID!, $f: ID!, $v: String!) { updateProjectV2ItemFieldValue(input: { projectId: $p, itemId: $i, fieldId: $f,
     value: { singleSelectOptionId: $v } }) { projectV2Item { id } } }`, { p: b.id, i: item, f: b.field, v: b.options[status] });
-  console.log(`#${number} -> ${status}`);
+  console.log(`#${number} -> ${status}${why ? ` (${why})` : ''}`);
 }
 
 /** Issues a PR closes: GitHub's own link (closingIssuesReferences) and what issuesOf reads. */
@@ -79,10 +79,17 @@ async function main() {
   const b = await board(token);
   if (process.argv.includes('--sync')) {
     const r = await fetch(`https://api.github.com/repos/${repo}/pulls?state=open&per_page=100`, { headers: { authorization: `Bearer ${token}` } });
+    // each issue moves once; an issue linked from a ready PR and a draft one counts as in review
+    const plan = new Map();
     for (const pr of await r.json()) {
       const status = pr.draft ? 'In progress' : 'In review';
-      for (const n of await linked(token, repo, pr)) await move(token, b, repo, n, status);
+      for (const n of await linked(token, repo, pr)) {
+        const was = plan.get(n);
+        if (!was || (was.status === 'In progress' && status === 'In review')) plan.set(n, { status, prs: [...(was?.prs || []), pr.number] });
+        else was.prs.push(pr.number);
+      }
     }
+    for (const [n, { status, prs }] of plan) await move(token, b, repo, n, status, `PR ${prs.map((x) => `#${x}`).join(', ')}`);
     return;
   }
   const event = process.env.GITHUB_EVENT_NAME, payload = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
@@ -95,7 +102,7 @@ async function main() {
   const pr = payload.pull_request;
   const status = statusFor({ event, action: payload.action, draft: pr.draft, merged: pr.merged, review: payload.review?.state });
   if (!status) return console.log(`${event} ${payload.action}: nothing to move`);
-  for (const n of await linked(token, repo, pr)) await move(token, b, repo, n, status);
+  for (const n of await linked(token, repo, pr)) await move(token, b, repo, n, status, `PR #${pr.number}`);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) main().catch((e) => { console.error(e.message); process.exit(1); });
