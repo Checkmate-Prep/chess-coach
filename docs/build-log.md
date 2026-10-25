@@ -1004,3 +1004,10 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 **Changed along the way:** the first plan included retrying without `fallbacks` in case prod's fallback option was the problem. Once the tail showed the real cause, that was dropped.
 
 **Checked:** 5 new tests, node suite 255 pass, production dry-run build. **Not checked:** the new messages end to end (dev has credit), logs in the dashboard (after deploy). Credit still has to be added in the Anthropic Console. [PR #146](https://github.com/Checkmate-Prep/chess-coach/pull/146)
+
+### 148. Drill ticks and trap scans follow their content
+> now that project exists, address these issues overnight.
+
+**What Claude did:** second issue of the night (#128). Drill ids were list positions, so a rescan or a rewritten AI plan moved the "done" tick onto another drill; they're now built from a short hash of the trap's moves or the line (`drills.js`), and old ticks move once to the drill at their place. Trap scans counted as current when the number of games matched, which past 1,500 games often stays the same after a refresh; trees now keep the newest game's time, scans store it, and result sync ranks scans by it. Scans saved before compare the count only, so no one gets a wave of rescans.
+
+**Checked:** node suite 259 pass; in headless Chromium, the opponent file's Drill button and the Drill list share the new id and an old tick moved over. **Not checked:** two devices syncing the migrated ticks. [PR #148](https://github.com/Checkmate-Prep/chess-coach/pull/148)
