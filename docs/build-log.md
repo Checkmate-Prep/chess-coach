@@ -1004,3 +1004,10 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 **Changed along the way:** the first plan included retrying without `fallbacks` in case prod's fallback option was the problem. Once the tail showed the real cause, that was dropped.
 
 **Checked:** 5 new tests, node suite 255 pass, production dry-run build. **Not checked:** the new messages end to end (dev has credit), logs in the dashboard (after deploy). Credit still has to be added in the Anthropic Console. [PR #146](https://github.com/Checkmate-Prep/chess-coach/pull/146)
+
+### 149. Game plan numbers you can trust
+> now that project exists, address these issues overnight.
+
+**What Claude did:** third issue of the night (#129). The plan now suggests the next slower time control (rapid for a blitz player, not daily), counts wins where the opponent ran out of time apart from losses where they did (the advice differs: keep time in hand, or make them think), measures "king in the centre" against games past move 15 instead of all games, and keeps quiet about clock and castling habits until 10 games back them, saying how many games each figure rests on. Copy fixes: "and score 30%" in trap text, subjects on profile lines, and opponents named by their app name in progress lines and puzzle captions.
+
+**Checked:** node suite 255 pass; the profile and plan lines in headless Chromium. **Not checked:** an AI plan from the new payload field. [PR #149](https://github.com/Checkmate-Prep/chess-coach/pull/149)
