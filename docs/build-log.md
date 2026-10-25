@@ -1004,3 +1004,12 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 **Changed along the way:** the first plan included retrying without `fallbacks` in case prod's fallback option was the problem. Once the tail showed the real cause, that was dropped.
 
 **Checked:** 5 new tests, node suite 255 pass, production dry-run build. **Not checked:** the new messages end to end (dev has credit), logs in the dashboard (after deploy). Credit still has to be added in the Anthropic Console. [PR #146](https://github.com/Checkmate-Prep/chess-coach/pull/146)
+
+### 147. Games from a set-up position stay out of the trees
+> now that project exists, address these issues overnight.
+
+**What Claude did:** took the remaining "Before real users" issues in board order, one branch and PR each, starting with #127. chess.com marks games played from a set-up position as standard chess, so `neutral()` now drops games whose `initial_setup` or `[FEN]` header isn't the usual start, and stops a game's moves at the first token that isn't a move (`isSan` in the new `san.js`). Games already stored go away through a version on stored games: a device cache from before is downloaded again once, and the Worker fetches an older month copy again once. Moves synced from the account (reviews, trap scans) must also be real moves, since they reach the screen as HTML.
+
+**Changed along the way:** checking every stored game by replaying it with chess.js was measured at about 1 ms per game (seconds on a phone for 1,500 games), so old copies are refreshed through the version instead.
+
+**Checked:** node suite 260 pass, Python suite passes, the opponent file in headless Chromium. **Not checked:** the Worker and R2 on dev, a real set-up game from chess.com. [PR #147](https://github.com/Checkmate-Prep/chess-coach/pull/147)
