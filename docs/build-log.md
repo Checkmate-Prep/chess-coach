@@ -966,6 +966,26 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 
 **Checked:** the welcome screen at 375 wide with accounts switched on from the console (one button, terms line, click stays put without a client); the node suite passes. **Not checked:** the real redirect to Auth0 and back (needs dev), native apps.
 
+### 141. Code review, and a way to prioritize it
+> take a long time to perform a deep review of the entire codebase for:
+>
+> * bugs, in particular on edge cases
+> * potential for code refactor (it been built iteratively)
+> * UX design improvements
+> * improvement on the quality of chess advice: find additional ways to help coach the user to beat their opponents, make it easier to prepare and practice
+>
+> if we open issues for each of these, I'm afraid it will make it difficult to prioritize.
+> act as a scrum master, and plan a way to organize efficiently these items.
+>
+> agreed. ok for docs/backlog.md. try creating the new milestone.
+>
+> how do you suggest handling prioritization. I'm the only one supervising, and claude is doing all the coding.
+>
+> instead of backlog.md create a github project in the org
+
+**What Claude did:** read every module of the app, the Worker and the pipeline, ran the node suite (242 pass), and loaded the app in headless Chromium with 200 synthetic games and chess.com mocked. That confirmed a stray `}` under every opponent's game plan and a plan telling a blitz player to "ask for a daily game". Other findings came from reading the code: a month of games can be lost when the game store serves a copy fetched just before the month ended, the offline file list misses `native.js`, drill ticks follow list positions, and trap scans count as current when only the game count matches. Then Claude grouped about 40 findings into 17 PR-sized issues instead of one each: 7 fixes under "Before real users" (#124–#130), one enabling refactor and 9 coaching features under a new milestone, "Better coaching" (#131–#140), with "Blocked by" lines in order. The smaller ideas first went into a parking lot in a new `docs/backlog.md`. Since Simon supervises alone, Claude suggested ordering work by how much of his attention each issue needs (tests are enough, a look on the phone, or a decision first). Simon then asked for an org project instead: cloud sessions can't reach GitHub Projects (GraphQL and org endpoints are blocked), so Claude wrote the `gh project` setup script for a local session and Simon ran it. `docs/backlog.md` is gone; the parking lot became 17 issues labelled `idea` (#151–#167), and CLAUDE.md now points at the project, the `idea` label and the "decision first" rule.
+
+**Checked:** the milestone, issues and label on GitHub. **Not checked:** the Python suite (python-chess wouldn't build in the cloud container).
 ### 144. The app starts offline after an update
 > Suggest 2 or 3 issues that can you handle yourself and that also high on the priority list. So that I get you to work on them in the next 30 min while I’m commuting.
 >
