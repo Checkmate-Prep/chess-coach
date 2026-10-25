@@ -10,6 +10,11 @@ compatibility_date = "2026-09-01"
 workers_dev = true
 preview_urls = false
 
+# Keep the Worker's logs (console.error from /api and the AI prep Workflow) in the dashboard, so a failure
+# can be read afterwards. Inherited by every environment.
+[observability]
+enabled = true
+
 [assets]
 directory = "./app"
 binding = "ASSETS"
