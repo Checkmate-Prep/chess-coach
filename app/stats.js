@@ -48,25 +48,28 @@ export function profile(games) {
   const long = games.filter((g) => g.sans.length >= 90), short = games.filter((g) => g.sans.length < 50);
   const sum = (xs) => xs.reduce((a, g) => a + g.pts, 0);
   // castling: find own castle move in SAN list
-  let castled = 0, queenside = 0, castleMove = 0, never = 0;
+  // `longer`: games past move 15, the ones where staying uncastled counts as never castling
+  let castled = 0, queenside = 0, castleMove = 0, never = 0, longer = 0;
   for (const g of games) {
     const mine = g.color === 'white' ? 0 : 1;
     const i = g.sans.findIndex((s, k) => k % 2 === mine && s.startsWith('O-O'));
+    if (g.sans.length > 30) longer++;
     if (i >= 0) { castled++; castleMove += Math.floor(i / 2) + 1; if (g.sans[i].startsWith('O-O-O')) queenside++; }
     else if (g.sans.length > 30) never++;
   }
-  const decided = games.filter((g) => g.pts !== 1).length;
-  const onTime = games.filter((g) => g.pts !== 1 && (g.how === 'timeout')).length;
+  // games won because the opponent ran out of time, and games lost because the player did: two different habits
+  const share = (k, n) => ({ k, n, pct: n ? Math.round((100 * k) / n) : 0 });
+  const onTime = (pts) => { const xs = games.filter((g) => g.pts === pts); return share(xs.filter((g) => g.how === 'timeout').length, xs.length); };
   return {
     n: games.length,
     byTc: Object.fromEntries(Object.entries(byTc).map(([k, v]) => [k, { n: v.n, score: pct(v.p, v.n) }]).sort((a, b) => b[1].n - a[1].n)),
     firstMove: top(white, 4),
     vsE4: top(walk(black, ['e4']), 3), vsD4: top(walk(black, ['d4']), 3),
     openings: { white: topOpen(openings.white), black: topOpen(openings.black) },
-    ends, onTimePct: decided ? Math.round((100 * onTime) / decided) : 0,
+    ends, onTime: { wins: onTime(2), losses: onTime(0) },
     lengthScore: { short: { n: short.length, score: pct(sum(short), short.length) }, long: { n: long.length, score: pct(sum(long), long.length) } },
     castling: { pct: games.length ? Math.round((100 * castled) / games.length) : 0, queensidePct: castled ? Math.round((100 * queenside) / castled) : 0,
-      avgMove: castled ? Math.round(castleMove / castled) : null, neverPct: games.length ? Math.round((100 * never) / games.length) : 0 },
+      avgMove: castled ? Math.round(castleMove / castled) : null, neverPct: longer ? Math.round((100 * never) / longer) : 0, castled, longer },
     since: games.length ? games[games.length - 1].t : null,
   };
 }

@@ -14,6 +14,7 @@ function kids(node, min = MIN) {
 const share = (k, node) => Math.round((100 * k.n) / node.n);
 const TC = { bullet: 'bullet', blitz: 'blitz', rapid: 'rapid', daily: 'daily' };
 const SLOW = ['daily', 'rapid', 'blitz', 'bullet'];
+export const MIN_SAMPLE = 10; // games a percentage about habits (clock, castling) needs before the plan uses it
 
 /**
  * One side of the plan. `tree` is the opponent's tree with the colour opposite to yours.
@@ -116,19 +117,24 @@ function manage(pr) {
   if (tcs.length) {
     const [main, m] = tcs[0];
     const mainShare = Math.round((100 * m.n) / total);
-    const slower = SLOW.slice(0, SLOW.indexOf(main)).find((tc) => !pr.byTc[tc] || pr.byTc[tc].n < m.n / 4);
+    // the next slower time control they rarely play; daily only if they play it at all (it's a different game)
+    const slower = SLOW.slice(0, SLOW.indexOf(main)).reverse()
+      .find((tc) => (tc !== 'daily' || pr.byTc.daily) && (!pr.byTc[tc] || pr.byTc[tc].n < m.n / 4));
     if (mainShare >= 70 && slower) out.push(`They play mostly ${TC[main]} (${mainShare}% of their games). Ask for a ${slower} game, where their speed matters less.`);
     const weakTc = tcs.filter(([, x]) => x.n >= 20).sort((a, b) => a[1].score - b[1].score)[0];
     if (weakTc && weakTc[1].score <= 45) out.push(`Their weakest time control is ${TC[weakTc[0]]}: ${weakTc[1].score}% over ${weakTc[1].n} games.`);
   }
-  if (pr.onTimePct >= 30) out.push(`${pr.onTimePct}% of their decisive games end on the clock. Keep time in hand; in a fast game they will play for your flag.`);
+  const { wins, losses } = pr.onTime;
+  if (wins.n >= MIN_SAMPLE && wins.pct >= 30) out.push(`In ${wins.k} of their ${wins.n} wins (${wins.pct}%), the opponent ran out of time. Keep time in hand: in a fast game they will play for your flag.`);
+  if (losses.n >= MIN_SAMPLE && losses.pct >= 30) out.push(`They ran out of time in ${losses.k} of their ${losses.n} losses (${losses.pct}%). Make them think: keep the position complicated and the clock will work for you.`);
   if (pr.lengthScore.long.n >= 10 && pr.lengthScore.short.n >= 10) {
     const d = pr.lengthScore.long.score - pr.lengthScore.short.score;
     if (d >= 8) out.push(`They get stronger as games go on (${pr.lengthScore.long.score}% in games of 45+ moves). Try to decide it in the middlegame and avoid trading into equal endgames.`);
     if (d <= -8) out.push(`They fade in long games (${pr.lengthScore.long.score}% in games of 45+ moves). Keep pieces on and make it a long game.`);
   }
-  if (pr.castling.queensidePct >= 25) out.push(`They castle queenside in ${pr.castling.queensidePct}% of games where they castle. When they do, push your pawns at their king.`);
-  if (pr.castling.neverPct >= 15) out.push(`They leave their king in the centre in ${pr.castling.neverPct}% of longer games. Open the centre early.`);
+  const c = pr.castling;
+  if (c.castled >= MIN_SAMPLE && c.queensidePct >= 25) out.push(`They castle queenside in ${c.queensidePct}% of the ${c.castled} games where they castle. When they do, push your pawns at their king.`);
+  if (c.longer >= MIN_SAMPLE && c.neverPct >= 15) out.push(`They leave their king in the centre in ${c.neverPct}% of their ${c.longer} games longer than 15 moves. Open the centre early.`);
   return out;
 }
 
