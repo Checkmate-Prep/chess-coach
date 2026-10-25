@@ -21,7 +21,7 @@ const SLOW = ['daily', 'rapid', 'blitz', 'bullet'];
  */
 function side(tree, traps, youMoveFirst, mine) {
   const points = [];
-  let line = null, keyFrom = null, trap = null;
+  let line = null, keyFrom = null, trap = null, kind = null;
   // lowest score for them, but keep a move you already play when it is nearly as good
   // ranked on a sample-adjusted score so a lucky handful of games can't outrank hundreds
   const pick = (xs, yours, node) => {
@@ -82,6 +82,7 @@ function side(tree, traps, youMoveFirst, mine) {
     points.push(`Trap: after ${numbered(t.path)}, they play ${t.played} in ${t.times} of ${t.of} games. Punish it with ${t.punish[0]}.`);
     line = [...t.path, t.played, ...t.punish.slice(0, 3)];
     keyFrom = t.path.length;
+    kind = 'trap';
   }
 
   // a line where they score badly, again preferring the recommended opening
@@ -90,10 +91,17 @@ function side(tree, traps, youMoveFirst, mine) {
   const w = weak.find((l) => starts(l.moves) && l.moves.length > prefix.length) || (prefix.length ? null : weak[0]);
   if (w) {
     points.push(`They struggle after ${numbered(w.moves)}: ${w.score}% in ${w.n} games.`);
-    if (!line) { line = w.moves; keyFrom = Math.max(0, prefix.length); }
+    if (!line) { line = w.moves; keyFrom = Math.max(0, prefix.length); kind = 'weak'; }
   }
-  if (!line && prefix.length) { line = prefix; keyFrom = 0; }
-  return { points, line, keyFrom, trap };
+  if (!line && prefix.length) { line = prefix; keyFrom = 0; kind = 'opening'; }
+  return { points, line, keyFrom, trap, kind };
+}
+
+/** Caption for the board under one side of the plan: what its gold moves show. */
+export function lineCaption(sidePlan) {
+  if (sidePlan.kind === 'trap') return 'Gold moves: their repeated mistake and the punishment.';
+  if (sidePlan.kind === 'weak') return 'Gold moves: where they go wrong.';
+  return 'Gold moves: the opening to play.';
 }
 
 export function numbered(sans) {

@@ -966,7 +966,7 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 
 **Checked:** the welcome screen at 375 wide with accounts switched on from the console (one button, terms line, click stays put without a client); the node suite passes. **Not checked:** the real redirect to Auth0 and back (needs dev), native apps.
 
-### 141. Code review, and a backlog to work through it
+### 141. Code review, and a way to prioritize it
 > take a long time to perform a deep review of the entire codebase for:
 >
 > * bugs, in particular on edge cases
@@ -978,7 +978,49 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 > act as a scrum master, and plan a way to organize efficiently these items.
 >
 > agreed. ok for docs/backlog.md. try creating the new milestone.
+>
+> how do you suggest handling prioritization. I'm the only one supervising, and claude is doing all the coding.
+>
+> instead of backlog.md create a github project in the org
 
-**What Claude did:** read every module of the app, the Worker and the pipeline, ran the node suite (242 pass), and loaded the app in headless Chromium with 200 synthetic games and chess.com mocked. That confirmed a stray `}` under every opponent's game plan and a plan telling a blitz player to "ask for a daily game". Other findings came from reading the code: a month of games can be lost when the game store serves a copy fetched just before the month ended, the offline file list misses `native.js`, drill ticks follow list positions, and trap scans count as current when only the game count matches. Then Claude grouped about 40 findings into 17 PR-sized issues instead of one each: 7 fixes under "Before real users" (#124–#130), one enabling refactor and 9 coaching features under a new milestone, "Better coaching" (#131–#140), with "Blocked by" lines in order. The smaller ideas went into a parking lot in the new `docs/backlog.md`, next to the sprint plan, and CLAUDE.md now sends mid-task ideas there instead of to new issues.
+**What Claude did:** read every module of the app, the Worker and the pipeline, ran the node suite (242 pass), and loaded the app in headless Chromium with 200 synthetic games and chess.com mocked. That confirmed a stray `}` under every opponent's game plan and a plan telling a blitz player to "ask for a daily game". Other findings came from reading the code: a month of games can be lost when the game store serves a copy fetched just before the month ended, the offline file list misses `native.js`, drill ticks follow list positions, and trap scans count as current when only the game count matches. Then Claude grouped about 40 findings into 17 PR-sized issues instead of one each: 7 fixes under "Before real users" (#124–#130), one enabling refactor and 9 coaching features under a new milestone, "Better coaching" (#131–#140), with "Blocked by" lines in order. The smaller ideas first went into a parking lot in a new `docs/backlog.md`. Since Simon supervises alone, Claude suggested ordering work by how much of his attention each issue needs (tests are enough, a look on the phone, or a decision first). Simon then asked for an org project instead: cloud sessions can't reach GitHub Projects (GraphQL and org endpoints are blocked), so Claude wrote the `gh project` setup script for a local session and Simon ran it. `docs/backlog.md` is gone; the parking lot became 17 issues labelled `idea` (#151–#167), and CLAUDE.md now points at the project, the `idea` label and the "decision first" rule.
 
-**Checked:** the milestone and issues on GitHub. **Not checked:** the Python suite (python-chess wouldn't build in the cloud container).
+**Checked:** the milestone, issues and label on GitHub. **Not checked:** the Python suite (python-chess wouldn't build in the cloud container).
+### 144. The app starts offline after an update
+> Suggest 2 or 3 issues that can you handle yourself and that also high on the priority list. So that I get you to work on them in the next 30 min while I’m commuting.
+>
+> Do these 3 in parallel 124 125 126
+
+**What Claude did:** picked #124, #125 and #126 from sprint 1 of the backlog (none blocked, all testable in Node) and worked on them in parallel, one branch each. This PR is #125. The service worker's offline file list was written by hand and lacked `native.js`, so after an update the next offline start stayed on "Loading your prep…". `build_app.py` now writes the list from the files in `app/` (pages, styles, modules, manifest, icons, vendored code), leaving out `prep.json`, the landing screenshots and licence texts. A new test checks that the committed `sw.js` lists every module and matches what the build would write. It runs without python-chess.
+
+**Checked:** both Python suites (20 tests, in a virtualenv where python-chess builds) and the node suite (242 pass); the build gives the same output when run twice. **Not checked:** offline start on a real device (the built-in browser can't register service workers). [PR #144](https://github.com/Checkmate-Prep/chess-coach/pull/144)
+
+### 142. Opponent file: no stray "}" under the plan, and an honest caption for a bare first move
+> Suggest 2 or 3 issues that can you handle yourself and that also high on the priority list. So that I get you to work on them in the next 30 min while I’m commuting.
+>
+> Do these 3 in parallel 124 125 126
+
+**What Claude did:** proposed #124, #125 and #126, the first three fixes in sprint 1 of the backlog, then worked on them in parallel, one branch and PR each. For #124: the `planStep(...)` call at the end of the `renderOpp` template closed one brace too many, which left a lone `}` on every opponent file. When the quick plan has no trap and no weak line for a colour, its line is just your opening move, but the board still said "Gold moves: where they go wrong". `side()` in `plan.js` now says what kind of line it returns (trap, weak line or opening), and `lineCaption()` picks the caption: "Gold moves: the opening to play." for the fallback.
+
+**Checked:** the node suite passes (244), with new tests for the line kinds and captions. **Not checked:** the opponent file in a browser, and the phone-size preview. [PR #142](https://github.com/Checkmate-Prep/chess-coach/pull/142)
+
+### 143. No more missing games at the end of a month, and a failed download keeps what it got
+> Suggest 2 or 3 issues that can you handle yourself and that also high on the priority list. So that I get you to work on them in the next 30 min while I’m commuting.
+>
+> Do these 3 in parallel 124 125 126
+
+**What Claude did:** suggested #124, #125 and #126 from Sprint 1 of the backlog and worked on them in parallel, one branch and PR each. This PR is #126. A month now counts as complete only when its copy was fetched at least 2 hours after it ended (`isComplete` in `chesscom.js`, used by the app and the Worker). When the game store answers, the app keeps the store's fetch time for that month instead of the device clock, so a shared copy fetched just after midnight is asked for again later. The Worker also re-checks copies it saved as complete under the old rule. `syncGames` saves after each month, so a failure on month 7 keeps months 1–6; `fetched` only moves once the whole download is in.
+
+**Checked:** the node suite (248 pass), with new tests for the boundary, the store's fetch time and a mid-download failure in both `chesscom.test.mjs` and `games.test.mjs`. **Not checked:** the real Worker and R2 on dev, the app in a browser.
+
+### 146. AI plans say why they failed, and Worker logs are kept
+> I get a bug "The AI service failed. Try again later." When I click "use ai to enhance a game plan" in prod
+> Plan a fix, create issue and open pr
+>
+> can I sign you on cloudflare for checkmate
+
+**What Claude did:** traced the message to `worker/prep.js`, which used it for any 400, 401 or 403 from Anthropic and for crashed jobs. Production logs weren't kept, and the Cloudflare connector was on another account, so it opened issue #145 and asked for `npx wrangler login`. The production Workflow's two earlier jobs had ended within a second with the generic error. A `wrangler tail` during a real tap showed Anthropic's answer: 400, "Your credit balance is too low". The code was fine, and the prod key's organization was out of credit. The fix makes this visible: `worker/aierror.js` sorts failures (retry, budget used up, key not set up, other rejection) into a message the app shows, the job's output keeps Anthropic's status and message for the Workflows dashboard, and `[observability]` keeps Worker logs in every environment.
+
+**Changed along the way:** the first plan included retrying without `fallbacks` in case prod's fallback option was the problem. Once the tail showed the real cause, that was dropped.
+
+**Checked:** 5 new tests, node suite 255 pass, production dry-run build. **Not checked:** the new messages end to end (dev has credit), logs in the dashboard (after deploy). Credit still has to be added in the Anthropic Console. [PR #146](https://github.com/Checkmate-Prep/chess-coach/pull/146)

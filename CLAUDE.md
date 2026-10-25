@@ -16,7 +16,7 @@ See `README.md` for the user-facing description.
 | `coach.py` | `refresh` runs the pipeline for you + friends, then rebuilds the report and the app data |
 | `notes.py` | **Hand-written prep** (written by Claude from the analysis, not generated). Local only: gitignored, never committed or published. Without it, `build_report.py` skips the report |
 | `build_report.py` | Renders `report.html` (the prep-book artifact) from profiles + `notes.py` |
-| `build_app.py` | Writes an empty `app/prep.json` (hand-written prep never goes into `app/`) and stamps the service-worker cache name |
+| `build_app.py` | Writes an empty `app/prep.json` (hand-written prep never goes into `app/`), writes the service worker's offline file list from the files in `app/` and stamps its cache name |
 | `app/app.js` | UI: routing (`#me`, `#prep`, `#prep/<user>`, `#explore`, `#drill[/id]`, `#setup`) and all screens |
 | `app/chesscom.js`, `app/store.js` | chess.com API client; IndexedDB (games, analysis) + localStorage (profile, names, small settings) |
 | `app/stats.js`, `app/plan.js` | Opening trees, profile stats, weak lines; the automatic game plan |
@@ -49,7 +49,7 @@ python3 -m unittest discover -s tests  # pipeline tests
 
 ## Rules that matter
 
-- **`app/` changes need `python3 build_app.py`.** It hashes the app into the service worker's cache name; without a new name, installed apps keep serving the old files. A project hook runs it automatically after Claude edits a file in `app/`; run it yourself after edits made any other way.
+- **`app/` changes need `python3 build_app.py`.** It lists the app's files for offline use and hashes them into the service worker's cache name; without a new name, installed apps keep serving the old files. A project hook runs it automatically after Claude edits a file in `app/`; run it yourself after edits made any other way.
 - **Everything in `app/` is public**, including `prep.json` (the hand-written prep). Never put secrets or private data there.
 - **No build step or framework.** Plain ES modules; libraries are vendored. Keep it that way unless there's a strong reason. (The Worker is bundled by Wrangler; that doesn't touch `app/`.)
 - **The Anthropic key lives only in the Worker** (`ANTHROPIC_API_KEY` secret, per GitHub Environment). Never in `app/`, `wrangler.toml` or a commit. AI prep must stay optional: without `/api/health` answering `ai: true`, step 3 of an opponent's file is the quick plan built on the device.
@@ -84,11 +84,13 @@ python3 -m unittest discover -s tests  # pipeline tests
 ### Issues are the todo list
 
 - **One issue = one PR-sized change.** A bigger job is split into flat issues, not parents and sub-issues. Each issue has a short "Done when" checklist, and the PR says `Closes #N`. Blockers are a "Blocked by: #N" line above "Done when".
-- **Labels say where it belongs, not how urgent it is:** "Android App", "iOS App", "Account Management", "Operations", plus `bug` and `documentation`. No priority labels.
-- **Milestones are the goals** ("Google Play launch", "Before real users", "iOS launch", "Better coaching"). Every open issue has one.
+- **Labels say where it belongs, not how urgent it is:** "Android App", "iOS App", "Account Management", "Operations", plus `bug`, `documentation` and `idea` (not scheduled yet). No priority labels.
+- **Milestones are the goals** ("Google Play launch", "Before real users", "iOS launch", "Better coaching"). Every open issue has one, except `idea` issues.
 - **Priority is the order of work:** first what is blocked by nothing, then what unblocks other work, then small steps toward users. Keep at most two issues in progress.
-- **Before creating an issue**, search the open ones for a duplicate. New ideas that come up mid-task go to the parking lot in `docs/backlog.md`, and the current task carries on.
-- **`docs/backlog.md`** holds the order of work by sprint and the parking lot: ideas not scheduled yet. At each sprint review, promote at most two of them to issues.
+- **Before creating an issue**, search the open ones for a duplicate. New ideas that come up mid-task become an issue labelled `idea` (short, no milestone or "Done when" yet), and the current task carries on.
+- **The order of work lives in the org project "Checkmate Prep roadmap"** (github.com/orgs/Checkmate-Prep/projects): Status *Parking lot* (ideas), *Backlog*, *Next* (this sprint), *In progress* (at most 2), *In review*, *Done*; fields *Sprint* and *Kind* (*Tests*, *Your eyes*, *Decision*: how much of Simon's attention an issue needs). At each weekly sprint review, at most two ideas are promoted: they get a milestone and "Done when", and lose the `idea` label.
+- **Cloud sessions can't read the project** (GraphQL and org endpoints are blocked there): they start from the issue number they're given ("start #N"). Local sessions can, after `gh auth refresh -s project`.
+- **A "Decision" issue starts with a proposal**, not code: post a one-screen design note on the issue (what the user sees, what is computed, open questions) and wait for an answer.
 - **Tools:** the GitHub MCP tools can create and edit issues and set a milestone, but not create milestones or touch Projects. `gh api repos/checkmate-prep/chess-coach/...` (REST) can create milestones. GraphQL (`gh pr view`, `gh issue list`) is blocked.
 - `docs/app-stores.md` keeps the store plan and what is done; open work lives in the issues.
 
