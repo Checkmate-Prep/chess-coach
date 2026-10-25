@@ -1,10 +1,10 @@
 // Offline support: app shell cache-first; chess.com, /api/ and sign-in always live.
-const CACHE = 'chess-prep-9be2fd7df3';
+const CACHE = 'chess-prep-b791cb098e';
 const SHELL = ['./', 'aiconsent.js', 'analysis.js', 'app.css', 'app.js', 'board.js', 'chesscom.js', 'delete-account.html',
-  'engine.js', 'icon-180.png', 'icon-192.png', 'icon-512-maskable.png', 'icon-512-monochrome.png', 'icon-512-monochrome.svg', 'icon-512.png', 'icon.svg',
-  'index.html', 'legal.css', 'manifest.webmanifest', 'native.js', 'pieces.js', 'plan.js', 'privacy.html', 'results.js',
-  'resultsdoc.js', 'stats.js', 'store.js', 'sync.js', 'syncdoc.js', 'terms.html', 'track.js', 'vendor/auth0/auth0-spa-js.production.esm.js',
-  'vendor/chess.js', 'vendor/stockfish/stockfish-19-lite-single.js', 'vendor/stockfish/stockfish-19-lite-single.wasm'];
+  'drills.js', 'engine.js', 'icon-180.png', 'icon-192.png', 'icon-512-maskable.png', 'icon-512-monochrome.png', 'icon-512-monochrome.svg', 'icon-512.png',
+  'icon.svg', 'index.html', 'legal.css', 'manifest.webmanifest', 'native.js', 'pieces.js', 'plan.js', 'privacy.html',
+  'results.js', 'resultsdoc.js', 'stats.js', 'store.js', 'sync.js', 'syncdoc.js', 'terms.html', 'track.js',
+  'vendor/auth0/auth0-spa-js.production.esm.js', 'vendor/chess.js', 'vendor/stockfish/stockfish-19-lite-single.js', 'vendor/stockfish/stockfish-19-lite-single.wasm'];
 
 // On localhost (development) step aside: clear this app's caches and unregister, so edits show up on reload.
 const LOCAL = ['localhost', '127.0.0.1', '[::1]'].includes(self.location.hostname);

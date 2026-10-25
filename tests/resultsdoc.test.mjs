@@ -21,9 +21,12 @@ describe('items', () => {
     assert.deepEqual(itemsOf('aiprep:bob', plan(1)), ['aiprep']);
     assert.deepEqual(itemsOf('aiprep:bob', undefined), []);
   });
-  test('rank: reviews never change, more games win for traps, newer wins for plans', () => {
+  test('rank: reviews never change, newer games win for traps, newer wins for plans', () => {
     assert.equal(rankOf(`review:${URL1}`, review()), 0);
-    assert.equal(rankOf('traps:white', traps(42)), 42);
+    assert.equal(rankOf('traps:white', traps(42)), 42, 'a scan saved before t: its number of games');
+    assert.equal(rankOf('traps:white', traps(42, { t: 1780000000 })), 1780000000, 'its newest game');
+    assert.ok(apply(traps(42, { t: 1780000000 }), 'traps:white', traps(42, { t: 1780000500 })), 'same count, newer games: replaces');
+    assert.equal(apply(traps(42, { t: 1780000500 }), 'traps:white', traps(42, { t: 1780000000 })), null, 'older games: kept');
     assert.equal(rankOf('aiprep', plan(1234)), 1234);
   });
 });
@@ -32,6 +35,7 @@ describe('clean', () => {
   test('keeps the app\'s shapes as they are', () => {
     assert.deepEqual(clean(`review:${URL1}`, review()), review());
     assert.deepEqual(clean('traps:white', traps(10)), traps(10));
+    assert.deepEqual(clean('traps:white', traps(10, { t: 1780000000 })), traps(10, { t: 1780000000 }));
     assert.deepEqual(clean('traps:white', { n: 5, traps: [] }), { n: 5, traps: [] }, 'an empty scan, saved before `checked` existed');
     assert.deepEqual(clean('aiprep', plan(5)), plan(5));
   });

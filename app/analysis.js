@@ -142,11 +142,18 @@ export function trapCandidates(tree, color, { minN = TRAP_MIN_N, maxPly = 14 } =
   return cands;
 }
 
+/**
+ * Whether a saved scan was made from the games `tree` holds: the same number of games and the same newest game.
+ * Past 1,500 games a refresh swaps old games for new ones and the count often stays the same, so the count alone
+ * isn't enough. Scans saved before `t` existed compare the count only.
+ */
+export const sameGames = (scan, tree) => scan.n === tree.n && (scan.t == null || scan.t === tree.t);
+
 /** Find moves the player repeats that the engine refutes, among the trapCandidates of `tree`. */
 export async function findTraps(user, tree, color, onProgress = () => {}, opts = {}) {
   const key = `traps:${user}:${color}`;
   const cached = await idb.get(key);
-  if (cached && cached.n === tree.n) return cached.traps;
+  if (cached && sameGames(cached, tree)) return cached.traps;
   const cands = trapCandidates(tree, color, opts);
   const traps = [];
   for (let i = 0; i < cands.length; i++) {
@@ -173,7 +180,7 @@ export async function findTraps(user, tree, color, onProgress = () => {}, opts =
   // skip traps that sit inside an earlier trap's line
   const out = [];
   for (const t of traps) if (!out.some((o) => [...o.path, o.san].every((m, i) => t.path[i] === m))) out.push(t);
-  await idb.set(key, { n: tree.n, checked: cands.length, traps: out.slice(0, 8) });
+  await idb.set(key, { n: tree.n, ...(tree.t ? { t: tree.t } : {}), checked: cands.length, traps: out.slice(0, 8) });
   markDirty(user, `traps:${color}`);
   return out.slice(0, 8);
 }
@@ -185,7 +192,7 @@ export const cachedTraps = (user, color) => idb.get(`traps:${user}:${color}`).th
 export async function trapScan(user, color, tree) {
   const c = await idb.get(`traps:${user}:${color}`);
   if (!c) return null;
-  const current = c.n === tree.n;
+  const current = sameGames(c, tree);
   // scans saved before `checked` was counted: the tree is unchanged, so its candidates are the ones checked
   return { traps: c.traps, current, checked: current ? (c.checked ?? trapCandidates(tree, color).length) : null };
 }

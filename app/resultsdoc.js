@@ -6,8 +6,8 @@
 //   'review:<game url>'   one game's review (analysis.js reviewGame)  -> IndexedDB review:<player> = {url: review}
 //   'traps:white|black'   one trap scan (analysis.js findTraps)       -> IndexedDB traps:<player>:<color>
 //   'aiprep'              Claude's plan (app.js saveAi)               -> IndexedDB aiprep:<player>
-// `rankOf` says which of two copies wins: a review never changes (the first copy stays), the trap scan of more
-// games wins, the newest plan wins.
+// `rankOf` says which of two copies wins: a review never changes (the first copy stays), the trap scan of newer
+// games wins (its newest game, `t`; scans saved before `t` existed rank by their number of games), the newest plan wins.
 
 export const USER = /^[a-z0-9_-]{2,30}$/;
 const GAME = /^https:\/\/www\.chess\.com\/game\/(live|daily)\/[a-z0-9]{1,24}$/;
@@ -24,7 +24,7 @@ export function idbKey(player, item) {
 }
 
 /** Which copy wins (the higher rank). */
-export const rankOf = (item, data) => (item.startsWith('traps:') ? data.n : item === 'aiprep' ? data.at : 0);
+export const rankOf = (item, data) => (item.startsWith('traps:') ? data.t ?? data.n : item === 'aiprep' ? data.at : 0);
 
 /** Validate an item from outside (the network): a clean copy with only known fields, or throws. */
 export function clean(item, data) {
@@ -49,7 +49,7 @@ export function clean(item, data) {
     };
   } else if (item.startsWith('traps:')) {
     out = {
-      n: int(data.n), ...(data.checked != null ? { checked: int(data.checked) } : {}),
+      n: int(data.n), ...(data.t != null ? { t: int(data.t) } : {}), ...(data.checked != null ? { checked: int(data.checked) } : {}),
       traps: list(data.traps, 8, (t) => ({
         path: list(t?.path, 30, (m) => str(m, 10)), san: str(t.san, 10), times: int(t.times), of: int(t.of), score: num(t.score),
         fen: str(t.fen), afterFen: str(t.afterFen), played: str(t.played, 10), bestForHim: opt(t.bestForHim, 10),

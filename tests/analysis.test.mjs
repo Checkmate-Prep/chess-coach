@@ -2,7 +2,7 @@ import { test, describe, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { Chess } from '../app/vendor/chess.js';
-import { winProb, pvToSan, summarize, findTraps, cachedTraps, trapScan, trapCandidates, reviewGames, reviewCache, reviewedCount, isGoodMove, BLUNDER } from '../app/analysis.js';
+import { winProb, pvToSan, summarize, findTraps, cachedTraps, trapScan, trapCandidates, reviewGames, reviewCache, reviewedCount, isGoodMove, sameGames, BLUNDER } from '../app/analysis.js';
 import { installFakeIndexedDB, installFakeLocalStorage, installBrowserGlobals, FakeWorker, game, node } from './helpers.mjs';
 
 const db = installFakeIndexedDB();
@@ -130,6 +130,15 @@ describe('findTraps', () => {
     assert.equal((await findTraps('p7', more, 'white')).length, 1);
     const scan = await trapScan('p7', 'white', more);
     assert.deepEqual([scan.current, scan.checked, scan.traps.length], [true, 2, 1]);
+  });
+
+  test('same number of games but a newer game: the scan is out of date', async () => {
+    FakeWorker.script = script({});
+    await findTraps('p9', { ...tree(), t: 1780000000 }, 'white');
+    assert.equal((await trapScan('p9', 'white', { ...tree(), t: 1780000000 })).current, true);
+    assert.equal((await trapScan('p9', 'white', { ...tree(), t: 1780000900 })).current, false, 'an old game dropped, a new one in');
+    assert.equal(sameGames({ n: 10 }, { n: 10, t: 1780000900 }), true, 'a scan saved before t compares the count only');
+    assert.equal(sameGames({ n: 9 }, { n: 10, t: 1780000900 }), false);
   });
 
   test('a scan saved before positions were counted uses the candidates of the same games', async () => {
