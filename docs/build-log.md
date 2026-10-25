@@ -1011,3 +1011,10 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 **What Claude did:** third issue of the night (#129). The plan now suggests the next slower time control (rapid for a blitz player, not daily), counts wins where the opponent ran out of time apart from losses where they did (the advice differs: keep time in hand, or make them think), measures "king in the centre" against games past move 15 instead of all games, and keeps quiet about clock and castling habits until 10 games back them, saying how many games each figure rests on. Copy fixes: "and score 30%" in trap text, subjects on profile lines, and opponents named by their app name in progress lines and puzzle captions.
 
 **Checked:** node suite 255 pass; the profile and plan lines in headless Chromium. **Not checked:** an AI plan from the new payload field. [PR #149](https://github.com/Checkmate-Prep/chess-coach/pull/149)
+### 175. The project board follows pull requests
+> gh project kaban board shows 0 PR in progress or review, but in gh there are 5 pr open.
+> fix board automation
+
+**What Claude did:** found the gap: the board's auto-add takes issues only, and none of GitHub's built-in project workflows moves an issue when a PR that closes it opens, so #127–#130 sat in *Next* while their PRs waited for review. Cloud sessions can't reach Projects, so the fix runs in GitHub Actions: `.github/workflows/project.yml` calls `scripts/project-status.mjs` on pull request, review and branch events, and moves the issues a PR closes (its "Closes #N" links, or the number in a `claude/issue-N-…` branch) to *In progress*, *In review*, *Done*, or back to *Next* when a PR is closed unmerged. A manual run repairs the board from the open PRs. It needs a `PROJECT_TOKEN` secret, since the workflow's own token can't reach organization projects.
+
+**Checked:** unit tests for the status rules and the linked issues; the GitHub calls against a fake GraphQL endpoint. **Not checked:** a real run (needs the secret). [PR #175](https://github.com/Checkmate-Prep/chess-coach/pull/175)
