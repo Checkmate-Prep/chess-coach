@@ -1042,3 +1042,12 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 **Changed along the way:** the session started with read-only access to the repo, so the first push was refused. Once GitHub access was granted, the commit was moved to a fresh clone and pushed.
 
 **Checked:** headless Chromium screenshots of the homepage at 375×812 and 1200×900; node suite 257 pass. **Not checked:** real phones, the iOS shell, dark mode, offline mode. [PR #181](https://github.com/Checkmate-Prep/chess-coach/pull/181)
+
+### 182. More AI plans per day for a live demo
+> how do I increate the AI budget / credits for prod? as I may get more calls given that I'm gonna present the site to a few people tonight
+>
+> yes, open the PR with those values
+
+**What Claude did:** explained the two limits: Anthropic credits (topped up in the Anthropic Console, with auto-reload) and the app's own caps in `wrangler.toml`. In production a single IP address could get only 5 plans a day, and a room on one Wi-Fi shares an address. It raised `PER_IP_DAILY` 5 → 40, `DAILY_LIMIT` 40 → 100 and `AI_BURST` 2 → 5 per minute, for production only. These are meant to come down again after the demo.
+
+**Checked:** `wrangler deploy --dry-run --env production` shows the new values. **Not checked:** a real plan in production (after merge). [PR #182](https://github.com/Checkmate-Prep/chess-coach/pull/182)
