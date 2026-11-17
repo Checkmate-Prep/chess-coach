@@ -103,10 +103,10 @@ ratelimits = [{ name = "BURST", namespace_id = "1002", simple = { limit = 30, pe
 name = "chess-coach"
 workers_dev = false
 routes = [{ pattern = "checkmateprep.com", custom_domain = true }, { pattern = "www.checkmateprep.com", custom_domain = true }]
-vars = { AUTH0_DOMAIN = "login.checkmateprep.com", AUTH0_CLIENT_ID = "2tQ9JSSnfNd6GraU8bmoe9bQ5P64yMnm", AUTH0_NATIVE_CLIENT_ID = "tQxT598ciW2w4kCzmNneUWGOsNucESBw", AUTH0_AUDIENCE = "https://api.checkmateprep.com", MODEL = "claude-opus-5", FALLBACKS = "default", DAILY_LIMIT = "40", PER_IP_DAILY = "5" }
+vars = { AUTH0_DOMAIN = "login.checkmateprep.com", AUTH0_CLIENT_ID = "2tQ9JSSnfNd6GraU8bmoe9bQ5P64yMnm", AUTH0_NATIVE_CLIENT_ID = "tQxT598ciW2w4kCzmNneUWGOsNucESBw", AUTH0_AUDIENCE = "https://api.checkmateprep.com", MODEL = "claude-opus-5", FALLBACKS = "default", DAILY_LIMIT = "100", PER_IP_DAILY = "40" }
 kv_namespaces = [{ binding = "PREP" }]
 workflows = [{ name = "chess-coach-prep", binding = "PREP_JOBS", class_name = "PrepWorkflow" }]
 d1_databases = [{ binding = "DB" }]
 r2_buckets = [{ binding = "GAMES", bucket_name = "chess-coach-games-prod" }]
 analytics_engine_datasets = [{ binding = "EVENTS", dataset = "checkmate_events_production" }]
-ratelimits = [{ name = "BURST", namespace_id = "1003", simple = { limit = 30, period = 60 } }, { name = "AI_BURST", namespace_id = "1013", simple = { limit = 2, period = 60 } }, { name = "GAMES_BURST", namespace_id = "1023", simple = { limit = 300, period = 60 } }]
+ratelimits = [{ name = "BURST", namespace_id = "1003", simple = { limit = 30, period = 60 } }, { name = "AI_BURST", namespace_id = "1013", simple = { limit = 5, period = 60 } }, { name = "GAMES_BURST", namespace_id = "1023", simple = { limit = 300, period = 60 } }]
