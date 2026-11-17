@@ -1032,3 +1032,13 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 **What Claude did:** #127 had been closed by mistake: PR #175's description quoted a closing keyword with #127 as an example of the test it ran, and GitHub closed the issue when #175 merged. Claude reopened it with a comment (the fix is still in #147). #129 appeared twice because two pull requests linked it; the repair run now collects every issue first, moves each once (a ready PR wins over a draft), and every line names the PR behind the move.
 
 **Checked:** the repair run against a fake GitHub with an issue linked from a ready and a draft PR; the node tests for the board script. **Not checked:** a real run (after merge). [PR #176](https://github.com/Checkmate-Prep/chess-coach/pull/176)
+
+### 181. A Contribute box on the homepage
+> add a link on homepage to https://github.com/Checkmate-Prep/chess-coach
+> put it in a box below "how it works", that box should be titled: "Contribute", with bullets explaining that code is open source (link gh repo), that steps used to build using Claude are all available in build-log.md (link it), that contributions are welcome
+
+**What Claude did:** added a "Contribute" card after the "How it works" card in `renderWelcome()` (`app/app.js`), with three bullets that reuse the `.facts` list style, using dots instead of ticks. It gave the card its own area in the welcome grid (`app/app.css`): under "How it works" on phones, and in the right column under it on wide screens. The build-log link points to `docs/build-log.md` on `main` on GitHub.
+
+**Changed along the way:** the session started with read-only access to the repo, so the first push was refused. Once GitHub access was granted, the commit was moved to a fresh clone and pushed.
+
+**Checked:** headless Chromium screenshots of the homepage at 375×812 and 1200×900; node suite 257 pass. **Not checked:** real phones, the iOS shell, dark mode, offline mode. [PR #181](https://github.com/Checkmate-Prep/chess-coach/pull/181)
