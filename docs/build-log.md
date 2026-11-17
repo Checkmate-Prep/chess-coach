@@ -1032,3 +1032,12 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 **What Claude did:** #127 had been closed by mistake: PR #175's description quoted a closing keyword with #127 as an example of the test it ran, and GitHub closed the issue when #175 merged. Claude reopened it with a comment (the fix is still in #147). #129 appeared twice because two pull requests linked it; the repair run now collects every issue first, moves each once (a ready PR wins over a draft), and every line names the PR behind the move.
 
 **Checked:** the repair run against a fake GitHub with an issue linked from a ready and a draft PR; the node tests for the board script. **Not checked:** a real run (after merge). [PR #176](https://github.com/Checkmate-Prep/chess-coach/pull/176)
+
+### 182. More AI plans per day for a live demo
+> how do I increate the AI budget / credits for prod? as I may get more calls given that I'm gonna present the site to a few people tonight
+>
+> yes, open the PR with those values
+
+**What Claude did:** explained the two limits: Anthropic credits (topped up in the Anthropic Console, with auto-reload) and the app's own caps in `wrangler.toml`. In production a single IP address could get only 5 plans a day, and a room on one Wi-Fi shares an address. It raised `PER_IP_DAILY` 5 → 40, `DAILY_LIMIT` 40 → 100 and `AI_BURST` 2 → 5 per minute, for production only. These are meant to come down again after the demo.
+
+**Checked:** `wrangler deploy --dry-run --env production` shows the new values. **Not checked:** a real plan in production (after merge). [PR #182](https://github.com/Checkmate-Prep/chess-coach/pull/182)
