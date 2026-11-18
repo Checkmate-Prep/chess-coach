@@ -363,11 +363,12 @@ function renderWelcome() {
         ['5-game-plan-consent', 'The quick game plan, and the note you agree to before the AI writes a deeper one'],
       ].map(([f, alt]) => `<img src="shots/${f}.webp" alt="${alt}" width="540" height="960" loading="lazy">`).join('')}</div>
         <button type="button" class="arrow next" data-dir="1" aria-label="Next screen">›</button></div></section>
+    <div class="side">
     <section class="card steps-card"><h2>How it works</h2>${howItWorksHtml()}</section>
     <section class="card contribute-card"><h2>Contribute</h2>
       <ul class="facts"><li><span>The code is open source, <a href="https://github.com/Checkmate-Prep/chess-coach">on GitHub</a>.</span></li>
         <li><span>Every step used to build it with Claude is in <a href="https://github.com/Checkmate-Prep/chess-coach/blob/main/docs/build-log.md">build-log.md</a>.</span></li>
-        <li><span>Contributions are welcome.</span></li></ul></section>
+        <li><span>Contributions are welcome.</span></li></ul></section></div>
     ${footerHtml}</div>`;
   renderAccount();
   rollShots(view.querySelector('.carousel'));
