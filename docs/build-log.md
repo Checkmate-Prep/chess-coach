@@ -1052,16 +1052,20 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 
 **Checked:** `wrangler deploy --dry-run --env production` shows the new values. **Not checked:** a real plan in production (after merge). [PR #182](https://github.com/Checkmate-Prep/chess-coach/pull/182)
 
-### 183. How it works and Contribute sit higher on desktop
+### 183. How it works and Contribute line up with the left column on desktop
 > merged.
 > create new branch to improve position on desktop screen
 > boxes how it works and contribute should be higher and aligned with the left column
 > [screenshot of the homepage on desktop]
 >
 > align bottom of Contribute box with the bottom of the column on its left.
+>
+> remove "." at end of each line on homepage
+>
+> don't make the box bigger, lower the boxes on the page
 
-**What Claude did:** the hero image spanned both columns of the desktop grid, so the right-hand cards started below it, and "How it works" was centred against the rows next to it. The two cards are now wrapped in one `.side` column that spans the hero, title, buttons and feature list rows, aligned to the top. Phones keep the same order.
+**What Claude did:** the hero image spanned both columns of the desktop grid, so the right-hand cards started below it, and "How it works" was centred against the rows next to it. The two cards are now wrapped in one `.side` column next to the hero, title, buttons and feature list rows, aligned to the bottom so Contribute ends level with the feature list. Phones keep the same order.
 
-**Changed along the way:** the column now also stretches to the bottom of the left column, and the Contribute card grows to fill it, so its bottom lines up with the feature list.
+**Changed along the way:** to line up the bottoms, the Contribute card first grew to fill the column; that was replaced by keeping both cards their natural size and aligning the column to the bottom of the left one. The list lines in "How it works" and "Contribute" lost their final full stops, to match the feature list.
 
-**Checked:** headless Chromium in dark mode at 1116×800, 1440×900 and 375×812, measuring the top and bottom edges (equal, with and without an "I already have an account" button); node suite 257 pass. **Not checked:** light mode on desktop, real devices. [PR #183](https://github.com/Checkmate-Prep/chess-coach/pull/183)
+**Checked:** headless Chromium in dark mode at 1116×800, 1440×900 and 375×812, measuring the bottom edges (equal, with and without an "I already have an account" button); node suite 257 pass. **Not checked:** light mode on desktop, real devices. [PR #183](https://github.com/Checkmate-Prep/chess-coach/pull/183)
