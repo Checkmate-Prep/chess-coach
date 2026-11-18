@@ -1063,9 +1063,11 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 > remove "." at end of each line on homepage
 >
 > don't make the box bigger, lower the boxes on the page
+>
+> "The code is open source, [on GitHub](https://github.com/Checkmate-Prep/chess-coach)" => "The code is [open source](https://github.com/Checkmate-Prep/chess-coach)"
 
 **What Claude did:** the hero image spanned both columns of the desktop grid, so the right-hand cards started below it, and "How it works" was centred against the rows next to it. The two cards are now wrapped in one `.side` column next to the hero, title, buttons and feature list rows, aligned to the bottom so Contribute ends level with the feature list. Phones keep the same order.
 
-**Changed along the way:** to line up the bottoms, the Contribute card first grew to fill the column; that was replaced by keeping both cards their natural size and aligning the column to the bottom of the left one. The list lines in "How it works" and "Contribute" lost their final full stops, to match the feature list.
+**Changed along the way:** to line up the bottoms, the Contribute card first grew to fill the column; that was replaced by keeping both cards their natural size and aligning the column to the bottom of the left one. The list lines in "How it works" and "Contribute" lost their final full stops, to match the feature list. The first bullet now reads "The code is open source", with "open source" as the link.
 
 **Checked:** headless Chromium in dark mode at 1116×800, 1440×900 and 375×812, measuring the bottom edges (equal, with and without an "I already have an account" button); node suite 257 pass. **Not checked:** light mode on desktop, real devices. [PR #183](https://github.com/Checkmate-Prep/chess-coach/pull/183)
