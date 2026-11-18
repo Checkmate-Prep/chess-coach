@@ -1057,7 +1057,11 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 > create new branch to improve position on desktop screen
 > boxes how it works and contribute should be higher and aligned with the left column
 > [screenshot of the homepage on desktop]
+>
+> align bottom of Contribute box with the bottom of the column on its left.
 
 **What Claude did:** the hero image spanned both columns of the desktop grid, so the right-hand cards started below it, and "How it works" was centred against the rows next to it. The two cards are now wrapped in one `.side` column that spans the hero, title, buttons and feature list rows, aligned to the top. Phones keep the same order.
 
-**Checked:** headless Chromium in dark mode at 1116×800, 1440×900 and 375×812; node suite 257 pass. **Not checked:** light mode on desktop, the layout with the "I already have an account" button, real devices. [PR #183](https://github.com/Checkmate-Prep/chess-coach/pull/183)
+**Changed along the way:** the column now also stretches to the bottom of the left column, and the Contribute card grows to fill it, so its bottom lines up with the feature list.
+
+**Checked:** headless Chromium in dark mode at 1116×800, 1440×900 and 375×812, measuring the top and bottom edges (equal, with and without an "I already have an account" button); node suite 257 pass. **Not checked:** light mode on desktop, real devices. [PR #183](https://github.com/Checkmate-Prep/chess-coach/pull/183)

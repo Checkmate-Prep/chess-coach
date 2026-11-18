@@ -165,6 +165,8 @@ h2 .info-btn{font-size:1.05rem}
   .welcome-page{grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:56px;align-items:start;
     grid-template-areas:"top side" "head side" "choices side" "facts side" "example example" "foot foot"}
   .welcome-top{justify-items:start;text-align:left}
+  .welcome-page>.side{align-self:stretch;grid-template-rows:auto 1fr}
+  .welcome-page .contribute-card{align-content:start}
   .welcome-page h1{font-size:2.8rem}
   .welcome-page .lede{font-size:1.15rem}
   .welcome-page .hero{max-width:300px}
