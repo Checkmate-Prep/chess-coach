@@ -368,7 +368,7 @@ function renderWelcome() {
     <section class="card contribute-card"><h2>Contribute</h2>
       <ul class="facts"><li><span>The code is <a href="https://github.com/Checkmate-Prep/chess-coach">open source</a></span></li>
         <li><span>Every step used to build it with Claude is in <a href="https://github.com/Checkmate-Prep/chess-coach/blob/main/docs/build-log.md">build-log.md</a></span></li>
-        <li><span>Contributions are welcome</span></li></ul></section></div>
+        <li><span><a href="https://github.com/Checkmate-Prep/chess-coach/blob/main/CONTRIBUTING.md">Contributions</a> are welcome</span></li></ul></section></div>
     ${footerHtml}</div>`;
   renderAccount();
   rollShots(view.querySelector('.carousel'));
