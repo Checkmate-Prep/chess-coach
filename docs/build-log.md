@@ -1051,3 +1051,13 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 **What Claude did:** explained the two limits: Anthropic credits (topped up in the Anthropic Console, with auto-reload) and the app's own caps in `wrangler.toml`. In production a single IP address could get only 5 plans a day, and a room on one Wi-Fi shares an address. It raised `PER_IP_DAILY` 5 → 40, `DAILY_LIMIT` 40 → 100 and `AI_BURST` 2 → 5 per minute, for production only. These are meant to come down again after the demo.
 
 **Checked:** `wrangler deploy --dry-run --env production` shows the new values. **Not checked:** a real plan in production (after merge). [PR #182](https://github.com/Checkmate-Prep/chess-coach/pull/182)
+
+### 183. How it works and Contribute sit higher on desktop
+> merged.
+> create new branch to improve position on desktop screen
+> boxes how it works and contribute should be higher and aligned with the left column
+> [screenshot of the homepage on desktop]
+
+**What Claude did:** the hero image spanned both columns of the desktop grid, so the right-hand cards started below it, and "How it works" was centred against the rows next to it. The two cards are now wrapped in one `.side` column that spans the hero, title, buttons and feature list rows, aligned to the top. Phones keep the same order.
+
+**Checked:** headless Chromium in dark mode at 1116×800, 1440×900 and 375×812; node suite 257 pass. **Not checked:** light mode on desktop, the layout with the "I already have an account" button, real devices. [PR #183](https://github.com/Checkmate-Prep/chess-coach/pull/183)
