@@ -1051,3 +1051,29 @@ Arrow keys were built first (plan and trap viewers, Explore) and dropped on requ
 **What Claude did:** explained the two limits: Anthropic credits (topped up in the Anthropic Console, with auto-reload) and the app's own caps in `wrangler.toml`. In production a single IP address could get only 5 plans a day, and a room on one Wi-Fi shares an address. It raised `PER_IP_DAILY` 5 → 40, `DAILY_LIMIT` 40 → 100 and `AI_BURST` 2 → 5 per minute, for production only. These are meant to come down again after the demo.
 
 **Checked:** `wrangler deploy --dry-run --env production` shows the new values. **Not checked:** a real plan in production (after merge). [PR #182](https://github.com/Checkmate-Prep/chess-coach/pull/182)
+
+### 183. How it works and Contribute line up with the left column on desktop
+> merged.
+> create new branch to improve position on desktop screen
+> boxes how it works and contribute should be higher and aligned with the left column
+> [screenshot of the homepage on desktop]
+>
+> align bottom of Contribute box with the bottom of the column on its left.
+>
+> remove "." at end of each line on homepage
+>
+> don't make the box bigger, lower the boxes on the page
+>
+> "The code is open source, [on GitHub](https://github.com/Checkmate-Prep/chess-coach)" => "The code is [open source](https://github.com/Checkmate-Prep/chess-coach)"
+>
+> create md file to explain how to contribute and link to "[Contributions](link) are welcome"
+>
+> which licence do you recommend
+>
+> go with MIT
+
+**What Claude did:** the hero image spanned both columns of the desktop grid, so the right-hand cards started below it, and "How it works" was centred against the rows next to it. The two cards are now wrapped in one `.side` column next to the hero, title, buttons and feature list rows, aligned to the bottom so Contribute ends level with the feature list. Phones keep the same order.
+
+**Changed along the way:** to line up the bottoms, the Contribute card first grew to fill the column; that was replaced by keeping both cards their natural size and aligning the column to the bottom of the left one. The list lines in "How it works" and "Contribute" lost their final full stops, to match the feature list. The first bullet now reads "The code is open source", with "open source" as the link. A new `CONTRIBUTING.md` explains how to report issues, run the app locally, the rules that matter, tests and pull requests; "Contributions" in the last bullet links to it. Claude recommended MIT (AGPLv3 if stopping closed hosted clones mattered more); a `LICENSE` file (MIT, Artware Solutions LLC) was added, with a Licence section in the README and in `CONTRIBUTING.md`. Stockfish stays GPL in `app/vendor/`, and the name and logo stay outside the licence.
+
+**Checked:** headless Chromium in dark mode at 1116×800, 1440×900 and 375×812, measuring the bottom edges (equal, with and without an "I already have an account" button); node suite 257 pass. **Not checked:** light mode on desktop, real devices. [PR #183](https://github.com/Checkmate-Prep/chess-coach/pull/183)

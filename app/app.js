@@ -317,9 +317,9 @@ const footerHtml = '<p class="foot"><a href="privacy.html">Privacy</a> · <a hre
 
 /** The three steps of getting started, shown on the welcome screen and as step 1 of setup (`now` marks the current one). */
 const howItWorksHtml = (now = 0) => `<ol class="steps">
-      <li${now === 1 ? ' class="now"' : ''}><div><b>Enter your chess.com username.</b> We download your games and find your strengths and weaknesses.</div></li>
-      <li><div><b>Add the people you'll play.</b> Friends, rivals, anyone on chess.com. We learn their favorite openings and find their weak lines.</div></li>
-      <li><div><b>Get your AI game plan.</b> A plan for each opponent, with recommended traps to set and puzzles to practice them.</div></li></ol>`;
+      <li${now === 1 ? ' class="now"' : ''}><div><b>Enter your chess.com username.</b> We download your games and find your strengths and weaknesses</div></li>
+      <li><div><b>Add the people you'll play.</b> Friends, rivals, anyone on chess.com. We learn their favorite openings and find their weak lines</div></li>
+      <li><div><b>Get your AI game plan.</b> A plan for each opponent, with recommended traps to set and puzzles to practice them</div></li></ol>`;
 
 /**
  * The example screens as a carousel, one at a time: rolls on its own every few seconds, and the arrows (or a swipe)
@@ -363,11 +363,12 @@ function renderWelcome() {
         ['5-game-plan-consent', 'The quick game plan, and the note you agree to before the AI writes a deeper one'],
       ].map(([f, alt]) => `<img src="shots/${f}.webp" alt="${alt}" width="540" height="960" loading="lazy">`).join('')}</div>
         <button type="button" class="arrow next" data-dir="1" aria-label="Next screen">›</button></div></section>
+    <div class="side">
     <section class="card steps-card"><h2>How it works</h2>${howItWorksHtml()}</section>
     <section class="card contribute-card"><h2>Contribute</h2>
-      <ul class="facts"><li><span>The code is open source, <a href="https://github.com/Checkmate-Prep/chess-coach">on GitHub</a>.</span></li>
-        <li><span>Every step used to build it with Claude is in <a href="https://github.com/Checkmate-Prep/chess-coach/blob/main/docs/build-log.md">build-log.md</a>.</span></li>
-        <li><span>Contributions are welcome.</span></li></ul></section>
+      <ul class="facts"><li><span>The code is <a href="https://github.com/Checkmate-Prep/chess-coach">open source</a></span></li>
+        <li><span>Every step used to build it with Claude is in <a href="https://github.com/Checkmate-Prep/chess-coach/blob/main/docs/build-log.md">build-log.md</a></span></li>
+        <li><span><a href="https://github.com/Checkmate-Prep/chess-coach/blob/main/CONTRIBUTING.md">Contributions</a> are welcome</span></li></ul></section></div>
     ${footerHtml}</div>`;
   renderAccount();
   rollShots(view.querySelector('.carousel'));

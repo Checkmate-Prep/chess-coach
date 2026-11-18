@@ -209,3 +209,7 @@ This serves `app/` at http://localhost:8766 and reloads the page on every save. 
 ## Limits
 
 chess.com's public API exposes puzzle ratings but not puzzle history, so tactical drills come from positions in your real games.
+
+## Licence
+
+The code is under the [MIT licence](LICENSE). Vendored libraries in `app/vendor/` keep their own licences (Stockfish is GPL). The name "Checkmate Prep" and its logo are not covered by the licence. To contribute, see [CONTRIBUTING.md](CONTRIBUTING.md).
