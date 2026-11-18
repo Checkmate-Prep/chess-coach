@@ -64,4 +64,4 @@ This project is set up for [Claude Code](https://claude.com/claude-code): `CLAUD
 
 ## Licence
 
-The repository doesn't have a licence file yet. Until it has one, ask in an issue before reusing the code elsewhere. The vendored Stockfish is GPL (see `app/vendor/stockfish/`).
+The code is under the [MIT licence](LICENSE). By sending a pull request, you agree that your contribution is published under it too. Vendored libraries keep their own licences: Stockfish is GPL (`app/vendor/stockfish/COPYING.txt`) and the Auth0 SDK is MIT (`app/vendor/auth0/LICENSE.txt`). The licence covers the code, not the name "Checkmate Prep" or its logo: a fork should use its own name.
